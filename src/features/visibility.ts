@@ -30,8 +30,10 @@ export class DockVisibility {
 
         if (!autoHide && !smartHide) {
             this.cancelHide();
+            this.actor.remove_all_transitions();
             this.actor.show();
             this.actor.opacity = 255;
+            this.actor.reactive = true;
         } else if (autoHide) {
             this.scheduleHide();
         }
@@ -93,6 +95,8 @@ export class DockVisibility {
             return;
 
         this.cancelHide();
+        // A previous hide completion must not make a newly shown dock inert.
+        this.actor.remove_all_transitions();
         this.actor.show();
         this.actor.ease({
             opacity: 255,
@@ -107,6 +111,8 @@ export class DockVisibility {
             (!this.settings.get_boolean('auto-hide') && !this.settings.get_boolean('smart-hide')))
             return;
 
+        // Replace any in-flight show/hide transition before starting this one.
+        this.actor.remove_all_transitions();
         this.actor.ease({
             opacity: 0,
             duration: 160,
