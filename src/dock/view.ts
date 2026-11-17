@@ -307,10 +307,9 @@ export class DockView {
             const paddingBottom = this.settings.get_int('background-padding-bottom');
             const paddingLeft = this.settings.get_int('background-padding-left');
             const border = this.settings.get_int('border-size');
-            const iconPadding = this.settings.get_int('icon-padding-top') +
-                this.settings.get_int('icon-padding-right') +
-                this.settings.get_int('icon-padding-bottom') +
-                this.settings.get_int('icon-padding-left');
+            const iconPadding = vertical
+                ? this.settings.get_int('icon-padding-top') + this.settings.get_int('icon-padding-bottom')
+                : this.settings.get_int('icon-padding-left') + this.settings.get_int('icon-padding-right');
             const panel = Main.panel as St.Widget;
             const [panelX, panelY] = panel.get_transformed_position();
             const panelBottom = panelY + panel.height;
