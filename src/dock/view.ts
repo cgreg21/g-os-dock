@@ -307,6 +307,10 @@ export class DockView {
         }));
         if (this.systemItem)
             items.push({ id: 'system:launcher', actor: this.systemItem.getActor() });
+        const children = this.content.get_children();
+        items.sort((a, b) =>
+            children.indexOf(a.actor) - children.indexOf(b.actor),
+        );
         return items;
     }
 
