@@ -458,6 +458,28 @@ export class DockView {
                 x_align: Clutter.ActorAlign.CENTER,
             });
             content.add_child(label);
+
+            // Show the window's workspace and provide a direct switch action.
+            let workspace: any = null;
+            let workspaceIndex = -1;
+            let onAllWorkspaces = false;
+            try {
+                workspace = window.get_workspace();
+                workspaceIndex = workspace?.index?.() ?? -1;
+                onAllWorkspaces = window.is_on_all_workspaces();
+            } catch (_error) {
+                // Some special windows may not expose normal workspace metadata.
+            }
+            const activeWorkspaceIndex = global.workspace_manager.get_active_workspace_index();
+            const workspaceText = onAllWorkspaces
+                ? 'All workspaces'
+                : workspaceIndex >= 0 ? `Workspace ${workspaceIndex + 1}` : 'Workspace unavailable';
+            const workspaceLabel = new St.Label({
+                text: workspaceText,
+                style_class: 'g-os-dock-preview-workspace',
+                x_align: Clutter.ActorAlign.CENTER,
+            });
+            content.add_child(workspaceLabel);
             previewButton.set_child(content);
             if (!firstPreviewButton)
                 firstPreviewButton = previewButton;
@@ -501,6 +523,28 @@ export class DockView {
                 this.hideWindowPreviews();
             });
             actions.add_child(minimize);
+
+            if (!onAllWorkspaces && workspace && workspaceIndex >= 0 &&
+                workspaceIndex !== activeWorkspaceIndex) {
+                const switchWorkspace = new St.Button({
+                    style_class: 'g-os-dock-preview-action workspace',
+                    child: new St.Label({ text: 'Go to workspace' }),
+                    can_focus: true,
+                    reactive: true,
+                    tooltip_text: `Switch to workspace ${workspaceIndex + 1}`,
+                    accessible_name: `Switch to workspace ${workspaceIndex + 1}`,
+                    x_expand: true,
+                });
+                switchWorkspace.connect('clicked', () => {
+                    const timestamp = global.get_current_time();
+                    workspace.activate(timestamp);
+                    try { app.activate_window(window, timestamp); }
+                    catch (_error) { window.activate(timestamp); }
+                    this.hideWindowPreviews();
+                });
+                actions.add_child(switchWorkspace);
+            }
+
             actions.add_child(close);
             card.add_child(actions);
             previews.add_child(card);
