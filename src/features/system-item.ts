@@ -101,6 +101,8 @@ export class DockSystemItem {
             -1,
             null,
             (connection, result) => {
+                if (!connection)
+                    return;
                 try {
                     connection.call_finish(result);
                 } catch (error) {
