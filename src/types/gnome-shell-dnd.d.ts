@@ -5,5 +5,12 @@ declare module 'resource:///org/gnome/shell/ui/dnd.js' {
         MOVE_DROP = 2,
     }
 
-    export function makeDraggable(actor: any, params?: any): any;
+    export interface Draggable {
+        connect(signal: string, callback: (...args: unknown[]) => void): number;
+    }
+
+    export function makeDraggable(
+        actor: import('gi://Clutter?version=51').Actor,
+        params?: { dragActorOpacity?: number },
+    ): Draggable;
 }
