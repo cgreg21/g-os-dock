@@ -54,6 +54,18 @@ export class DockIndicators {
                     );
                     item._gOsDockIndicator.add_child(marker);
                 }
+                // Clutter.FixedLayout does not infer overlay alignment: place
+                // the marker row explicitly at the icon's bottom center.
+                const iconContainer = item._gOsDockIndicator.get_parent();
+                if (iconContainer) {
+                    const spacing = 2;
+                    const totalWidth = markerCount * length + Math.max(0, markerCount - 1) * spacing;
+                    item._gOsDockIndicator.set_size(totalWidth, thickness);
+                    item._gOsDockIndicator.set_position(
+                        Math.max(0, (iconContainer.width - totalWidth) / 2),
+                        Math.max(0, iconContainer.height - thickness),
+                    );
+                }
                 item._gOsDockIndicator.remove_style_class_name('active');
                 if (active)
                     item._gOsDockIndicator.add_style_class_name('active');
