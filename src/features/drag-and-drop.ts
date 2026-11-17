@@ -218,8 +218,10 @@ export class DockDragDrop {
             if (favoriteCountBeforeSystem >= 0) {
                 const remainingBeforeSystem = favoriteCountBeforeSystem -
                     (currentIndex < favoriteCountBeforeSystem ? 1 : 0);
-                const nextSystemPosition = remainingBeforeSystem +
+                const nextFavoritesBeforeSystem = remainingBeforeSystem +
                     (targetIndex < remainingBeforeSystem ? 1 : 0);
+                const nextSystemPosition = currentSystemPosition +
+                    nextFavoritesBeforeSystem - favoriteCountBeforeSystem;
                 if (nextSystemPosition !== currentSystemPosition)
                     this.setSystemPosition(nextSystemPosition);
             }
