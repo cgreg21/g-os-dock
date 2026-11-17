@@ -178,17 +178,31 @@ export class DockView {
         this.previews.hide();
         this.previews.cancelPending();
         this.dragDrop.clearDropTarget();
-        for (const item of this.itemActors)
-            this.dragDrop.release(item);
-        for (const child of this.actor.get_children())
-            child.destroy();
-        this.itemActors = [];
-        const size = this.settings.get_int('icon-size');
-        for (const app of this.getApplications()) {
-            const item = this.createItem(app, size);
-            this.itemActors.push(item);
-            this.actor.add_child(item);
+
+        const pendingItems: DockAppButton[] = [];
+        try {
+            const size = this.settings.get_int('icon-size');
+            for (const app of this.getApplications()) {
+                const item = this.createItem(app, size);
+                pendingItems.push(item);
+                this.actor.add_child(item);
+            }
+        } catch (error) {
+            for (const item of pendingItems) {
+                this.dragDrop.release(item);
+                if (item.get_parent())
+                    item.get_parent()?.remove_child(item);
+                item.destroy();
+            }
+            throw error;
         }
+
+        const previousItems = this.itemActors;
+        for (const item of previousItems) {
+            this.dragDrop.release(item);
+            item.destroy();
+        }
+        this.itemActors = pendingItems;
         this.appearance.apply();
         this.layout.position();
         this.applyMagnification(-1, false);
