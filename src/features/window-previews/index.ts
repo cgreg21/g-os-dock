@@ -84,7 +84,9 @@ export class WindowPreviews {
         const verticalDock = ['left', 'right'].includes(this.settings.get_string('dock-position'));
         const previews = new St.BoxLayout({
             style_class: 'g-os-dock-previews',
-            vertical: verticalDock,
+            orientation: verticalDock
+                ? Clutter.Orientation.VERTICAL
+                : Clutter.Orientation.HORIZONTAL,
             reactive: true,
             track_hover: true,
             x_expand: false,
