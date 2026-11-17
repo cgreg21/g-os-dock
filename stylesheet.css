@@ -61,6 +61,29 @@
   min-width: 188px;
 }
 
+.g-os-dock-preview-open {
+  padding: 0;
+}
+
+.g-os-dock-preview-actions {
+  spacing: 6px;
+}
+
+.g-os-dock-preview-action {
+  min-height: 28px;
+  border-radius: 7px;
+  background-color: rgba(255, 255, 255, 0.09);
+}
+
+.g-os-dock-preview-action:hover,
+.g-os-dock-preview-action:focus {
+  background-color: rgba(255, 255, 255, 0.19);
+}
+
+.g-os-dock-preview-action.close:hover {
+  background-color: rgba(220, 65, 65, 0.75);
+}
+
 .g-os-dock-preview-thumbnail {
   border-radius: 6px;
   background-color: rgba(0, 0, 0, 0.35);
