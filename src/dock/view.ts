@@ -60,6 +60,7 @@ export class DockView {
     private appItemFactory: DockAppItemFactory;
     private keyboard: DockKeyboardNavigation;
     private systemItem: DockSystemItem | null = null;
+    private favoritesSeparator: St.Widget | null = null;
 
     constructor(index: number, monitor: MonitorGeometry, settings: Gio.Settings) {
         this.monitor = monitor;
@@ -290,10 +291,14 @@ export class DockView {
 
         const savedOrder = this.settings.get_strv('dock-item-order');
         const order = new Map(savedOrder.map((id, index) => [id, index]));
-        result.sort((a, b) =>
-            (order.get(`app:${a.get_id()}`) ?? Number.MAX_SAFE_INTEGER) -
-            (order.get(`app:${b.get_id()}`) ?? Number.MAX_SAFE_INTEGER),
-        );
+        result.sort((a, b) => {
+            const aFavorite = this.favorites.isFavorite(a.get_id());
+            const bFavorite = this.favorites.isFavorite(b.get_id());
+            if (aFavorite !== bFavorite)
+                return aFavorite ? -1 : 1;
+            return (order.get(`app:${a.get_id()}`) ?? Number.MAX_SAFE_INTEGER) -
+                (order.get(`app:${b.get_id()}`) ?? Number.MAX_SAFE_INTEGER);
+        });
         return result;
     }
 
@@ -449,6 +454,7 @@ export class DockView {
             this.itemSize = size;
             const systemItemChanged = this.syncSystemItem(size);
             this.applySavedItemOrder();
+            this.syncFavoritesSeparator(size, vertical);
             if (structureChanged || systemItemChanged)
                 this.layout.position();
         } catch (error) {
@@ -465,6 +471,57 @@ export class DockView {
 
         this.updateIndicators();
         this.visibility.queueSmartHideCheck();
+    }
+
+    private syncFavoritesSeparator(size: number, vertical: boolean): void {
+        const enabled = this.settings.get_boolean('show-favorites-separator');
+        const firstNonFavorite = this.itemActors.find(item =>
+            !this.favorites.isFavorite(item._gOsDockApp.get_id()),
+        );
+
+        if (!enabled || !firstNonFavorite) {
+            if (this.favoritesSeparator) {
+                this.favoritesSeparator.get_parent()?.remove_child(this.favoritesSeparator);
+                this.favoritesSeparator.destroy();
+                this.favoritesSeparator = null;
+            }
+            return;
+        }
+
+        if (!this.favoritesSeparator) {
+            this.favoritesSeparator = new St.Widget({
+                style_class: 'g-os-dock-favorites-separator',
+                reactive: false,
+                can_focus: false,
+                x_expand: false,
+                y_expand: false,
+            });
+            this.content.add_child(this.favoritesSeparator);
+        }
+
+        const thickness = this.settings.get_int('favorites-separator-size');
+        const length = Math.max(4, Math.round(
+            size * this.settings.get_int('favorites-separator-length') / 100,
+        ));
+        const color = this.settings.get_string('favorites-separator-color');
+        const opacity = this.settings.get_double('favorites-separator-opacity');
+        this.favoritesSeparator.set_size(
+            vertical ? length : thickness,
+            vertical ? thickness : length,
+        );
+        this.favoritesSeparator.set_style(
+            `background-color: ${color}; opacity: ${opacity}; ` +
+            `border-radius: ${Math.ceil(thickness / 2)}px; ` +
+            (vertical
+                ? `margin: 4px ${Math.max(2, Math.floor(size * 0.12))}px;`
+                : `margin: ${Math.max(2, Math.floor(size * 0.12))}px 4px;`),
+        );
+
+        const targetIndex = this.content.get_children().indexOf(firstNonFavorite);
+        if (targetIndex >= 0 &&
+            this.content.get_children()[targetIndex - 1] !== this.favoritesSeparator) {
+            this.content.set_child_at_index(this.favoritesSeparator, targetIndex);
+        }
     }
 
     private syncSystemItem(size: number): boolean {
