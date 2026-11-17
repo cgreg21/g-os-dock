@@ -89,14 +89,14 @@ export class DockAppItemFactory {
         try {
             item._gOsDockApp = app;
 
-            const dndItem = item as DockAppButton & {
-                _gOsDockIsFavorite?: () => boolean;
-                _gOsDockRemoveFavorite?: () => void;
-            };
-            dndItem._gOsDockIsFavorite = () => this.dependencies.favorites.isFavorite(app.get_id());
-            dndItem._gOsDockRemoveFavorite = () => this.dependencies.favorites.removeFavorite(app.get_id());
             this.dependencies.dragDrop.registerItem(
-                { id: `app:${app.get_id()}`, actor: item, app },
+                {
+                    id: `app:${app.get_id()}`,
+                    actor: item,
+                    app,
+                    canRemove: () => this.dependencies.favorites.isFavorite(app.get_id()),
+                    onRemove: () => this.dependencies.favorites.removeFavorite(app.get_id()),
+                },
                 () => this.dependencies.previews.hide(),
             );
 
