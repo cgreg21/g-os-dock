@@ -1,17 +1,20 @@
 import St from 'gi://St?version=51';
+import Shell from 'gi://Shell?version=51';
+import Meta from 'gi://Meta?version=51';
+import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 /** Keeps application context-menu construction and cleanup out of DockView. */
 export class AppContextMenu {
-    private manager: any;
-    private menus: any[] = [];
+    private manager: PopupMenu.PopupMenuManager;
+    private menus: PopupMenu.PopupMenu[] = [];
 
-    constructor(actor: any, private favorites: any) {
+    constructor(actor: St.Widget, private favorites: ReturnType<typeof AppFavorites.getAppFavorites>) {
         this.manager = new PopupMenu.PopupMenuManager(actor);
     }
 
-    show(source: any, app: any): void {
+    show(source: St.Widget, app: Shell.App): void {
         const menu = new PopupMenu.PopupMenu(source, 0.5, St.Side.TOP);
         Main.uiGroup.add_child(menu.actor);
         this.manager.addMenu(menu);
@@ -38,10 +41,10 @@ export class AppContextMenu {
             }
             menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
             const minimize = new PopupMenu.PopupMenuItem('Minimize all windows');
-            minimize.connect('activate', () => windows.forEach((window: any) => window.minimize()));
+            minimize.connect('activate', () => windows.forEach((window: Meta.Window) => window.minimize()));
             menu.addMenuItem(minimize);
             const close = new PopupMenu.PopupMenuItem('Close all windows');
-            close.connect('activate', () => windows.forEach((window: any) => window.delete(global.get_current_time())));
+            close.connect('activate', () => windows.forEach((window: Meta.Window) => window.delete(global.get_current_time())));
             menu.addMenuItem(close);
         }
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
@@ -53,7 +56,7 @@ export class AppContextMenu {
             : this.favorites.addFavorite(appId));
         menu.addMenuItem(pin);
         if (favorite) {
-            const favoriteIds = this.favorites.getFavorites().map((entry: any) => entry.get_id());
+            const favoriteIds = this.favorites.getFavorites().map(entry => entry.get_id());
             const favoriteIndex = favoriteIds.indexOf(appId);
             const moveEarlier = new PopupMenu.PopupMenuItem('Move earlier in dock');
             moveEarlier.setSensitive(favoriteIndex > 0);
@@ -64,10 +67,10 @@ export class AppContextMenu {
             moveLater.connect('activate', () => this.favorites.moveFavoriteToPos(appId, Math.min(favoriteIds.length - 1, favoriteIndex + 1)));
             menu.addMenuItem(moveLater);
         }
-        menu.connect('open-state-changed', (_menu: any, isOpen: boolean) => {
+        menu.connect('open-state-changed', (_menu: PopupMenu.PopupMenu, isOpen: boolean) => {
             if (!isOpen) {
                 this.manager.removeMenu(menu);
-                this.menus = this.menus.filter((entry: any) => entry !== menu);
+                this.menus = this.menus.filter(entry => entry !== menu);
                 menu.destroy();
             }
         });
