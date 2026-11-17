@@ -13,10 +13,10 @@ export class DockSystemItem {
     private menu: PopupMenu.PopupMenu | null = null;
     private iconSignal = 0;
     private destroyed = false;
-    private draggable: DND.Draggable;
 
     constructor(private content: St.BoxLayout, private settings: Gio.Settings,
-        private iconSize: number, private dockPosition: () => string) {
+        private iconSize: number, private dockPosition: () => string,
+        private dragPreview: { begin: (actor: St.Widget) => void; end: () => void }) {
         this.button = new St.Button({
             style_class: 'g-os-dock-item g-os-dock-system-item', reactive: true,
             can_focus: true, track_hover: true, x_expand: false, y_expand: false,
@@ -35,10 +35,19 @@ export class DockSystemItem {
             getDragActor: () => new Clutter.Clone({ source: this.button }),
             getDragActorSource: () => this.button,
         };
-        this.draggable = DND.makeDraggable(this.button, { dragActorOpacity: 210 });
-        this.draggable.connect('drag-begin', () => this.button.add_style_class_name('dragging'));
-        this.draggable.connect('drag-end', () => this.button.remove_style_class_name('dragging'));
-        this.draggable.connect('drag-cancelled', () => this.button.remove_style_class_name('dragging'));
+        const draggable = DND.makeDraggable(this.button, { dragActorOpacity: 210 });
+        draggable.connect('drag-begin', () => {
+            this.button.add_style_class_name('dragging');
+            this.dragPreview.begin(this.button);
+        });
+        draggable.connect('drag-end', () => {
+            this.button.remove_style_class_name('dragging');
+            this.dragPreview.end();
+        });
+        draggable.connect('drag-cancelled', () => {
+            this.button.remove_style_class_name('dragging');
+            this.dragPreview.end();
+        });
         this.iconSignal = settings.connect('changed::system-icon-name', () => this.updateIcon());
         this.menuManager = new PopupMenu.PopupMenuManager(this.button);
         this.content.add_child(this.button);
