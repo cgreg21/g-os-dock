@@ -89,7 +89,8 @@ export class DockView {
             reactive: true,
             track_hover: true,
         });
-        // Keep the adjustments available for scrolling without displaying scrollbars.
+        // DockLayout enables automatic scrolling on the overflowing axis.
+        // The stylesheet collapses the native scrollbar actors themselves.
         this.actor.set_policy(St.PolicyType.NEVER, St.PolicyType.NEVER);
         this.actor.set_mouse_scrolling(true);
         this.appearance = new DockAppearance(this.actor, this.content, this.settings, this.desktopSettings);
