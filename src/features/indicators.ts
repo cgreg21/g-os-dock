@@ -24,6 +24,9 @@ export class DockIndicators {
         // values move it below the icon's bottom edge.
         const bottomOffset = this.settings.get_int('indicator-bottom-offset');
         const indicatorSize = this.settings.get_int('indicator-size');
+        const borderSize = this.settings.get_int('indicator-border-size');
+        const borderColor = this.validColor(this.settings.get_string('indicator-border-color'));
+        const borderOpacity = Math.max(0, Math.min(1, this.settings.get_double('indicator-border-opacity')));
 
         for (const item of items) {
             const app = item._gOsDockApp;
@@ -54,7 +57,8 @@ export class DockIndicators {
                     marker.set_size(length, thickness);
                     marker.set_style(
                         `width: ${length}px; height: ${thickness}px; ` +
-                        `border-radius: ${radius}; background-color: rgba(${color}, ${opacity});`,
+                        `border-radius: ${radius}; background-color: rgba(${color}, ${opacity}); ` +
+                        `border: ${borderSize}px solid rgba(${borderColor}, ${borderOpacity});`,
                     );
                     item._gOsDockIndicator.add_child(marker);
                 }
