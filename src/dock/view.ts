@@ -25,6 +25,9 @@ export class DockView {
     private actor: St.ScrollView & { _delegate?: unknown };
     private content: St.BoxLayout;
     private edgeSensor: St.Widget;
+    private previousButton: St.Button;
+    private nextButton: St.Button;
+    private scrollAdjustmentSignals: number[] = [];
     private monitor: MonitorGeometry;
     private monitorIndex: number;
     private settings: Gio.Settings;
@@ -100,6 +103,18 @@ export class DockView {
             this.actor,
             () => this.destroyed,
         );
+        this.previousButton = new St.Button({
+            style_class: 'g-os-dock-scroll-button',
+            child: new St.Icon({ icon_name: 'pan-up-symbolic' }),
+            reactive: true,
+            can_focus: false,
+        });
+        this.nextButton = new St.Button({
+            style_class: 'g-os-dock-scroll-button',
+            child: new St.Icon({ icon_name: 'pan-down-symbolic' }),
+            reactive: true,
+            can_focus: false,
+        });
         this.edgeSensor = new St.Widget({
             style_class: 'g-os-dock-edge-sensor',
             reactive: true,
@@ -157,6 +172,24 @@ export class DockView {
                 affectsStruts: false,
                 trackFullscreen: false,
             });
+            Main.layoutManager.addChrome(this.previousButton, {
+                affectsStruts: false,
+                trackFullscreen: false,
+            });
+            Main.layoutManager.addChrome(this.nextButton, {
+                affectsStruts: false,
+                trackFullscreen: false,
+            });
+            this.previousButton.connect('clicked', () => this.scrollByPage(-1));
+            this.nextButton.connect('clicked', () => this.scrollByPage(1));
+            for (const adjustment of [this.actor.get_hadjustment(), this.actor.get_vadjustment()]) {
+                for (const property of ['upper', 'page-size']) {
+                    this.scrollAdjustmentSignals.push(adjustment.connect(
+                        `notify::${property}`,
+                        () => this.updateScrollControls(),
+                    ));
+                }
+            }
             // Recalculate available dock space when the top panel changes
             // size or position (for example after a scale/theme/layout change).
             const panel = Main.panel as St.Widget;
@@ -168,6 +201,7 @@ export class DockView {
                             return;
                         this.layout.position();
                         this.layout.positionSensor();
+                        this.updateScrollControls();
                     },
                 ));
             }
@@ -319,6 +353,7 @@ export class DockView {
         this.itemActors = pendingItems;
         this.appearance.apply();
         this.layout.position();
+        this.updateScrollControls();
         this.applyMagnification(-1, false);
         this.updateIndicators();
         this.visibility.queueSmartHideCheck();
@@ -326,6 +361,61 @@ export class DockView {
 
     private createItem(app: Shell.App, size: number): DockAppButton {
         return this.appItemFactory.create(app, size);
+    }
+
+    private scrollByPage(direction: number): void {
+        const position = this.settings.get_string('dock-position');
+        const vertical = position === 'left' || position === 'right';
+        const adjustment = vertical
+            ? this.actor.get_vadjustment()
+            : this.actor.get_hadjustment();
+        const page = Math.max(1, adjustment.get_page_size() * 0.8);
+        adjustment.set_value(adjustment.get_value() + direction * page);
+    }
+
+    private updateScrollControls(): void {
+        if (this.destroyed)
+            return;
+        const position = this.settings.get_string('dock-position');
+        const vertical = position === 'left' || position === 'right';
+        const adjustment = vertical
+            ? this.actor.get_vadjustment()
+            : this.actor.get_hadjustment();
+        const overflow = adjustment.get_upper() > adjustment.get_page_size() + 1;
+        const [x, y] = this.actor.get_transformed_position();
+        const buttonSize = 28;
+
+        if (vertical) {
+            (this.previousButton.get_child() as St.Icon).icon_name = 'pan-up-symbolic';
+            (this.nextButton.get_child() as St.Icon).icon_name = 'pan-down-symbolic';
+            this.previousButton.set_position(
+                Math.round(x + (this.actor.width - buttonSize) / 2),
+                Math.round(y + 4),
+            );
+            this.nextButton.set_position(
+                Math.round(x + (this.actor.width - buttonSize) / 2),
+                Math.round(y + this.actor.height - buttonSize - 4),
+            );
+        } else {
+            (this.previousButton.get_child() as St.Icon).icon_name = 'pan-start-symbolic';
+            (this.nextButton.get_child() as St.Icon).icon_name = 'pan-end-symbolic';
+            this.previousButton.set_position(
+                Math.round(x + 4),
+                Math.round(y + (this.actor.height - buttonSize) / 2),
+            );
+            this.nextButton.set_position(
+                Math.round(x + this.actor.width - buttonSize - 4),
+                Math.round(y + (this.actor.height - buttonSize) / 2),
+            );
+        }
+
+        if (overflow) {
+            this.previousButton.show();
+            this.nextButton.show();
+        } else {
+            this.previousButton.hide();
+            this.nextButton.hide();
+        }
     }
 
     private updateIndicators(): void {
@@ -418,6 +508,7 @@ export class DockView {
             return;
         this.refresh();
         this.layout.position();
+        this.updateScrollControls();
         this.visibility.applySettings();
 
         const autoHide = this.settings.get_boolean('auto-hide');
@@ -458,9 +549,17 @@ export class DockView {
         this.windowTracker.destroy();
         this.contextMenu.destroy();
         this.dragDrop.destroy();
+        for (const adjustment of [this.actor.get_hadjustment(), this.actor.get_vadjustment()]) {
+            for (const signal of this.scrollAdjustmentSignals.splice(0))
+                adjustment.disconnect(signal);
+        }
         Main.layoutManager.removeChrome(this.actor);
         Main.layoutManager.removeChrome(this.edgeSensor);
+        Main.layoutManager.removeChrome(this.previousButton);
+        Main.layoutManager.removeChrome(this.nextButton);
         this.actor.destroy();
         this.edgeSensor.destroy();
+        this.previousButton.destroy();
+        this.nextButton.destroy();
     }
 }
