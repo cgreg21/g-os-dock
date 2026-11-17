@@ -6,6 +6,7 @@ import Gio from 'gi://Gio?version=2.0';
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
 const EDGE_THICKNESS = 3;
+const DOCK_SCREEN_MARGIN = 12;
 
 /** Calculates dock and reveal-sensor geometry for its monitor. */
 export class DockLayout {
@@ -52,8 +53,8 @@ export class DockLayout {
         // only the scrolling axis: large icons or magnification must never
         // make a vertical dock wider than its monitor (or a horizontal dock
         // taller than its monitor).
-        const viewportWidth = Math.min(width, Math.max(1, this.monitor.width - 24));
-        const availableHeight = Math.max(1, this.monitor.y + this.monitor.height - usableTop - 24);
+        const viewportWidth = Math.min(width, Math.max(1, this.monitor.width - DOCK_SCREEN_MARGIN * 2));
+        const availableHeight = Math.max(1, this.monitor.y + this.monitor.height - usableTop - DOCK_SCREEN_MARGIN * 2);
         const viewportHeight = Math.min(height, availableHeight);
 
         this.actor.set_policy(
@@ -62,26 +63,30 @@ export class DockLayout {
         );
         this.actor.set_size(viewportWidth, viewportHeight);
 
-        let x = this.monitor.x + Math.round((this.monitor.width - viewportWidth) / 2);
-        let y = this.monitor.y + this.monitor.height - viewportHeight - 12;
+        const minX = this.monitor.x + DOCK_SCREEN_MARGIN;
+        const maxX = Math.max(
+            minX,
+            this.monitor.x + this.monitor.width - viewportWidth - DOCK_SCREEN_MARGIN,
+        );
+        let x = minX + Math.round((this.monitor.width - DOCK_SCREEN_MARGIN * 2 - viewportWidth) / 2);
+        let y = this.monitor.y + this.monitor.height - viewportHeight - DOCK_SCREEN_MARGIN;
 
         if (position === 'top') {
-            y = usableTop + 4;
+            y = usableTop + DOCK_SCREEN_MARGIN;
         } else if (position === 'left') {
-            x = this.monitor.x;
+            x = minX;
             y = usableTop + Math.round((this.monitor.y + this.monitor.height - usableTop - viewportHeight) / 2);
         } else if (position === 'right') {
-            x = this.monitor.x + this.monitor.width - viewportWidth;
-            y = this.monitor.y + Math.round((this.monitor.height - viewportHeight) / 2);
+            x = maxX;
+            y = usableTop + Math.round((this.monitor.y + this.monitor.height - usableTop - viewportHeight) / 2);
         }
 
         // Keep oversized docks anchored to the monitor instead of centering
         // them at a negative stage coordinate. This is especially important
         // for vertical docks with many running/favorite applications.
-        const maxX = Math.max(this.monitor.x, this.monitor.x + this.monitor.width - viewportWidth);
         const minY = usableTop;
-        const maxY = Math.max(minY, this.monitor.y + this.monitor.height - viewportHeight);
-        x = Math.max(this.monitor.x, Math.min(x, maxX));
+        const maxY = Math.max(minY, this.monitor.y + this.monitor.height - viewportHeight - DOCK_SCREEN_MARGIN);
+        x = Math.max(minX, Math.min(x, maxX));
         y = Math.max(minY, Math.min(y, maxY));
 
         this.actor.set_position(Math.round(x), Math.round(y));
