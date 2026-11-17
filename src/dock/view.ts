@@ -75,13 +75,13 @@ export class DockView {
             style_class: 'g-os-dock',
             child: this.content,
             overlay_scrollbars: true,
-            mouse_scrolling: true,
             reactive: true,
             track_hover: true,
         });
         this.actor.set_policy(St.PolicyType.NEVER, vertical
             ? St.PolicyType.AUTOMATIC
             : St.PolicyType.NEVER);
+        this.actor.set_mouse_scrolling(true);
         this.appearance = new DockAppearance(this.actor, this.settings, this.desktopSettings);
         this.contextMenu = new AppContextMenu(this.actor, this.favorites);
         this.dragDrop = new DockDragDrop(
