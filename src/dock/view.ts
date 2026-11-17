@@ -59,7 +59,6 @@ export class DockView {
         this.monitorIndex = index;
         this.settings = settings;
         this.desktopSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
-        this.desktopThemeSignal = this.desktopSettings.connect('changed::color-scheme', () => this.appearance.apply());
         this.appSystem = Shell.AppSystem.get_default();
         this.favorites = AppFavorites.getAppFavorites();
         this.actor = new St.BoxLayout({
@@ -125,7 +124,9 @@ export class DockView {
             magnify: (index, enabled) => this.applyMagnification(index, enabled),
         });
 
-        Main.layoutManager.addChrome(this.actor, { affectsStruts: false, trackFullscreen: false });
+        try {
+            this.desktopThemeSignal = this.desktopSettings.connect('changed::color-scheme', () => this.appearance.apply());
+            Main.layoutManager.addChrome(this.actor, { affectsStruts: false, trackFullscreen: false });
         Main.layoutManager.addChrome(this.edgeSensor, { affectsStruts: false, trackFullscreen: false });
         this.hoverSignal = this.actor.connect('notify::hover', () => this.onPointerChanged());
         this.sensorHoverSignal = this.edgeSensor.connect('notify::hover', () => {
@@ -141,9 +142,12 @@ export class DockView {
         this.windowCreatedSignal = global.display.connect('window-created', (_display: Meta.Display, window: Meta.Window) => this.windowTracker.track(window));
         this.windowTracker.trackExisting();
         this.refresh();
-        this.applySettings();
+            this.applySettings();
+        } catch (error) {
+            this.destroy();
+            throw error;
+        }
     }
-
 
     handleDragOver(source: DockDragSource, dragActor: Clutter.Actor, x: number, y: number, time: number): number {
         return this.dragDrop.handleDragOver(source, dragActor, x, y, time);
