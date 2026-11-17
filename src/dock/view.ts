@@ -16,13 +16,15 @@ import { DockAppItemFactory, type DockAppButton } from '../features/app-item.js'
 import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
 
+type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
+
 const MAGNIFICATION_RADIUS = 2;
 const MAGNIFICATION_FACTOR = 1.28;
 
 export class DockView {
     private actor: St.BoxLayout & { _delegate?: unknown };
     private edgeSensor: St.Widget;
-    private monitor: Meta.Rectangle;
+    private monitor: MonitorGeometry;
     private monitorIndex: number;
     private settings: Gio.Settings;
     private desktopSettings: Gio.Settings;
