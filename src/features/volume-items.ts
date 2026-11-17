@@ -22,14 +22,20 @@ export class DockVolumeItems {
         private settings: Gio.Settings,
         private dragDrop: DockDragDrop,
         private iconSize: number,
+        private onChanged: () => void,
     ) {
         this.monitor = Gio.VolumeMonitor.get();
         this.signals.push(
-            this.monitor.connect('mount-added', () => this.sync()),
-            this.monitor.connect('mount-removed', () => this.sync()),
-            this.monitor.connect('mount-changed', () => this.sync()),
+            this.monitor.connect('mount-added', () => this.handleMonitorChange()),
+            this.monitor.connect('mount-removed', () => this.handleMonitorChange()),
+            this.monitor.connect('mount-changed', () => this.handleMonitorChange()),
         );
         this.sync();
+    }
+
+    private handleMonitorChange(): void {
+        if (this.sync())
+            this.onChanged();
     }
 
     /** Reconcile mounted volumes with the three visibility preferences. */
@@ -125,6 +131,10 @@ export class DockVolumeItems {
         this.content.add_child(button);
         this.items.set(entry.id, { button, icon, mount: entry.mount });
         this.dragDrop.registerItem({ id: entry.id, actor: button });
+    }
+
+    getCount(): number {
+        return this.items.size;
     }
 
     setIconSize(size: number): void {
