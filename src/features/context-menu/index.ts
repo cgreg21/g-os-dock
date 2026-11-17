@@ -31,7 +31,11 @@ export class AppContextMenu {
                 const item = new PopupMenu.PopupMenuItem(label);
                 item.connect('activate', () => {
                     try {
-                        app.launch_action(action, global.get_current_time());
+                        app.launch_action(
+                            action,
+                            global.get_current_time(),
+                            global.workspace_manager.get_active_workspace_index(),
+                        );
                     } catch (error) {
                         logError(error as Error, `Unable to launch application action: ${action}`);
                     }
