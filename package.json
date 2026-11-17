@@ -11,7 +11,8 @@
     "install-local": "npm run pack && gnome-extensions install --force g-os-dock@cgreg21.github.io.zip",
     "dev": "bash scripts/dev-session.sh",
     "dev:watch": "bash scripts/dev-watch.sh",
-    "dev:check": "bash scripts/dev-check.sh"
+    "dev:check": "bash scripts/dev-check.sh",
+    "dev:install:cachyos": "bash scripts/install-dev-deps-cachyos.sh"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
