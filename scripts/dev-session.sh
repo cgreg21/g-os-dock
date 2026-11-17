@@ -3,7 +3,6 @@ set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEV_HOME="${G_OS_DOCK_DEV_HOME:-$HOME/.local/share/g-os-dock-dev}"
-UUID="g-os-dock@cgreg21.github.io"
 
 for command in dbus-run-session gnome-shell gnome-extensions npm inotifywait gdbus timeout; do
     if ! command -v "$command" >/dev/null 2>&1; then
