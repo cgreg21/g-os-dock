@@ -27,7 +27,7 @@ export class DockView {
     private edgeSensor: St.Widget;
     private previousButton: St.Button;
     private nextButton: St.Button;
-    private scrollAdjustmentSignals: number[] = [];
+    private scrollAdjustmentSignals: Array<{ adjustment: { disconnect(id: number): void }; signal: number }> = [];
     private monitor: MonitorGeometry;
     private monitorIndex: number;
     private settings: Gio.Settings;
@@ -83,10 +83,8 @@ export class DockView {
             reactive: true,
             track_hover: true,
         });
-        this.actor.set_policy(
-            vertical ? St.PolicyType.NEVER : St.PolicyType.AUTOMATIC,
-            vertical ? St.PolicyType.AUTOMATIC : St.PolicyType.NEVER,
-        );
+        // Navigation is provided by the dock arrow controls, never by visible scrollbars.
+        this.actor.set_policy(St.PolicyType.NEVER, St.PolicyType.NEVER);
         this.actor.set_mouse_scrolling(true);
         this.appearance = new DockAppearance(this.actor, this.content, this.settings, this.desktopSettings);
         this.contextMenu = new AppContextMenu(this.actor, this.favorites);
@@ -184,10 +182,13 @@ export class DockView {
             this.nextButton.connect('clicked', () => this.scrollByPage(1));
             for (const adjustment of [this.actor.get_hadjustment(), this.actor.get_vadjustment()]) {
                 for (const property of ['upper', 'page-size']) {
-                    this.scrollAdjustmentSignals.push(adjustment.connect(
-                        `notify::${property}`,
-                        () => this.updateScrollControls(),
-                    ));
+                    this.scrollAdjustmentSignals.push({
+                        adjustment,
+                        signal: adjustment.connect(
+                            `notify::${property}`,
+                            () => this.updateScrollControls(),
+                        ),
+                    });
                 }
             }
             // Recalculate available dock space when the top panel changes
@@ -549,10 +550,9 @@ export class DockView {
         this.windowTracker.destroy();
         this.contextMenu.destroy();
         this.dragDrop.destroy();
-        for (const adjustment of [this.actor.get_hadjustment(), this.actor.get_vadjustment()]) {
-            for (const signal of this.scrollAdjustmentSignals.splice(0))
-                adjustment.disconnect(signal);
-        }
+        for (const { adjustment, signal } of this.scrollAdjustmentSignals)
+            adjustment.disconnect(signal);
+        this.scrollAdjustmentSignals = [];
         Main.layoutManager.removeChrome(this.actor);
         Main.layoutManager.removeChrome(this.edgeSensor);
         Main.layoutManager.removeChrome(this.previousButton);
