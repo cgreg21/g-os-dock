@@ -1,0 +1,48 @@
+.g-os-dock {
+  spacing: 6px;
+  padding: 8px;
+}
+
+.g-os-dock-item {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 2px;
+  border-radius: 12px;
+}
+
+.g-os-dock-item:hover {
+  background-color: rgba(255, 255, 255, 0.13);
+}
+
+.g-os-dock-edge-sensor {
+  background-color: transparent;
+}
+
+.g-os-dock-item.active {
+  background-color: rgba(255, 255, 255, 0.10);
+}
+
+.g-os-dock-running-indicator {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background-color: rgba(235, 235, 245, 0.72);
+  margin-bottom: 2px;
+}
+
+.g-os-dock-running-indicator.active {
+  background-color: #78a9ff;
+  width: 7px;
+  height: 7px;
+}
+
+.g-os-dock-window-count {
+  min-width: 16px;
+  min-height: 16px;
+  padding: 1px 4px;
+  border-radius: 9px;
+  background-color: #3584e4;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}

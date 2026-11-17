@@ -1,26 +1,28 @@
 # G-OS Dock — GNOME Shell 51
 
-G-OS Dock is a GNOME Shell extension written in TypeScript and compiled to JavaScript. All editable source files live directly in this repository; the generated installable ZIP is a build artifact and is not committed.
+G-OS Dock is a GNOME Shell extension written in TypeScript and compiled to JavaScript. The extension runs inside GNOME Shell; it does not use a Rust daemon, D-Bus service, or distribution-specific RPM/DEB/Arch package builders.
 
-## Features
+## Features in this source version
 
-- One dock view per monitor, using the same GNOME favorites and ordering.
-- Favorites and running applications in the dock.
+- A dock view on each monitor, sharing GNOME's favorites list.
+- Applications list combines favorites and running applications.
 - Bottom, top, left, and right positioning.
-- Per-monitor edge sensor, auto-hide, and smart-hide.
-- Acrylic-like translucent styling (CSS transparency; not compositor backdrop blur).
-- Running indicators, focused-app highlight, and optional window-count badges.
-- Application context menu for window selection, launch, minimize/close, pin/unpin, and favorite ordering.
-- Configurable icon size, spacing, theme, and hover magnification.
+- Per-monitor edge sensor and auto-hide.
+- Acrylic-like translucent styling (CSS transparency, not compositor backdrop blur).
+- Running-application indicator and focused-application highlight.
+- Optional window-count badges.
+- Per-application context menu: launch a new window, select an open window, minimize/close windows, pin/unpin favorites, reorder favorites.
+- Configurable icon size, spacing, theme, auto-hide and smart-hide.
+- Hover magnification.
 - Preferences through GNOME Extensions.
 
 ## Requirements
 
-- GNOME Shell 51 (Wayland or X11; test on a real GNOME 51 session before release).
-- Node.js 20+ and npm for development.
-- `glib-compile-schemas` and `zip` for packaging.
+- GNOME Shell 51 (Wayland or X11; runtime behavior still needs testing on the target session).
+- Node.js 20+ and npm for development builds.
+- `glib-compile-schemas` and `zip`.
 
-## Build
+## Build and validate
 
 ```sh
 npm install
@@ -28,7 +30,7 @@ npm run check
 npm run pack
 ```
 
-The build creates `g-os-dock@cgreg21.github.io.zip`, containing the compiled JavaScript, metadata, stylesheet, and compiled GSettings schema.
+This creates `g-os-dock@cgreg21.github.io.zip`, containing the compiled extension JavaScript, metadata, stylesheet and compiled GSettings schema. No Node runtime or TypeScript compiler is needed on the target desktop.
 
 ## Install locally
 
@@ -37,12 +39,12 @@ gnome-extensions install --force g-os-dock@cgreg21.github.io.zip
 gnome-extensions enable g-os-dock@cgreg21.github.io
 ```
 
-Or use `scripts/install-local.sh`. To uninstall, use `scripts/uninstall-local.sh`.
+Or run `scripts/install-local.sh`. To uninstall, run `scripts/uninstall-local.sh`.
 
-## Publish
+## Publish on extensions.gnome.org
 
-Build and test the extension in a GNOME Shell 51 session, then upload the ZIP at https://extensions.gnome.org/upload/. Publication remains subject to GNOME Extensions review.
+Build the ZIP with `npm run pack`, test it in an actual GNOME Shell 51 session, then upload the ZIP at https://extensions.gnome.org/upload/. Publication is subject to GNOME Extensions review; this repository workflow does not publish automatically to extensions.gnome.org.
 
 ## Limitations
 
-The acrylic effect currently uses translucent CSS only. GNOME Shell's public extension APIs do not expose a general backdrop-blur API for arbitrary extension actors. Window tracking, menu behavior, and monitor handling still require runtime validation on GNOME Shell 51.
+The acrylic effect is translucent CSS only. GNOME Shell's public extension APIs do not expose a general backdrop-blur API for arbitrary extension actors. Shell APIs and menu/window behavior must be validated against a real GNOME 51 session before release.

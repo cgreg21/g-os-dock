@@ -1,0 +1,12 @@
+{
+  "uuid": "g-os-dock@cgreg21.github.io",
+  "name": "G-OS Dock",
+  "description": "A lightweight multi-monitor application dock for GNOME Shell 51, with auto-hide, window controls and translucent styling.",
+  "shell-version": [
+    "51"
+  ],
+  "version": 13,
+  "version-name": "0.12.0",
+  "url": "https://github.com/cgreg21/g-os-dock",
+  "settings-schema": "org.gnome.shell.extensions.g-os-dock"
+}

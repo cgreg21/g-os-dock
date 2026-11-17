@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.g-os-dock" path="/org/gnome/shell/extensions/g-os-dock/">
+    <key name="dock-position" type="s"><default>'bottom'</default><summary>Dock position: top, bottom, left or right</summary></key>
+    <key name="icon-size" type="i"><range min="24" max="96"/><default>48</default><summary>Icon size</summary></key>
+    <key name="auto-hide" type="b"><default>false</default><summary>Automatically hide the dock</summary></key>
+    <key name="acrylic-enabled" type="b"><default>true</default><summary>Enable translucent acrylic styling</summary></key>
+    <key name="acrylic-opacity" type="d"><range min="0.1" max="1.0"/><default>0.78</default><summary>Dock opacity</summary></key>
+    <key name="show-on-all-monitors" type="b"><default>true</default><summary>Show the dock on every monitor</summary></key>
+    <key name="show-running-indicator" type="b"><default>true</default><summary>Show an indicator for running applications</summary></key>
+    <key name="show-window-count" type="b"><default>true</default><summary>Show a badge when an application has multiple windows</summary></key>
+    <key name="dock-spacing" type="i"><range min="0" max="24"/><default>6</default><summary>Space between dock icons</summary></key>
+    <key name="theme" type="s"><default>'dark'</default><summary>Dock theme: dark, light or system</summary></key>
+    <key name="smart-hide" type="b"><default>false</default><summary>Hide the dock when a normal window overlaps it</summary></key>
+  </schema>
+</schemalist>
