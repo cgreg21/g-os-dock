@@ -41,6 +41,54 @@ gnome-extensions enable g-os-dock@cgreg21.github.io
 
 Or use `scripts/install-local.sh`. To uninstall, use `scripts/uninstall-local.sh`.
 
+## Local development environment
+
+G-OS Dock includes an isolated **nested GNOME Shell** development session. It opens GNOME Shell in a separate window with its own D-Bus session and private XDG configuration/data directories. It does not replace or modify the user's main GNOME session or its extension settings.
+
+### Host requirements
+
+- A Linux desktop session with GNOME Shell 51 installed (the nested session uses the host's installed GNOME Shell version).
+- Node.js 20+ and npm.
+- `dbus-run-session`, `gnome-shell`, `gnome-extensions`, `inotifywait` and the existing build tools (`zip`, `glib-compile-schemas`).
+
+Install the missing tools using your distribution package manager. For example:
+
+```sh
+# Fedora
+sudo dnf install gnome-shell inotify-tools dbus-daemon nodejs npm zip glib2
+
+# Ubuntu/Debian
+sudo apt install gnome-shell inotify-tools dbus-daemon nodejs npm zip libglib2.0-bin
+```
+
+Then install project dependencies and launch the environment:
+
+```sh
+npm install
+npm run dev
+```
+
+The first launch creates a private profile under `~/.local/share/g-os-dock-dev`, starts GNOME Shell nested on Wayland (or X11 when the host session is X11), builds and installs the extension, and enables it in that session.
+
+### Automatic rebuild and reload
+
+While `npm run dev` is running, edits to `src/`, `schemas/`, `metadata.json` or `stylesheet.css` trigger this sequence:
+
+1. TypeScript compilation and schema compilation.
+2. Creation of the installable extension ZIP.
+3. Installation into the private GNOME profile.
+4. Disable/enable cycle to reload G-OS Dock in the nested Shell.
+
+A failed build leaves the last successfully installed extension running. Press Ctrl+C in the terminal to stop the development session. The private profile can be removed independently with:
+
+```sh
+rm -rf ~/.local/share/g-os-dock-dev
+```
+
+To use another private profile location, set `G_OS_DOCK_DEV_HOME` before running `npm run dev`.
+
+**Note:** this is a nested GNOME Shell session, not a complete virtual machine. It isolates the Shell session and extension settings while using the host's GNOME Shell binaries and graphics stack. Test on an actual GNOME 51 installation for final compatibility validation.
+
 ## Publish
 
 Build and test the extension in a GNOME Shell 51 session, then upload the ZIP at https://extensions.gnome.org/upload/. Publication remains subject to GNOME Extensions review.
