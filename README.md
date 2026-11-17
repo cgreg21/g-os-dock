@@ -94,8 +94,11 @@ G-OS Dock includes an isolated **nested GNOME Shell** development session. It op
 Install the missing tools using your distribution package manager. For example:
 
 ```sh
-# Fedora
-sudo dnf install gnome-shell mutter-devkit inotify-tools dbus-daemon nodejs npm zip glib2
+# Fedora 45 (recommended)
+bash scripts/install-dev-deps-fedora.sh
+
+# Or install the Fedora dependencies manually
+sudo dnf install gnome-shell gnome-session mutter-devkit inotify-tools dbus-daemon nodejs npm zip glib2
 
 # Ubuntu/Debian
 sudo apt install gnome-shell mutter-dev-bin inotify-tools dbus-daemon nodejs npm zip libglib2.0-bin
@@ -103,6 +106,8 @@ sudo apt install gnome-shell mutter-dev-bin inotify-tools dbus-daemon nodejs npm
 # CachyOS
 bash scripts/install-dev-deps-cachyos.sh
 ```
+
+On Fedora 45, `scripts/install-dev-deps-fedora.sh` installs the required host tools with `dnf` (GNOME Shell 51, GNOME Session, Mutter Devkit, D-Bus, GLib, Node.js/npm, inotify-tools and ZIP). You can also run it with `npm run dev:install:fedora` after cloning the repository.
 
 On CachyOS, the helper installs the host tools with `pacman` (GNOME Shell,
 GNOME Session, Mutter Devkit, D-Bus, GLib, Node.js/npm, inotify-tools and ZIP). It does not
