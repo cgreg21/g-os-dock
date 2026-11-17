@@ -88,28 +88,10 @@ export function createWindowPreviewCard(
     thumbnail.add_child(closeButton);
     content.add_child(thumbnail);
 
-    let title = '';
-    try {
-        title = window.get_title() || '';
-    } catch (_error) {
-        // The title is optional.
-    }
-
-    content.add_child(new St.Label({
-        text: (title.trim() || `Window ${index + 1}`).slice(0, 42),
-        style: 'max-width: 176px;',
-        x_align: Clutter.ActorAlign.CENTER,
-    }));
-
     const workspaceInfo = getWorkspaceInfo(window);
-    content.add_child(new St.Label({
-        text: workspaceInfo.label,
-        style_class: 'g-os-dock-preview-workspace',
-        x_align: Clutter.ActorAlign.CENTER,
-    }));
 
     previewButton.set_child(content);
-    previewButton.accessible_name = `Activate ${title.trim() || `window ${index + 1}`}`;
+    previewButton.accessible_name = `Activate window ${index + 1}`;
     previewButton.connect('clicked', () => {
         activateWindow(app, window);
         onClose();
