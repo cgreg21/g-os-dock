@@ -109,7 +109,7 @@ export class DockView {
         this.favoritesSignal = this.favorites.connect('changed', () => this.refresh());
         this.focusSignal = global.display.connect('notify::focus-window', () => { this.updateIndicators(); this.visibility.queueSmartHideCheck(); });
         this.restackedSignal = global.display.connect('restacked', () => this.visibility.queueSmartHideCheck());
-        this.windowCreatedSignal = global.display.connect('window-created', (_display: any, window: any) => this.trackWindow(window));
+        this.windowCreatedSignal = global.display.connect('window-created', (_display: any, window: any) => this.windowTracker.track(window));
         this.windowTracker.trackExisting();
         this.refresh();
         this.applySettings();
