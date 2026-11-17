@@ -249,12 +249,13 @@ export class DockView {
             // Recompute the dock's natural size whenever its content tree
             // changes or Clutter reallocates it. The idle callback coalesces
             // bursts of relayout notifications into one geometry update.
-            for (const signal of ['actor-added', 'actor-removed', 'allocation-changed']) {
-                this.contentGeometrySignals.push(this.content.connect(
-                    signal,
-                    () => this.queueLayoutUpdate(),
-                ));
-            }
+            this.contentGeometrySignals.push(
+                this.content.connect('actor-added', () => this.queueLayoutUpdate()),
+                this.content.connect('actor-removed', () => this.queueLayoutUpdate()),
+            );
+            this.contentGeometrySignals.push(
+                this.content.connect('notify::allocation', () => this.queueLayoutUpdate()),
+            );
             this.windowTracker.trackExisting();
             this.applySettings();
         } catch (error) {
