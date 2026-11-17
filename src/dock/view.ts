@@ -334,7 +334,7 @@ export class DockView {
                 } else {
                     item = this.createItem(app, size);
                 }
-                this.updateItemPadding(item);
+                this.updateItemPadding(item, size);
                 if (item.get_parent() !== this.content)
                     this.content.add_child(item);
                 pendingItems.push(item);
@@ -412,14 +412,14 @@ export class DockView {
 
 
     /** Update per-side icon padding on retained actors when preferences change. */
-    private updateItemPadding(item: DockAppButton): void {
+    private updateItemPadding(item: DockAppButton, size: number): void {
         const top = this.settings.get_int('icon-padding-top');
         const right = this.settings.get_int('icon-padding-right');
         const bottom = this.settings.get_int('icon-padding-bottom');
         const left = this.settings.get_int('icon-padding-left');
         const style = `padding: ${top}px ${right}px ${bottom}px ${left}px; ` +
-            `min-width: ${this.itemSize || this.settings.get_int('icon-size') + left + right}px; ` +
-            `min-height: ${this.itemSize || this.settings.get_int('icon-size') + top + bottom}px;`;
+            `min-width: ${size + left + right}px; ` +
+            `min-height: ${size + top + bottom}px;`;
         if (item._gOsDockPaddingStyle === style)
             return;
         item.set_style(style);
