@@ -52,73 +52,74 @@ export class DockAppItemFactory {
             x_expand: false,
             y_expand: false,
         }) as DockAppButton;
+
         try {
             item._gOsDockApp = app;
 
             if (this.dependencies.favorites.isFavorite(app.get_id())) {
-            this.dependencies.dragDrop.makeFavoriteDraggable(
-                item,
-                app,
-                () => this.dependencies.previews.hide(),
-            );
-        }
-
-        item.connect('clicked', () => this.dependencies.activateApp(app));
-        item.connect('key-press-event', (_actor: St.Button, event: Clutter.Event) =>
-            this.dependencies.handleKeyPress(item, event));
-
-        item.connect('notify::hover', () => {
-            if (item.hover) {
-                const index = this.dependencies.getItems().indexOf(item);
-                this.dependencies.magnify(index, true);
-                this.dependencies.previews.scheduleShow(app, item);
-            } else {
-                if (!this.dependencies.isDockHovered())
-                    this.dependencies.magnify(-1, false);
-                this.dependencies.previews.scheduleHide();
+                this.dependencies.dragDrop.makeFavoriteDraggable(
+                    item,
+                    app,
+                    () => this.dependencies.previews.hide(),
+                );
             }
-        });
 
-        item.connect('scroll-event', (_actor: St.Button, event: Clutter.Event) => {
-            const direction = event.get_scroll_direction();
-            if (direction !== Clutter.ScrollDirection.UP &&
-                direction !== Clutter.ScrollDirection.DOWN)
-                return Clutter.EVENT_PROPAGATE;
+            item.connect('clicked', () => this.dependencies.activateApp(app));
+            item.connect('key-press-event', (_actor: St.Button, event: Clutter.Event) =>
+                this.dependencies.handleKeyPress(item, event));
 
-            const windows = app.get_windows();
-            if (windows.length < 2)
-                return Clutter.EVENT_PROPAGATE;
+            item.connect('notify::hover', () => {
+                if (item.hover) {
+                    const index = this.dependencies.getItems().indexOf(item);
+                    this.dependencies.magnify(index, true);
+                    this.dependencies.previews.scheduleShow(app, item);
+                } else {
+                    if (!this.dependencies.isDockHovered())
+                        this.dependencies.magnify(-1, false);
+                    this.dependencies.previews.scheduleHide();
+                }
+            });
 
-            const focused = global.display.focus_window;
-            const currentIndex = windows.indexOf(focused);
-            const step = direction === Clutter.ScrollDirection.UP ? -1 : 1;
-            const nextIndex = currentIndex < 0
-                ? (step > 0 ? 0 : windows.length - 1)
-                : (currentIndex + step + windows.length) % windows.length;
-            const nextWindow = windows[nextIndex];
-            if (nextWindow)
-                app.activate_window(nextWindow, global.get_current_time());
-            return Clutter.EVENT_STOP;
-        });
+            item.connect('scroll-event', (_actor: St.Button, event: Clutter.Event) => {
+                const direction = event.get_scroll_direction();
+                if (direction !== Clutter.ScrollDirection.UP &&
+                    direction !== Clutter.ScrollDirection.DOWN)
+                    return Clutter.EVENT_PROPAGATE;
 
-        item.connect('button-press-event', (_actor: St.Button, event: Clutter.Event) => {
-            const button = event.get_button();
-            if (button === 2) {
-                app.open_new_window(global.get_current_time());
+                const windows = app.get_windows();
+                if (windows.length < 2)
+                    return Clutter.EVENT_PROPAGATE;
+
+                const focused = global.display.focus_window;
+                const currentIndex = windows.indexOf(focused);
+                const step = direction === Clutter.ScrollDirection.UP ? -1 : 1;
+                const nextIndex = currentIndex < 0
+                    ? (step > 0 ? 0 : windows.length - 1)
+                    : (currentIndex + step + windows.length) % windows.length;
+                const nextWindow = windows[nextIndex];
+                if (nextWindow)
+                    app.activate_window(nextWindow, global.get_current_time());
                 return Clutter.EVENT_STOP;
-            }
-            if (button === 3) {
-                this.dependencies.contextMenu.show(item, app);
-                return Clutter.EVENT_STOP;
-            }
-            return Clutter.EVENT_PROPAGATE;
-        });
+            });
 
-        const indicator = new St.Widget({ style_class: 'g-os-dock-running-indicator' });
-        content.add_child(indicator);
-        const badge = new St.Label({ style_class: 'g-os-dock-window-count' });
-        content.add_child(badge);
-        item._gOsDockIndicator = indicator;
+            item.connect('button-press-event', (_actor: St.Button, event: Clutter.Event) => {
+                const button = event.get_button();
+                if (button === 2) {
+                    app.open_new_window(global.get_current_time());
+                    return Clutter.EVENT_STOP;
+                }
+                if (button === 3) {
+                    this.dependencies.contextMenu.show(item, app);
+                    return Clutter.EVENT_STOP;
+                }
+                return Clutter.EVENT_PROPAGATE;
+            });
+
+            const indicator = new St.Widget({ style_class: 'g-os-dock-running-indicator' });
+            content.add_child(indicator);
+            const badge = new St.Label({ style_class: 'g-os-dock-window-count' });
+            content.add_child(badge);
+            item._gOsDockIndicator = indicator;
             item._gOsDockBadge = badge;
             return item;
         } catch (error) {
