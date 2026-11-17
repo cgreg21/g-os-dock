@@ -216,8 +216,7 @@ export class DockDragDrop {
 
     private handleRemovalDragOver(source: DockDragSource): number {
         const item = this.getItems().find(candidate => candidate.id === source?.dockItemId);
-        return item?.app && this.settings.get_boolean('show-system-icon') &&
-            item.id.startsWith('app:') && this.isFavorite(item.app)
+        return item?.app && item.id.startsWith('app:') && this.isFavorite(item.app)
             ? DND.DragMotionResult.MOVE_DROP
             : DND.DragMotionResult.NO_DROP;
     }
