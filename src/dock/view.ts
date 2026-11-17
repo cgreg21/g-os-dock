@@ -116,6 +116,10 @@ export class DockView {
             ])
                 actor.add_style_class_name('g-os-dock-dev');
         }
+        // Keep both visual layers hidden while the dock is being assembled.
+        // DockVisibility reveals them after the first refresh and layout pass.
+        this.actor.hide();
+        this.background.hide();
         this.visibility = new DockVisibility(
             this.actor,
             this.background,
