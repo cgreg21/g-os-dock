@@ -55,18 +55,18 @@ echo "Watching project source files (src/, schemas/, metadata.json, stylesheet.c
 echo "Changes are debounced, compiled, copied into the isolated profile and re-enabled automatically."
 echo "Press Ctrl+C to stop."
 
-WATCH_INCLUDE='(^|/)(src/.*|schemas/.*|metadata\\.json|stylesheet\\.css)$'
+WATCH_INCLUDE='(^|/)(src/.*|schemas/.*|metadata\.json|stylesheet\.css)$'
 
 while true; do
-    inotifywait -q -r \\
-        --include "$WATCH_INCLUDE" \\
-        -e close_write,create,delete,move \\
+    inotifywait -q -r \
+        --include "$WATCH_INCLUDE" \
+        -e close_write,create,delete,move \
         "$ROOT" >/dev/null
 
     sleep 0.5
-    while inotifywait -q -t 0.2 -r \\
-        --include "$WATCH_INCLUDE" \\
-        -e close_write,create,delete,move \\
+    while inotifywait -q -t 0.2 -r \
+        --include "$WATCH_INCLUDE" \
+        -e close_write,create,delete,move \
         "$ROOT" >/dev/null 2>&1; do
         sleep 0.2
     done
