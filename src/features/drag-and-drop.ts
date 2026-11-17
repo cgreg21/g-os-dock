@@ -68,12 +68,13 @@ export class DockDragDrop {
             return DND.DragMotionResult.MOVE_DROP;
         }
         const app = source?.app;
-        if (!app || !this.favorites.isFavorite(app.get_id())) {
+        if (!app) {
             this.clearDropTarget();
             return DND.DragMotionResult.NO_DROP;
         }
 
         const appId = app.get_id();
+        const sourceIsFavorite = this.favorites.isFavorite(appId);
         const vertical = this.isVertical();
         // GNOME Shell already passes target-local coordinates to DND delegates.
         // Transforming them from stage space again collapses the coordinate
@@ -136,9 +137,7 @@ export class DockDragDrop {
             return false;
 
         const appId = app.get_id();
-        if (!this.favorites.isFavorite(appId))
-            return false;
-
+        const sourceIsFavorite = this.favorites.isFavorite(appId);
         const vertical = this.isVertical();
         // acceptDrop receives coordinates in this target actor's local space.
         const coordinate = vertical ? y : x;
@@ -160,9 +159,21 @@ export class DockDragDrop {
             }
         }
 
-        targetIndex = Math.max(0, Math.min(targetIndex, favorites.length - 1));
+        targetIndex = Math.max(0, Math.min(
+            targetIndex,
+            sourceIsFavorite ? Math.max(0, favorites.length - 1) : favorites.length,
+        ));
         this.clearDropTarget();
         this.endPreview();
+
+        if (!sourceIsFavorite) {
+            // Dropping a running non-favorite into the favorites section pins
+            // it there, at the exact position shown by the preview slot.
+            this.favorites.addFavorite(appId);
+            this.favorites.moveFavoriteToPos(appId, targetIndex);
+            return true;
+        }
+
         const currentIndex = favorites.findIndex(favorite => favorite.get_id() === appId);
         if (currentIndex >= 0 && currentIndex !== targetIndex)
             this.favorites.moveFavoriteToPos(appId, targetIndex);
