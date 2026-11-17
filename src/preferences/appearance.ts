@@ -55,6 +55,9 @@ export function addAppearancePreferences(page: Adw.PreferencesPage, settings: Gi
     addEntry(indicators, settings, 'indicator-color', 'Indicator color (hex)');
     addSpin(indicators, settings, 'indicator-opacity', 'Indicator opacity', 0, 1, 0.05, true);
     addSpin(indicators, settings, 'indicator-size', 'Indicator size (px)', 1, 16, 1);
+    addSpin(indicators, settings, 'indicator-border-size', 'Indicator border thickness (px)', 0, 8, 1);
+    addEntry(indicators, settings, 'indicator-border-color', 'Indicator border color (hex)');
+    addSpin(indicators, settings, 'indicator-border-opacity', 'Indicator border opacity', 0, 1, 0.05, true);
     addSpin(indicators, settings, 'indicator-bottom-offset', 'Distance from icon bottom (px)', -32, 32, 1);
     addSwitch(indicators, settings, 'indicator-show-open', 'Show when application is open');
     addSwitch(indicators, settings, 'indicator-show-focused', 'Show when application is focused');
