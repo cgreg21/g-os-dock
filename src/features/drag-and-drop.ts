@@ -9,11 +9,12 @@ export interface DockDndItem {
     id: string;
     actor: St.Widget;
     app?: Shell.App;
+    canRemove?: () => boolean;
+    onRemove?: () => void;
 }
 
 export type DockDragSource = {
     dockItemId?: string;
-    app?: Shell.App;
 };
 
 /**
@@ -216,16 +217,15 @@ export class DockDragDrop {
 
     private handleRemovalDragOver(source: DockDragSource): number {
         const item = this.getItems().find(candidate => candidate.id === source?.dockItemId);
-        return item?.app && item.id.startsWith('app:') && this.isFavorite(item.app)
+        return item?.canRemove?.()
             ? DND.DragMotionResult.MOVE_DROP
             : DND.DragMotionResult.NO_DROP;
     }
 
     private acceptRemovalDrop(source: DockDragSource): boolean {
         const item = this.getItems().find(candidate => candidate.id === source?.dockItemId);
-        if (!item?.app || !this.isFavorite(item.app))
+        if (!item?.canRemove?.() || !item.onRemove)
             return false;
-        const app = item.app;
         this.removingItemId = item.id;
         item.actor.ease({
             opacity: 0,
@@ -234,29 +234,14 @@ export class DockDragDrop {
             duration: 240,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => {
-                if (this.isFavorite(app))
-                    this.removeFavorite(app);
                 item.actor.opacity = 255;
                 item.actor.scale_x = 1;
                 item.actor.scale_y = 1;
+                item.onRemove?.();
                 this.removingItemId = null;
             },
         });
         return true;
-    }
-
-    private isFavorite(app: Shell.App): boolean {
-        // Keep the controller independent of AppFavorites. The app's
-        // delegate is enriched by the view with this optional predicate.
-        const delegate = (this.getItems().find(item => item.app === app)?.actor as
-            (St.Widget & { _gOsDockIsFavorite?: () => boolean }) | undefined);
-        return delegate?._gOsDockIsFavorite?.() ?? false;
-    }
-
-    private removeFavorite(app: Shell.App): void {
-        const delegate = (this.getItems().find(item => item.app === app)?.actor as
-            (St.Widget & { _gOsDockRemoveFavorite?: () => void }) | undefined);
-        delegate?._gOsDockRemoveFavorite?.();
     }
 
     private getItemMidpoint(item: St.Widget, vertical: boolean): number | null {
