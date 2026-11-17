@@ -64,6 +64,8 @@ export class DockVolumeItems {
             const existing = this.items.get(id);
             if (existing) {
                 existing.icon.icon_size = this.iconSize;
+                // Use the mount-provided GIcon, just like GNOME Files (Nautilus).
+                existing.icon.set_gicon(entry.mount.get_icon());
                 continue;
             }
             this.createItem(entry);
@@ -101,13 +103,10 @@ export class DockVolumeItems {
     }
 
     private createItem(entry: MountedDrive): void {
-        const iconName = entry.category === 'network'
-            ? 'folder-remote-symbolic'
-            : entry.category === 'usb'
-                ? 'drive-removable-media-symbolic'
-                : 'drive-harddisk-symbolic';
+        // Gio.Mount.get_icon() provides the same themed, non-symbolic icon
+        // used by GNOME Files for this mounted volume.
         const icon = new St.Icon({
-            icon_name: iconName,
+            gicon: entry.mount.get_icon(),
             icon_size: this.iconSize,
             style_class: 'g-os-dock-volume-icon',
         });
