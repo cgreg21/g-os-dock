@@ -5,6 +5,8 @@ import type { DockAppButton } from './app-item.js';
 
 /** Updates configurable open, focused and minimized application indicators. */
 export class DockIndicators {
+    private markerSignatures = new WeakMap<DockAppButton, string>();
+
     constructor(private settings: Gio.Settings, private isDestroyed: () => boolean) {}
 
     update(items: DockAppButton[]): void {
@@ -45,22 +47,27 @@ export class DockIndicators {
 
             if (item._gOsDockIndicator) {
                 item._gOsDockIndicator.visible = shouldShow;
-                item._gOsDockIndicator.set_style('spacing: 2px; width: auto; height: auto; background-color: transparent;');
-                for (const child of item._gOsDockIndicator.get_children())
-                    child.destroy();
                 const markerCount = multiple ? Math.max(1, windows.length) : 1;
                 const length = shape === 'line' ? indicatorSize * 2 : indicatorSize;
                 const thickness = indicatorSize;
                 const radius = shape === 'round' ? '999px' : '0px';
-                for (let index = 0; index < markerCount; index++) {
-                    const marker = new St.Widget();
-                    marker.set_size(length, thickness);
-                    marker.set_style(
-                        `width: ${length}px; height: ${thickness}px; ` +
-                        `border-radius: ${radius}; background-color: rgba(${color}, ${opacity}); ` +
-                        `border: ${borderSize}px solid rgba(${borderColor}, ${borderOpacity});`,
-                    );
-                    item._gOsDockIndicator.add_child(marker);
+                const signature = [markerCount, length, thickness, radius, color, opacity,
+                    borderSize, borderColor, borderOpacity].join(':');
+                if (this.markerSignatures.get(item) !== signature) {
+                    item._gOsDockIndicator.set_style('spacing: 2px; width: auto; height: auto; background-color: transparent;');
+                    for (const child of item._gOsDockIndicator.get_children())
+                        child.destroy();
+                    for (let index = 0; index < markerCount; index++) {
+                        const marker = new St.Widget();
+                        marker.set_size(length, thickness);
+                        marker.set_style(
+                            `width: ${length}px; height: ${thickness}px; ` +
+                            `border-radius: ${radius}; background-color: rgba(${color}, ${opacity}); ` +
+                            `border: ${borderSize}px solid rgba(${borderColor}, ${borderOpacity});`,
+                        );
+                        item._gOsDockIndicator.add_child(marker);
+                    }
+                    this.markerSignatures.set(item, signature);
                 }
                 // Clutter.FixedLayout does not infer overlay alignment: place
                 // the marker row explicitly at the icon's bottom center.
