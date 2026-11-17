@@ -1,0 +1,85 @@
+name: Apply dock layout and smart-hide fixes
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-dock.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Patch TypeScript source
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("src/dockView.ts")
+          source = path.read_text()
+
+          old_measure = """        const position = this.settings.get_string('dock-position');
+          const [minWidth, naturalWidth] = this.actor.get_preferred_width(-1);
+          const [minHeight, naturalHeight] = this.actor.get_preferred_height(-1);"""
+          new_measure = """        const position = this.settings.get_string('dock-position');
+          // Set orientation before measuring: side docks have different preferred dimensions.
+          const vertical = position === 'left' || position === 'right';
+          this.actor.set_vertical(vertical);
+          const [minWidth, naturalWidth] = this.actor.get_preferred_width(-1);
+          const [minHeight, naturalHeight] = this.actor.get_preferred_height(-1);"""
+          if old_measure in source:
+              source = source.replace(old_measure, new_measure, 1)
+
+          old_orientation = """        const vertical = position === 'left' || position === 'right';
+          this.actor.set_vertical(vertical);
+          this.actor.set_position(x, y);"""
+          if old_orientation in source:
+              source = source.replace(old_orientation, "        this.actor.set_position(x, y);", 1)
+
+          old_settings = """        if (!this.settings.get_boolean('auto-hide')) {
+              this.cancelHide();
+              this.actor.show();
+              this.actor.opacity = 255;
+              this.edgeSensor.hide();
+          } else {
+              this.edgeSensor.show();
+              this.positionSensor();
+              this.scheduleHide();
+              this.queueSmartHideCheck();
+          }
+          if (this.settings.get_boolean('smart-hide'))
+              this.queueSmartHideCheck();"""
+          new_settings = """        const autoHide = this.settings.get_boolean('auto-hide');
+          const smartHide = this.settings.get_boolean('smart-hide');
+          if (!autoHide && !smartHide) {
+              this.cancelHide();
+              this.actor.show();
+              this.actor.opacity = 255;
+          } else if (autoHide) {
+              this.scheduleHide();
+          }
+
+          // Smart-hide also needs a reveal sensor when auto-hide is disabled.
+          if (autoHide || smartHide) {
+              this.edgeSensor.show();
+              this.positionSensor();
+          } else {
+              this.edgeSensor.hide();
+          }
+          if (smartHide)
+              this.queueSmartHideCheck();"""
+          if old_settings in source:
+              source = source.replace(old_settings, new_settings, 1)
+
+          path.write_text(source)
+          PY
+      - name: Commit fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/dockView.ts
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix vertical dock layout and smart-hide recovery"
+          git push
