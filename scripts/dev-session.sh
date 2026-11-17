@@ -13,20 +13,29 @@ export XDG_CACHE_HOME="$DEV_HOME/cache"
 export XDG_STATE_HOME="$DEV_HOME/state"
 export GSETTINGS_BACKEND=dconf
 
-if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
-    SHELL_MODE="--wayland"
+SHELL_MAJOR="$(gnome-shell --version | awk '{print $3}' | cut -d. -f1)"
+if ((SHELL_MAJOR >= 49)); then
+    # GNOME 49 removed --nested; use the Mutter Development Kit instead.
+    SHELL_ARGS=(--wayland --devkit)
+    SHELL_MODE="Wayland devkit"
 else
-    SHELL_MODE="--x11"
+    if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
+        SHELL_ARGS=(--nested --wayland)
+        SHELL_MODE="nested Wayland"
+    else
+        SHELL_ARGS=(--nested --x11)
+        SHELL_MODE="nested X11"
+    fi
 fi
 
-echo "Starting an isolated nested GNOME Shell session ($SHELL_MODE)."
+echo "Starting an isolated GNOME Shell session ($SHELL_MODE)."
 echo "Private GNOME profile: $DEV_HOME"
 echo "Close the nested GNOME window or press Ctrl+C here to stop."
 
 # shellcheck disable=SC2016 # The nested script must expand variables in its own shell.
 dbus-run-session -- bash -Eeuo pipefail -c '
     ROOT="$1"
-    SHELL_MODE="$2"
+    shift 2
     SHELL_PID=""
     cleanup() {
         if [[ -n "$SHELL_PID" ]]; then
@@ -36,7 +45,7 @@ dbus-run-session -- bash -Eeuo pipefail -c '
     }
     trap cleanup EXIT INT TERM
 
-    gnome-shell --nested "$SHELL_MODE" &
+    gnome-shell "$@" &
     SHELL_PID=$!
 
     # Wait until the nested Shell owns its D-Bus name before using gnome-extensions.
@@ -47,4 +56,4 @@ dbus-run-session -- bash -Eeuo pipefail -c '
 
     cd "$ROOT"
     npm run dev:watch
-' _ "$ROOT" "$SHELL_MODE"
+' _ "$ROOT" "$SHELL_MODE" "${SHELL_ARGS[@]}"
