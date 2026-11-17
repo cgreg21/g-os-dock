@@ -34,7 +34,7 @@ export class DockAppItemFactory {
         // indicator/badge inside one content box instead of adding siblings
         // directly to the button (which throws and aborts extension startup).
         const content = new St.BoxLayout({
-            vertical: true,
+            orientation: Clutter.Orientation.VERTICAL,
             x_expand: false,
             y_expand: false,
         });
