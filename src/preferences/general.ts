@@ -66,7 +66,46 @@ function addIconThemeSelector(group: Adw.PreferencesGroup, settings: Gio.Setting
         title: 'Applications icon',
         subtitle: 'Choose an icon from the current icon theme',
         model: new Gtk.StringList({ strings: names }),
+        enable_search: true,
     });
+
+    // Use the same icon-and-name presentation for the selected value and
+    // every entry in the popup, so users can identify symbolic icons visually.
+    const iconFactory = new Gtk.SignalListItemFactory();
+    iconFactory.connect('setup', (_factory, listItem) => {
+        const item = listItem as Gtk.ListItem;
+        const box = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 10,
+        });
+        const image = new Gtk.Image({ pixel_size: 22 });
+        const label = new Gtk.Label({
+            xalign: 0,
+            hexpand: true,
+            ellipsize: 3,
+        });
+        box.append(image);
+        box.append(label);
+        item.set_child(box);
+    });
+    iconFactory.connect('bind', (_factory, listItem) => {
+        const item = listItem as Gtk.ListItem;
+        const modelItem = item.get_item() as Gtk.StringObject | null;
+        const box = item.get_child() as Gtk.Box | null;
+        if (!modelItem || !box)
+            return;
+        const image = box.get_first_child() as Gtk.Image | null;
+        const label = image?.get_next_sibling() as Gtk.Label | null;
+        if (!image || !label)
+            return;
+        const iconName = modelItem.string;
+        image.set_from_icon_name(iconName);
+        label.set_text(iconName);
+        image.set_pixel_size(22);
+    });
+    row.factory = iconFactory;
+    row.list_factory = iconFactory;
+
     const sync = () => {
         const index = names.indexOf(settings.get_string('system-icon-name'));
         row.selected = index >= 0 ? index : Math.max(0, names.indexOf(fallback));
