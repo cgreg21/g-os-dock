@@ -30,6 +30,7 @@ export class DockView {
     private desktopSettings: Gio.Settings;
     private desktopThemeSignal = 0;
     private panelGeometrySignals: number[] = [];
+    private dockGeometrySignals: number[] = [];
     private appSystem: Shell.AppSystem;
     private favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
     private hoverSignal = 0;
@@ -173,6 +174,20 @@ export class DockView {
                 affectsStruts: false,
                 trackFullscreen: false,
             });
+            // Keep the decorative surface locked to the interactive actor,
+            // including changes caused by relayouts and size animations.
+            for (const property of ['x', 'y', 'width', 'height']) {
+                this.dockGeometrySignals.push(this.actor.connect(
+                    `notify::${property}`,
+                    () => {
+                        if (this.destroyed)
+                            return;
+                        const [x, y] = this.actor.get_position();
+                        this.background.set_position(x, y);
+                        this.background.set_size(this.actor.width, this.actor.height);
+                    },
+                ));
+            }
             // Recalculate available dock space when the top panel changes
             // size or position (for example after a scale/theme/layout change).
             const panel = Main.panel as St.Widget;
@@ -377,6 +392,9 @@ export class DockView {
         for (const signal of this.panelGeometrySignals)
             panel.disconnect(signal);
         this.panelGeometrySignals = [];
+        for (const signal of this.dockGeometrySignals)
+            this.actor.disconnect(signal);
+        this.dockGeometrySignals = [];
         if (this.appStateSignal) this.appSystem.disconnect(this.appStateSignal);
         if (this.favoritesSignal) this.favorites.disconnect(this.favoritesSignal);
         if (this.focusSignal) global.display.disconnect(this.focusSignal);
