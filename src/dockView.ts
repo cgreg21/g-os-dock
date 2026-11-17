@@ -210,6 +210,49 @@ export class DockView {
         this.queueSmartHideCheck();
     }
 
+    private focusItem(index: number): void {
+        if (this.itemActors.length === 0)
+            return;
+        const normalized = (index + this.itemActors.length) % this.itemActors.length;
+        this.show();
+        this.itemActors[normalized].grab_key_focus();
+        this.applyMagnification(normalized, true);
+    }
+
+    private handleItemKeyPress(item: any, event: any): number {
+        const key = event.get_key_symbol();
+        const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
+        const previousKey = vertical ? Clutter.KEY_Up : Clutter.KEY_Left;
+        const nextKey = vertical ? Clutter.KEY_Down : Clutter.KEY_Right;
+        const index = this.itemActors.indexOf(item);
+        if (index < 0)
+            return Clutter.EVENT_PROPAGATE;
+
+        if (key === previousKey) {
+            this.focusItem(index - 1);
+            return Clutter.EVENT_STOP;
+        }
+        if (key === nextKey) {
+            this.focusItem(index + 1);
+            return Clutter.EVENT_STOP;
+        }
+        if (key === Clutter.KEY_Home) {
+            this.focusItem(0);
+            return Clutter.EVENT_STOP;
+        }
+        if (key === Clutter.KEY_End) {
+            this.focusItem(this.itemActors.length - 1);
+            return Clutter.EVENT_STOP;
+        }
+        if (key === Clutter.KEY_Escape) {
+            this.hideWindowPreviews();
+            this.applyMagnification(-1, false);
+            item.grab_key_focus();
+            return Clutter.EVENT_STOP;
+        }
+        return Clutter.EVENT_PROPAGATE;
+    }
+
     private createItem(app: any, size: number): any {
         const item = new St.Button({
             style_class: 'g-os-dock-item',
@@ -218,6 +261,7 @@ export class DockView {
             track_hover: true,
             child: app.create_icon_texture(size),
             tooltip_text: app.get_name(),
+            accessible_name: app.get_name(),
             x_expand: false,
             y_expand: false,
         });
@@ -248,6 +292,8 @@ export class DockView {
             });
         }
         item.connect('clicked', () => this.activateApp(app));
+        item.connect('key-press-event', (_actor: any, event: any) =>
+            this.handleItemKeyPress(item, event));
         item.connect('notify::hover', () => {
             if (item.hover) {
                 const index = this.itemActors.indexOf(item);
