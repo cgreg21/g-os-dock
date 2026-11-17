@@ -3,6 +3,7 @@ import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
 import Meta from 'gi://Meta?version=51';
 import Gio from 'gi://Gio?version=2.0';
+import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import { AppContextMenu } from '../features/context-menu/index.js';
@@ -25,8 +26,12 @@ export class DockView {
     private actor: St.ScrollView & { _delegate?: unknown };
     private content: St.BoxLayout;
     private edgeSensor: St.Widget;
-    private previousButton: St.Button;
-    private nextButton: St.Button;
+    private scrollStartZone: St.Widget;
+    private scrollEndZone: St.Widget;
+    private scrollStartHoverSignal = 0;
+    private scrollEndHoverSignal = 0;
+    private edgeScrollTimer = 0;
+    private edgeScrollDirection = 0;
     private scrollAdjustmentSignals: Array<{ adjustment: { disconnect(id: number): void }; signal: number }> = [];
     private monitor: MonitorGeometry;
     private monitorIndex: number;
@@ -101,17 +106,20 @@ export class DockView {
             this.actor,
             () => this.destroyed,
         );
-        this.previousButton = new St.Button({
-            style_class: 'g-os-dock-scroll-button',
-            child: new St.Icon({ icon_name: 'pan-up-symbolic' }),
+        // Invisible hover zones at the two ends of the viewport replace
+        // visible arrow buttons. Moving the pointer to an edge scrolls the
+        // application icons continuously in that direction.
+        this.scrollStartZone = new St.Widget({
+            style_class: 'g-os-dock-edge-scroll-zone',
             reactive: true,
             can_focus: false,
+            track_hover: true,
         });
-        this.nextButton = new St.Button({
-            style_class: 'g-os-dock-scroll-button',
-            child: new St.Icon({ icon_name: 'pan-down-symbolic' }),
+        this.scrollEndZone = new St.Widget({
+            style_class: 'g-os-dock-edge-scroll-zone',
             reactive: true,
             can_focus: false,
+            track_hover: true,
         });
         this.edgeSensor = new St.Widget({
             style_class: 'g-os-dock-edge-sensor',
@@ -170,16 +178,20 @@ export class DockView {
                 affectsStruts: false,
                 trackFullscreen: false,
             });
-            Main.layoutManager.addChrome(this.previousButton, {
+            Main.layoutManager.addChrome(this.scrollStartZone, {
                 affectsStruts: false,
                 trackFullscreen: false,
             });
-            Main.layoutManager.addChrome(this.nextButton, {
+            Main.layoutManager.addChrome(this.scrollEndZone, {
                 affectsStruts: false,
                 trackFullscreen: false,
             });
-            this.previousButton.connect('clicked', () => this.scrollByPage(-1));
-            this.nextButton.connect('clicked', () => this.scrollByPage(1));
+            this.scrollStartHoverSignal = this.scrollStartZone.connect('notify::hover', () => {
+                this.setEdgeScrollDirection(this.scrollStartZone.hover ? -1 : 0);
+            });
+            this.scrollEndHoverSignal = this.scrollEndZone.connect('notify::hover', () => {
+                this.setEdgeScrollDirection(this.scrollEndZone.hover ? 1 : 0);
+            });
             for (const adjustment of [this.actor.get_hadjustment(), this.actor.get_vadjustment()]) {
                 for (const property of ['upper', 'page-size']) {
                     this.scrollAdjustmentSignals.push({
@@ -364,58 +376,90 @@ export class DockView {
         return this.appItemFactory.create(app, size);
     }
 
-    private scrollByPage(direction: number): void {
+    private setEdgeScrollDirection(direction: number): void {
+        this.edgeScrollDirection = direction;
+        if (direction === 0) {
+            if (this.edgeScrollTimer) {
+                GLib.Source.remove(this.edgeScrollTimer);
+                this.edgeScrollTimer = 0;
+            }
+            return;
+        }
+        if (this.edgeScrollTimer)
+            return;
+
+        this.edgeScrollTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
+            if (this.destroyed || this.edgeScrollDirection === 0) {
+                this.edgeScrollTimer = 0;
+                return GLib.SOURCE_REMOVE;
+            }
+
+            const vertical = this.isVerticalDock();
+            const adjustment = vertical
+                ? this.actor.get_vadjustment()
+                : this.actor.get_hadjustment();
+            const maximum = Math.max(0, adjustment.get_upper() - adjustment.get_page_size());
+            const next = Math.max(0, Math.min(
+                maximum,
+                adjustment.get_value() + this.edgeScrollDirection * 10,
+            ));
+            if (Math.abs(next - adjustment.get_value()) < 0.5) {
+                this.edgeScrollTimer = 0;
+                return GLib.SOURCE_REMOVE;
+            }
+
+            adjustment.set_value(next);
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    private isVerticalDock(): boolean {
         const position = this.settings.get_string('dock-position');
-        const vertical = position === 'left' || position === 'right';
-        const adjustment = vertical
-            ? this.actor.get_vadjustment()
-            : this.actor.get_hadjustment();
-        const page = Math.max(1, adjustment.get_page_size() * 0.8);
-        adjustment.set_value(adjustment.get_value() + direction * page);
+        return position === 'left' || position === 'right';
     }
 
     private updateScrollControls(): void {
         if (this.destroyed)
             return;
-        const position = this.settings.get_string('dock-position');
-        const vertical = position === 'left' || position === 'right';
+        const vertical = this.isVerticalDock();
         const adjustment = vertical
             ? this.actor.get_vadjustment()
             : this.actor.get_hadjustment();
         const overflow = adjustment.get_upper() > adjustment.get_page_size() + 1;
         const [x, y] = this.actor.get_transformed_position();
-        const buttonSize = 28;
+        const zoneSize = 24;
 
         if (vertical) {
-            (this.previousButton.get_child() as St.Icon).icon_name = 'pan-up-symbolic';
-            (this.nextButton.get_child() as St.Icon).icon_name = 'pan-down-symbolic';
-            this.previousButton.set_position(
-                Math.round(x + (this.actor.width - buttonSize) / 2),
-                Math.round(y + 4),
+            this.scrollStartZone.set_position(
+                Math.round(x + (this.actor.width - zoneSize) / 2),
+                Math.round(y),
             );
-            this.nextButton.set_position(
-                Math.round(x + (this.actor.width - buttonSize) / 2),
-                Math.round(y + this.actor.height - buttonSize - 4),
+            this.scrollStartZone.set_size(zoneSize, Math.min(zoneSize, this.actor.height / 2));
+            this.scrollEndZone.set_position(
+                Math.round(x + (this.actor.width - zoneSize) / 2),
+                Math.round(y + this.actor.height - zoneSize),
             );
+            this.scrollEndZone.set_size(zoneSize, Math.min(zoneSize, this.actor.height / 2));
         } else {
-            (this.previousButton.get_child() as St.Icon).icon_name = 'pan-start-symbolic';
-            (this.nextButton.get_child() as St.Icon).icon_name = 'pan-end-symbolic';
-            this.previousButton.set_position(
-                Math.round(x + 4),
-                Math.round(y + (this.actor.height - buttonSize) / 2),
+            this.scrollStartZone.set_position(
+                Math.round(x),
+                Math.round(y + (this.actor.height - zoneSize) / 2),
             );
-            this.nextButton.set_position(
-                Math.round(x + this.actor.width - buttonSize - 4),
-                Math.round(y + (this.actor.height - buttonSize) / 2),
+            this.scrollStartZone.set_size(Math.min(zoneSize, this.actor.width / 2), zoneSize);
+            this.scrollEndZone.set_position(
+                Math.round(x + this.actor.width - zoneSize),
+                Math.round(y + (this.actor.height - zoneSize) / 2),
             );
+            this.scrollEndZone.set_size(Math.min(zoneSize, this.actor.width / 2), zoneSize);
         }
 
         if (overflow) {
-            this.previousButton.show();
-            this.nextButton.show();
+            this.scrollStartZone.show();
+            this.scrollEndZone.show();
         } else {
-            this.previousButton.hide();
-            this.nextButton.hide();
+            this.scrollStartZone.hide();
+            this.scrollEndZone.hide();
+            this.setEdgeScrollDirection(0);
         }
     }
 
@@ -555,11 +599,14 @@ export class DockView {
         this.scrollAdjustmentSignals = [];
         Main.layoutManager.removeChrome(this.actor);
         Main.layoutManager.removeChrome(this.edgeSensor);
-        Main.layoutManager.removeChrome(this.previousButton);
-        Main.layoutManager.removeChrome(this.nextButton);
+        if (this.scrollStartHoverSignal) this.scrollStartZone.disconnect(this.scrollStartHoverSignal);
+        if (this.scrollEndHoverSignal) this.scrollEndZone.disconnect(this.scrollEndHoverSignal);
+        this.setEdgeScrollDirection(0);
+        Main.layoutManager.removeChrome(this.scrollStartZone);
+        Main.layoutManager.removeChrome(this.scrollEndZone);
         this.actor.destroy();
         this.edgeSensor.destroy();
-        this.previousButton.destroy();
-        this.nextButton.destroy();
+        this.scrollStartZone.destroy();
+        this.scrollEndZone.destroy();
     }
 }
