@@ -1,9 +1,10 @@
+import Gio from 'gi://Gio?version=2.0';
 import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
 import type { DockAppButton } from './app-item.js';
 
 interface DockKeyboardDependencies {
-    settings: any;
+    settings: Gio.Settings;
     getItems: () => DockAppButton[];
     showDock: () => void;
     showPreviews: (app: Shell.App, item: DockAppButton, focusFirst: boolean) => void;
