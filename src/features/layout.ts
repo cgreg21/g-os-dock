@@ -32,12 +32,12 @@ export class DockLayout {
         const [minHeight, naturalHeight] = this.content.get_preferred_height(-1);
         const width = Math.max(minWidth, naturalWidth);
         const height = Math.max(minHeight, naturalHeight);
-        const viewportWidth = vertical
-            ? width
-            : Math.min(width, Math.max(1, this.monitor.width - 24));
-        const viewportHeight = vertical
-            ? Math.min(height, Math.max(1, this.monitor.height - 24))
-            : height;
+        // Reserve a small margin on every side. Clamp both dimensions, not
+        // only the scrolling axis: large icons or magnification must never
+        // make a vertical dock wider than its monitor (or a horizontal dock
+        // taller than its monitor).
+        const viewportWidth = Math.min(width, Math.max(1, this.monitor.width - 24));
+        const viewportHeight = Math.min(height, Math.max(1, this.monitor.height - 24));
 
         this.actor.set_policy(
             vertical ? St.PolicyType.NEVER : St.PolicyType.AUTOMATIC,
