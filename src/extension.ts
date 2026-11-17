@@ -1,7 +1,7 @@
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { DockManager } from './dockManager.js';
 
-export default class RustDockExtension extends Extension {
+export default class GOSDockExtension extends Extension {
     private manager: DockManager | null = null;
 
     enable(): void {
