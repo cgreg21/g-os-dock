@@ -11,6 +11,7 @@ import { DockLayout } from './features/layout.js';
 import { DockIndicators } from './features/indicators.js';
 import { WindowTracker } from './features/window-tracker.js';
 import { DockAppItemFactory } from './features/app-item.js';
+import { DockKeyboardNavigation } from './features/keyboard-navigation.js';
 import { WindowPreviews } from './windowPreviews.js';
 
 const MAGNIFICATION_RADIUS = 2;
@@ -46,6 +47,7 @@ export class DockView {
     private indicators: DockIndicators;
     private windowTracker: WindowTracker;
     private appItemFactory: DockAppItemFactory;
+    private keyboard: DockKeyboardNavigation;
 
     constructor(index: number, monitor: any, settings: any) {
         this.monitor = monitor;
@@ -98,6 +100,14 @@ export class DockView {
         );
         this.indicators = new DockIndicators(this.settings, () => this.destroyed);
         this.windowTracker = new WindowTracker(global.display, () => this.visibility.queueSmartHideCheck());
+        this.keyboard = new DockKeyboardNavigation({
+            settings: this.settings,
+            getItems: () => this.itemActors,
+            showDock: () => this.visibility.show(),
+            showPreviews: (app, item, focusFirst) => this.previews.show(app, item, focusFirst),
+            hidePreviews: () => this.previews.hide(),
+            magnify: (index, enabled) => this.applyMagnification(index, enabled),
+        });
         this.appItemFactory = new DockAppItemFactory({
             favorites: this.favorites,
             dragDrop: this.dragDrop,
@@ -106,7 +116,7 @@ export class DockView {
             getItems: () => this.itemActors,
             isDockHovered: () => this.actor.hover,
             activateApp: app => this.activateApp(app),
-            handleKeyPress: (item, event) => this.handleItemKeyPress(item, event),
+            handleKeyPress: (item, event) => this.keyboard.handle(item, event),
             magnify: (index, enabled) => this.applyMagnification(index, enabled),
         });
 
@@ -172,62 +182,6 @@ export class DockView {
         this.applyMagnification(-1, false);
         this.updateIndicators();
         this.visibility.queueSmartHideCheck();
-    }
-
-    private focusItem(index: number): void {
-        if (this.itemActors.length === 0)
-            return;
-        const normalized = (index + this.itemActors.length) % this.itemActors.length;
-        this.visibility.show();
-        this.itemActors[normalized].grab_key_focus();
-        this.applyMagnification(normalized, true);
-    }
-
-    private handleItemKeyPress(item: any, event: any): number {
-        const key = event.get_key_symbol();
-        const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
-        const previousKey = vertical ? Clutter.KEY_Up : Clutter.KEY_Left;
-        const nextKey = vertical ? Clutter.KEY_Down : Clutter.KEY_Right;
-        const index = this.itemActors.indexOf(item);
-        if (index < 0)
-            return Clutter.EVENT_PROPAGATE;
-
-        if (key === previousKey) {
-            this.focusItem(index - 1);
-            return Clutter.EVENT_STOP;
-        }
-        if (key === nextKey) {
-            this.focusItem(index + 1);
-            return Clutter.EVENT_STOP;
-        }
-
-        // Open the window switcher with the key pointing into the dock.
-        const inwardKey = this.settings.get_string('dock-position') === 'top'
-            ? Clutter.KEY_Down
-            : this.settings.get_string('dock-position') === 'bottom'
-                ? Clutter.KEY_Up
-                : this.settings.get_string('dock-position') === 'left'
-                    ? Clutter.KEY_Right
-                    : Clutter.KEY_Left;
-        if (key === inwardKey) {
-            this.previews.show(item._gOsDockApp, item, true);
-            return Clutter.EVENT_STOP;
-        }
-        if (key === Clutter.KEY_Home) {
-            this.focusItem(0);
-            return Clutter.EVENT_STOP;
-        }
-        if (key === Clutter.KEY_End) {
-            this.focusItem(this.itemActors.length - 1);
-            return Clutter.EVENT_STOP;
-        }
-        if (key === Clutter.KEY_Escape) {
-            this.previews.hide();
-            this.applyMagnification(-1, false);
-            item.grab_key_focus();
-            return Clutter.EVENT_STOP;
-        }
-        return Clutter.EVENT_PROPAGATE;
     }
 
     private createItem(app: any, size: number): any {
