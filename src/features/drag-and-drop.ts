@@ -161,7 +161,9 @@ export class DockDragDrop {
             'border: 2px dashed rgba(120, 175, 255, 0.95); ' +
             'border-radius: 8px;',
         );
-        item.opacity = 0;
+        // Hidden actors are excluded from BoxLayout measurement. Opacity zero
+        // would leave the original item occupying space beside the preview slot.
+        item.hide();
         this.content.add_child(this.previewSlot);
         this.movePreview(this.content.get_children().indexOf(item));
     }
@@ -186,7 +188,7 @@ export class DockDragDrop {
         }
         this.previewIndex = null;
         if (this.draggedItem) {
-            this.draggedItem.opacity = 255;
+            this.draggedItem.show();
             this.draggedItem = null;
         }
     }
