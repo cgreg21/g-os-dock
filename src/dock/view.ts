@@ -320,12 +320,23 @@ export class DockView {
     }
 
     private persistItemOrder(ids: string[]): void {
-        this.settings.set_strv('dock-item-order', ids);
-        const favoriteIds = this.favorites.getFavorites().map(app => app.get_id());
-        const orderedFavorites = ids
+        // The favorites boundary is defined by the number of favorite apps,
+        // not by raw dock slots (the launcher may be placed anywhere).
+        const appIds = ids
             .filter(id => id.startsWith('app:'))
-            .map(id => id.slice(4))
-            .filter(id => favoriteIds.includes(id));
+            .map(id => id.slice(4));
+        const favoriteCount = this.favorites.getFavorites().length;
+
+        // Dropping a running, non-favorite app into the favorites section pins
+        // it in GNOME. This keeps the drag gesture and persisted order in sync.
+        for (const id of appIds.slice(0, favoriteCount)) {
+            if (!this.favorites.isFavorite(id))
+                this.favorites.addFavorite(id);
+        }
+
+        this.settings.set_strv('dock-item-order', ids);
+        const currentFavorites = this.favorites.getFavorites().map(app => app.get_id());
+        const orderedFavorites = appIds.filter(id => currentFavorites.includes(id));
         for (const [index, id] of orderedFavorites.entries()) {
             const current = this.favorites.getFavorites().findIndex(app => app.get_id() === id);
             if (current >= 0 && current !== index)
@@ -351,21 +362,10 @@ export class DockView {
                 this.settings.set_strv('dock-item-order', saved);
         }
         const rank = new Map(saved.map((id, index) => [id, index]));
-        actors.sort((a, b) => {
-            // Keep favorites first, the system launcher in the middle, and
-            // non-favorite running apps last. Saved order is retained inside
-            // each section so the separator remains a reliable boundary.
-            const aSection = a.app
-                ? (this.favorites.isFavorite(a.app.get_id()) ? 0 : 2)
-                : 1;
-            const bSection = b.app
-                ? (this.favorites.isFavorite(b.app.get_id()) ? 0 : 2)
-                : 1;
-            if (aSection !== bSection)
-                return aSection - bSection;
-            return (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
-                (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER);
-        });
+        actors.sort((a, b) =>
+            (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+            (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+        );
         for (const [index, item] of actors.entries()) {
             const current = this.content.get_children().indexOf(item.actor);
             if (current >= 0 && current !== index)
