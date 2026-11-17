@@ -15,8 +15,8 @@ G-OS Dock is a GNOME Shell extension written in TypeScript and compiled to JavaS
 - Keyboard navigation between dock applications (arrow keys, Home/End), opening window previews with the inward arrow, Escape to close previews and return focus, visible focus state, and accessible application names.
 - Configurable icon size, spacing, theme, and hover magnification.
 - Optional hover window previews with live compositor thumbnails, titles, and click-to-focus (configurable in preferences).
-- Window preview rendering and lifecycle are isolated in `src/windowPreviews.ts`; `src/dockView.ts` delegates preview operations to this module.
-- Application context-menu construction and cleanup are isolated in `src/appContextMenu.ts`.
+- Window preview rendering and lifecycle are isolated in `src/features/window-previews/`; `src/dock/view.ts` delegates preview operations to this module.
+- Application context-menu construction and cleanup are isolated in `src/features/context-menu/`.
 - Minimize or close individual windows directly from their preview cards; show each window's workspace and jump to another workspace from its preview.
 - Drag-and-drop reordering of pinned favorite applications, with live drop-target highlighting and synchronized ordering across monitors.
 - Detaches GNOME's built-in Overview Dash from the Activities view while G-OS Dock is enabled, then restores it to its original parent and position when the extension is disabled.
@@ -132,11 +132,11 @@ Run `npm run dev:check` at any time to validate the host dependencies and versio
 While `npm run dev` is running, edits to `src/`, `schemas/`, `metadata.json` or `stylesheet.css` trigger this sequence:
 
 1. TypeScript compilation and schema compilation.
-2. Creation of the installable extension ZIP.
-3. Installation into the private GNOME profile.
-4. Disable/enable cycle to reload G-OS Dock in the nested Shell.
+2. Staging of the compiled extension in the private GNOME profile.
+3. Replacement of the installed development copy after disabling the extension.
+4. Re-enabling G-OS Dock in the nested Shell.
 
-A failed build leaves the last successfully installed extension running. Press Ctrl+C in the terminal to stop the development session. The private profile can be removed independently with:
+The development watcher deploys `dist/` directly; it does not create or install the ZIP on every edit. Use `npm run pack` when you need an installable archive. A failed build leaves the last successfully installed extension running. Press Ctrl+C in the terminal to stop the development session. The private profile can be removed independently with:
 
 ```sh
 rm -rf ~/.local/share/g-os-dock-dev
