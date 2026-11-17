@@ -31,12 +31,19 @@ export class DockLayout {
             : Clutter.Orientation.HORIZONTAL;
         (this.actor as St.BoxLayout).orientation = this.content.orientation;
 
-        // Measure the interactive container itself, including its CSS padding.
-        // The background is a separate actor and follows these natural dimensions.
-        const [minWidth, naturalWidth] = this.actor.get_preferred_width(-1);
-        const width = Math.max(minWidth, naturalWidth);
-        const [minHeight, naturalHeight] = this.actor.get_preferred_height(width);
-        const height = Math.max(minHeight, naturalHeight);
+        // Measure the content, not the outer actor: set_size() on the actor is
+        // an explicit Clutter size request and would otherwise become the next
+        // preferred size, preventing the dock from growing or shrinking later.
+        // The outer actor has 8px padding on each side in stylesheet.css.
+        this.content.queue_relayout();
+        this.actor.queue_relayout();
+        const [contentMinWidth, contentNaturalWidth] = this.content.get_preferred_width(-1);
+        const contentWidth = Math.max(contentMinWidth, contentNaturalWidth);
+        const [contentMinHeight, contentNaturalHeight] =
+            this.content.get_preferred_height(contentWidth);
+        const contentHeight = Math.max(contentMinHeight, contentNaturalHeight);
+        const width = Math.ceil(contentWidth + 16);
+        const height = Math.ceil(contentHeight + 16);
 
         const panel = Main.panel as unknown as St.Widget;
         const [panelX, panelY] = panel.get_transformed_position();
