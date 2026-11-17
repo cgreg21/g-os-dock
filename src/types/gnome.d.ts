@@ -11,7 +11,6 @@ declare module 'resource:///org/gnome/shell/ui/appFavorites.js' { const AppFavor
 declare module 'resource:///org/gnome/shell/extensions/extension.js' {
     export class Extension {
         getSettings(): any;
-        loadStylesheet(): void;
     }
 }
 declare module 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js' {
