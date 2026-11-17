@@ -3,7 +3,7 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-export default class RustDockPreferences extends ExtensionPreferences {
+export default class GOSDockPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window: any): void {
         const settings = this.getSettings();
         const page = new Adw.PreferencesPage({ title: 'G-OS Dock', icon_name: 'dock-symbolic' });
