@@ -5,8 +5,8 @@
   "shell-version": [
     "51"
   ],
-  "version": 16,
-  "version-name": "0.12.3",
+  "version": 17,
+  "version-name": "0.12.4",
   "url": "https://github.com/cgreg21/g-os-dock",
   "settings-schema": "org.gnome.shell.extensions.g-os-dock"
 }
