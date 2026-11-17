@@ -2,9 +2,9 @@ import Meta from 'gi://Meta?version=51';
 
 /** Tracks window geometry and lifetime signals for smart-hide updates. */
 export class WindowTracker {
-    private tracked: Array<{ window: any; signals: number[] }> = [];
+    private tracked: Array<{ window: Meta.Window; signals: number[] }> = [];
 
-    constructor(private display: any, private onChange: () => void) {}
+    constructor(private display: Meta.Display, private onChange: () => void) {}
 
     trackExisting(): void {
         const windows = this.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
@@ -12,7 +12,7 @@ export class WindowTracker {
             this.track(window);
     }
 
-    track(window: any): void {
+    track(window: Meta.Window): void {
         if (!window || this.tracked.some(entry => entry.window === window))
             return;
 
@@ -37,7 +37,7 @@ export class WindowTracker {
             this.untrack(entry.window);
     }
 
-    private untrack(window: any): void {
+    private untrack(window: Meta.Window): void {
         const index = this.tracked.findIndex(entry => entry.window === window);
         if (index < 0)
             return;
