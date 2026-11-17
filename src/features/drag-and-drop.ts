@@ -11,10 +11,13 @@ export type DockDragSource = { app?: Shell.App };
 /** Handles favorite-app drag sources and dock drop targets. */
 export class DockDragDrop {
     private dropTarget: DockAppButton | null = null;
+    private draggedItem: DockAppButton | null = null;
+    private previewSlot: St.Widget | null = null;
     private draggables = new Map<DockAppButton, DND.Draggable>();
 
     constructor(
         private actor: St.Widget,
+        private content: St.BoxLayout,
         private settings: Gio.Settings,
         private favorites: ReturnType<typeof AppFavorites.getAppFavorites>,
         private getItems: () => DockAppButton[],
@@ -33,14 +36,17 @@ export class DockDragDrop {
         draggable.connect('drag-begin', () => {
             onStart();
             item.add_style_class_name('dragging');
+            this.beginPreview(item);
         });
         draggable.connect('drag-end', () => {
             item.remove_style_class_name('dragging');
             this.clearDropTarget();
+            this.endPreview();
         });
         draggable.connect('drag-cancelled', () => {
             item.remove_style_class_name('dragging');
             this.clearDropTarget();
+            this.endPreview();
         });
     }
 
@@ -58,6 +64,7 @@ export class DockDragDrop {
         // toward the actor origin and makes every drop resolve to index zero.
         const coordinate = vertical ? y : x;
         const candidates = this.getItems().filter(item =>
+            item !== this.draggedItem &&
             item._gOsDockApp &&
             item._gOsDockApp.get_id() !== appId &&
             this.favorites.isFavorite(item._gOsDockApp.get_id()));
@@ -80,11 +87,21 @@ export class DockDragDrop {
             this.dropTarget = nearest;
             this.dropTarget?.add_style_class_name('drop-target');
         }
+
+        // Move a same-sized slot through the real layout while dragging. This
+        // previews the final icon order without committing favorites yet.
+        const targets = candidates;
+        let insertionIndex = 0;
+        for (const item of targets) {
+            const midpoint = this.getItemMidpoint(item, vertical);
+            if (midpoint !== null && coordinate > midpoint)
+                insertionIndex++;
+        }
+        this.movePreview(insertionIndex);
         return DND.DragMotionResult.MOVE_DROP;
     }
 
     acceptDrop(source: DockDragSource, _dragActor: Clutter.Actor, x: number, y: number, _time: number): boolean {
-        this.clearDropTarget();
         const app = source?.app;
         if (!app)
             return false;
@@ -98,6 +115,7 @@ export class DockDragDrop {
         const coordinate = vertical ? y : x;
         const favorites = this.favorites.getFavorites();
         const targets = this.getItems().filter(item =>
+            item !== this.draggedItem &&
             item._gOsDockApp &&
             item._gOsDockApp.get_id() !== appId &&
             this.favorites.isFavorite(item._gOsDockApp.get_id()));
@@ -110,6 +128,8 @@ export class DockDragDrop {
         }
 
         targetIndex = Math.max(0, Math.min(targetIndex, favorites.length - 1));
+        this.clearDropTarget();
+        this.endPreview();
         const currentIndex = favorites.findIndex(favorite => favorite.get_id() === appId);
         if (currentIndex >= 0 && currentIndex !== targetIndex)
             this.favorites.moveFavoriteToPos(appId, targetIndex);
@@ -122,6 +142,48 @@ export class DockDragDrop {
             this.clearDropTarget();
     }
 
+    private beginPreview(item: DockAppButton): void {
+        this.endPreview();
+        this.draggedItem = item;
+        this.previewSlot = new St.Widget({
+            style_class: 'g-os-dock-dnd-preview',
+            reactive: false,
+            can_focus: false,
+        });
+        this.previewSlot.set_size(item.width, item.height);
+        this.previewSlot.set_style(
+            'background-color: rgba(90, 150, 255, 0.28); ' +
+            'border: 2px dashed rgba(120, 175, 255, 0.95); ' +
+            'border-radius: 8px;',
+        );
+        item.opacity = 0;
+        this.content.add_child(this.previewSlot);
+        this.movePreview(this.content.get_children().indexOf(item));
+    }
+
+    private movePreview(index: number): void {
+        if (!this.previewSlot || !this.draggedItem)
+            return;
+
+        const items = this.getItems().filter(item => item !== this.draggedItem);
+        const target = Math.max(0, Math.min(index, items.length));
+        this.content.set_child_at_index(this.previewSlot, target);
+    }
+
+    private endPreview(): void {
+        if (this.previewSlot) {
+            const parent = this.previewSlot.get_parent();
+            if (parent)
+                parent.remove_child(this.previewSlot);
+            this.previewSlot.destroy();
+            this.previewSlot = null;
+        }
+        if (this.draggedItem) {
+            this.draggedItem.opacity = 255;
+            this.draggedItem = null;
+        }
+    }
+
     clearDropTarget(): void {
         if (!this.dropTarget)
             return;
@@ -131,6 +193,7 @@ export class DockDragDrop {
 
     destroy(): void {
         this.clearDropTarget();
+        this.endPreview();
         this.draggables.clear();
     }
 
