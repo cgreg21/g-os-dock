@@ -6,7 +6,7 @@ import Gio from 'gi://Gio?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import { AppContextMenu } from '../features/context-menu/index.js';
-import { DockDragDrop } from '../features/drag-and-drop.js';
+import { DockDragDrop, type DockDragSource } from '../features/drag-and-drop.js';
 import { DockVisibility } from '../features/visibility.js';
 import { DockAppearance } from '../features/appearance.js';
 import { DockLayout } from '../features/layout.js';
@@ -145,11 +145,11 @@ export class DockView {
     }
 
 
-    handleDragOver(source: any, dragActor: any, x: number, y: number, time: number): number {
+    handleDragOver(source: DockDragSource, dragActor: Clutter.Actor, x: number, y: number, time: number): number {
         return this.dragDrop.handleDragOver(source, dragActor, x, y, time);
     }
 
-    acceptDrop(source: any, dragActor: any, x: number, y: number, time: number): boolean {
+    acceptDrop(source: DockDragSource, dragActor: Clutter.Actor, x: number, y: number, time: number): boolean {
         return this.dragDrop.acceptDrop(source, dragActor, x, y, time);
     }
 
