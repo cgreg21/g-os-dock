@@ -154,7 +154,6 @@ export class DockView {
             dragDrop: this.dragDrop,
             previews: this.previews,
             contextMenu: this.contextMenu,
-            getItems: () => this.itemActors,
             activateApp: app => this.activateApp(app),
             handleKeyPress: (item, event) => this.keyboard.handle(item, event),
         });
