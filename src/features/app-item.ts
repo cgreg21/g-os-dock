@@ -122,7 +122,10 @@ export class DockAppItemFactory {
                 return Clutter.EVENT_PROPAGATE;
             });
 
-            const indicator = new St.Widget({ style_class: 'g-os-dock-running-indicator' });
+            const indicator = new St.BoxLayout({
+                style_class: 'g-os-dock-running-indicator',
+                orientation: Clutter.Orientation.HORIZONTAL,
+            });
             content.add_child(indicator);
             const badge = new St.Label({ style_class: 'g-os-dock-window-count' });
             content.add_child(badge);
