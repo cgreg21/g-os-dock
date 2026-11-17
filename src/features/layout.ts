@@ -6,7 +6,6 @@ import Gio from 'gi://Gio?version=2.0';
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
 const EDGE_THICKNESS = 3;
-const DOCK_SCREEN_MARGIN = 12;
 
 /** Positions the content-sized dock and its reveal sensor on the selected monitor. */
 export class DockLayout {
@@ -34,7 +33,6 @@ export class DockLayout {
         // Measure the content, not the outer actor: set_size() on the actor is
         // an explicit Clutter size request and would otherwise become the next
         // preferred size, preventing the dock from growing or shrinking later.
-        // The outer actor has 8px padding on each side in stylesheet.css.
         this.content.queue_relayout();
         this.actor.queue_relayout();
         const [contentMinWidth, contentNaturalWidth] = this.content.get_preferred_width(-1);
@@ -42,8 +40,14 @@ export class DockLayout {
         const [contentMinHeight, contentNaturalHeight] =
             this.content.get_preferred_height(contentWidth);
         const contentHeight = Math.max(contentMinHeight, contentNaturalHeight);
-        const width = Math.ceil(contentWidth + 16);
-        const height = Math.ceil(contentHeight + 16);
+        const paddingTop = this.settings.get_int('background-padding-top');
+        const paddingRight = this.settings.get_int('background-padding-right');
+        const paddingBottom = this.settings.get_int('background-padding-bottom');
+        const paddingLeft = this.settings.get_int('background-padding-left');
+        const border = this.settings.get_int('border-size');
+        const width = Math.ceil(contentWidth + paddingLeft + paddingRight + border * 2);
+        const height = Math.ceil(contentHeight + paddingTop + paddingBottom + border * 2);
+        const edgeDistance = this.settings.get_int('edge-distance');
 
         const panel = Main.panel as unknown as St.Widget;
         const [panelX, panelY] = panel.get_transformed_position();
@@ -55,27 +59,27 @@ export class DockLayout {
             panelY <= this.monitor.y + 2 &&
             panelBottom > this.monitor.y;
         const usableTop = panelAtMonitorTop
-            ? Math.min(this.monitor.y + this.monitor.height, panelBottom + DOCK_SCREEN_MARGIN)
+            ? Math.min(this.monitor.y + this.monitor.height, panelBottom + edgeDistance)
             : this.monitor.y;
 
         this.actor.set_size(width, height);
         this.background.set_size(width, height);
 
-        const minX = this.monitor.x + DOCK_SCREEN_MARGIN;
-        const maxX = Math.max(minX, this.monitor.x + this.monitor.width - width - DOCK_SCREEN_MARGIN);
+        const minX = this.monitor.x + edgeDistance;
+        const maxX = Math.max(minX, this.monitor.x + this.monitor.width - width - edgeDistance);
         const minY = usableTop;
-        const maxY = Math.max(minY, this.monitor.y + this.monitor.height - height - DOCK_SCREEN_MARGIN);
+        const maxY = Math.max(minY, this.monitor.y + this.monitor.height - height - edgeDistance);
 
         let x = this.monitor.x + Math.round((this.monitor.width - width) / 2);
-        let y = this.monitor.y + this.monitor.height - height - DOCK_SCREEN_MARGIN;
+        let y = this.monitor.y + this.monitor.height - height - edgeDistance;
         if (position === 'top') {
-            y = usableTop + DOCK_SCREEN_MARGIN;
+            y = usableTop + edgeDistance;
         } else if (position === 'left' || position === 'right') {
             x = position === 'left'
                 ? minX
-                : this.monitor.x + this.monitor.width - width - DOCK_SCREEN_MARGIN;
+                : this.monitor.x + this.monitor.width - width - edgeDistance;
             y = usableTop + Math.round(
-                (this.monitor.y + this.monitor.height - usableTop - height - DOCK_SCREEN_MARGIN) / 2,
+                (this.monitor.y + this.monitor.height - usableTop - height - edgeDistance) / 2,
             );
         }
 
