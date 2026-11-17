@@ -3,6 +3,7 @@ import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
 import type { DockAppButton } from '../app-item.js';
 import GLib from 'gi://GLib?version=2.0';
+import Gio from 'gi://Gio?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
