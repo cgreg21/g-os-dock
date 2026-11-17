@@ -2,7 +2,7 @@
 <schemalist>
   <schema id="org.gnome.shell.extensions.g-os-dock" path="/org/gnome/shell/extensions/g-os-dock/">
     <key name="show-system-icon" type="b"><default>true</default><summary>Show the app grid and system actions icon</summary></key>
-    <key name="system-icon-position" type="s"><default>'end'</default><summary>Position of the system icon: start or end</summary></key>
+    <key name="system-icon-position" type="i"><range min="0" max="128"/><default>128</default><summary>Dock item index for the system icon</summary></key>
     <key name="system-icon-name" type="s"><default>'view-app-grid-symbolic'</default><summary>Icon theme name for the system dock item</summary></key>
     <key name="dev-mode" type="b"><default>false</default><summary>Show development borders around dock elements</summary></key>
     <key name="dock-position" type="s"><default>'bottom'</default><summary>Dock position: top, bottom, left or right</summary></key>
