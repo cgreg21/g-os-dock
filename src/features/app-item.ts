@@ -52,9 +52,10 @@ export class DockAppItemFactory {
             x_expand: false,
             y_expand: false,
         }) as DockAppButton;
-        item._gOsDockApp = app;
+        try {
+            item._gOsDockApp = app;
 
-        if (this.dependencies.favorites.isFavorite(app.get_id())) {
+            if (this.dependencies.favorites.isFavorite(app.get_id())) {
             this.dependencies.dragDrop.makeFavoriteDraggable(
                 item,
                 app,
@@ -118,7 +119,12 @@ export class DockAppItemFactory {
         const badge = new St.Label({ style_class: 'g-os-dock-window-count' });
         content.add_child(badge);
         item._gOsDockIndicator = indicator;
-        item._gOsDockBadge = badge;
-        return item;
+            item._gOsDockBadge = badge;
+            return item;
+        } catch (error) {
+            this.dependencies.dragDrop.release(item);
+            item.destroy();
+            throw error;
+        }
     }
 }
