@@ -65,10 +65,11 @@ Then install project dependencies and launch the environment:
 
 ```sh
 npm install
+npm run dev:check
 npm run dev
 ```
 
-The launcher verifies that the host provides GNOME Shell 51.x, creates a private profile under `~/.local/share/g-os-dock-dev`, starts GNOME Shell nested on Wayland (or X11 when the host session is X11), waits for the Shell D-Bus service, then builds and installs the extension.
+Run `npm run dev:check` at any time to validate the host dependencies and versions. The launcher performs the same checks automatically, verifies that the host provides GNOME Shell 51.x, and creates a private profile under `~/.local/share/g-os-dock-dev`, starts GNOME Shell nested on Wayland (or X11 when the host session is X11), waits for the Shell D-Bus service, then builds and installs the extension.
 
 ### Automatic rebuild and reload
 
