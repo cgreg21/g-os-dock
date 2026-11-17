@@ -1,5 +1,5 @@
-import St from 'gi://St';
-import Clutter from 'gi://Clutter';
+import St from 'gi://St?version=51';
+import Clutter from 'gi://Clutter?version=51';
 
 /** Builds a single window preview card and its window actions. */
 export function createWindowPreviewCard(
