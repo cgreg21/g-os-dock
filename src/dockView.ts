@@ -6,7 +6,7 @@ import Meta from 'gi://Meta';
 import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
-import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { AppContextMenu } from './appContextMenu.js';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import { WindowPreviews } from './windowPreviews.js';
 
@@ -37,9 +37,8 @@ export class DockView {
     private smartHideSource = 0;
     private hideSource = 0;
     private destroyed = false;
-    private menuManager: any;
+    private contextMenu: AppContextMenu;
     private itemActors: any[] = [];
-    private menus: any[] = [];
     private previews: WindowPreviews;
     private dropTargetActor: any = null;
 
@@ -57,7 +56,7 @@ export class DockView {
             reactive: true,
             track_hover: true,
         });
-        this.menuManager = new PopupMenu.PopupMenuManager(this.actor);
+        this.contextMenu = new AppContextMenu(this.actor, this.favorites);
         this.actor._delegate = this;
         this.previews = new WindowPreviews(
             this.settings,
@@ -341,7 +340,7 @@ export class DockView {
                 return Clutter.EVENT_STOP;
             }
             if (button === 3) {
-                this.openContextMenu(item, app);
+                this.contextMenu.show(item, app);
                 return Clutter.EVENT_STOP;
             }
             return Clutter.EVENT_PROPAGATE;
@@ -472,69 +471,6 @@ export class DockView {
         } else {
             app.activate();
         }
-    }
-
-    private openContextMenu(source: any, app: any): void {
-        const menu = new PopupMenu.PopupMenu(source, 0.5, St.Side.TOP);
-        Main.uiGroup.add_child(menu.actor);
-        this.menuManager.addMenu(menu);
-        this.menus.push(menu);
-        const windows = app.get_windows();
-        const open = new PopupMenu.PopupMenuItem('Open new window');
-        open.connect('activate', () => app.open_new_window(global.get_current_time()));
-        menu.addMenuItem(open);
-        if (windows.length > 0) {
-            menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-            const windowHeading = new PopupMenu.PopupMenuItem(`Windows (${windows.length})`);
-            windowHeading.setSensitive(false);
-            menu.addMenuItem(windowHeading);
-            for (const [index, window] of windows.entries()) {
-                let title = '';
-                try { title = window.get_title() || ''; } catch (_error) { /* title unavailable */ }
-                const label = title.trim() || `Window ${index + 1}`;
-                const entry = new PopupMenu.PopupMenuItem(label.length > 48 ? `${label.slice(0, 45)}…` : label);
-                entry.connect('activate', () => {
-                    try { app.activate_window(window, global.get_current_time()); }
-                    catch (_error) { window.activate(global.get_current_time()); }
-                });
-                menu.addMenuItem(entry);
-            }
-            menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-            const minimize = new PopupMenu.PopupMenuItem('Minimize all windows');
-            minimize.connect('activate', () => windows.forEach((window: any) => window.minimize()));
-            menu.addMenuItem(minimize);
-            const close = new PopupMenu.PopupMenuItem('Close all windows');
-            close.connect('activate', () => windows.forEach((window: any) => window.delete(global.get_current_time())));
-            menu.addMenuItem(close);
-        }
-        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-        const appId = app.get_id();
-        const favorite = this.favorites.isFavorite(appId);
-        const pin = new PopupMenu.PopupMenuItem(favorite ? 'Remove from favorites' : 'Add to favorites');
-        pin.connect('activate', () => favorite
-            ? this.favorites.removeFavorite(appId)
-            : this.favorites.addFavorite(appId));
-        menu.addMenuItem(pin);
-        if (favorite) {
-            const favoriteIds = this.favorites.getFavorites().map((entry: any) => entry.get_id());
-            const favoriteIndex = favoriteIds.indexOf(appId);
-            const moveEarlier = new PopupMenu.PopupMenuItem('Move earlier in dock');
-            moveEarlier.setSensitive(favoriteIndex > 0);
-            moveEarlier.connect('activate', () => this.favorites.moveFavoriteToPos(appId, Math.max(0, favoriteIndex - 1)));
-            menu.addMenuItem(moveEarlier);
-            const moveLater = new PopupMenu.PopupMenuItem('Move later in dock');
-            moveLater.setSensitive(favoriteIndex >= 0 && favoriteIndex < favoriteIds.length - 1);
-            moveLater.connect('activate', () => this.favorites.moveFavoriteToPos(appId, Math.min(favoriteIds.length - 1, favoriteIndex + 1)));
-            menu.addMenuItem(moveLater);
-        }
-        menu.connect('open-state-changed', (_menu: any, isOpen: boolean) => {
-            if (!isOpen) {
-                this.menuManager.removeMenu(menu);
-                this.menus = this.menus.filter((entry: any) => entry !== menu);
-                menu.destroy();
-            }
-        });
-        menu.open();
     }
 
     private applyMagnification(index: number, enabled: boolean): void {
@@ -696,12 +632,7 @@ export class DockView {
         if (this.smartHideSource) GLib.source_remove(this.smartHideSource);
         this.smartHideSource = 0;
         for (const entry of [...this.windowSignals]) this.untrackWindow(entry.window);
-        for (const menu of this.menus) {
-            menu.close();
-            this.menuManager.removeMenu(menu);
-            menu.destroy();
-        }
-        this.menus = [];
+        this.contextMenu.destroy();
         Main.layoutManager.removeChrome(this.actor);
         Main.layoutManager.removeChrome(this.edgeSensor);
         this.actor.destroy();
