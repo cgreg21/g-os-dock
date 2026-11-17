@@ -28,15 +28,37 @@ export class DockVisibility {
         if (this.isInactive())
             return;
 
-        // The first reveal is deliberately deferred until DockView has built
-        // every item and completed its initial layout measurement.
-        if (!this.initialized) {
-            this.initialized = true;
-            this.show();
-        }
-
         const autoHide = this.settings.get_boolean('auto-hide');
         const smartHide = this.settings.get_boolean('smart-hide');
+
+        // Do not flash the dock onscreen during startup when auto-hide is
+        // enabled. DockView calls this only after the first item/layout pass,
+        // so the measured dimensions are already available here.
+        if (!this.initialized) {
+            this.initialized = true;
+            if (autoHide) {
+                const position = this.settings.get_string('dock-position');
+                const distanceX = position === 'left'
+                    ? -Math.max(this.actor.width, this.background.width)
+                    : position === 'right'
+                        ? Math.max(this.actor.width, this.background.width)
+                        : 0;
+                const distanceY = position === 'top'
+                    ? -Math.max(this.actor.height, this.background.height)
+                    : position === 'bottom'
+                        ? Math.max(this.actor.height, this.background.height)
+                        : 0;
+                this.actor.translation_x = distanceX;
+                this.actor.translation_y = distanceY;
+                this.background.translation_x = distanceX;
+                this.background.translation_y = distanceY;
+                this.actor.reactive = false;
+                this.actor.hide();
+                this.background.hide();
+            } else {
+                this.show();
+            }
+        }
 
         if (!autoHide && !smartHide) {
             this.cancelHide();
