@@ -122,7 +122,10 @@ export class DockVisibility {
             width: this.actor.width,
             height: this.actor.height,
         };
-        const windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
+        // Only windows on the active workspace may hide this dock. NORMAL_ALL
+        // incorrectly lets a window on another virtual desktop hide it here.
+        const activeWorkspace = global.workspace_manager.get_active_workspace();
+        const windows = global.display.get_tab_list(Meta.TabList.NORMAL, activeWorkspace);
         const overlaps = windows.some((window: any) => {
             if (!window || window.minimized || window.get_monitor() !== this.monitorIndex)
                 return false;
