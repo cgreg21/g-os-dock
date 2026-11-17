@@ -171,9 +171,7 @@ export class DockView {
                 const step = Math.max(iconSize, iconSize + this.settings.get_int('dock-spacing'));
 
                 if (direction === Clutter.ScrollDirection.SMOOTH) {
-                    const [valid, dx, dy] = event.get_scroll_delta();
-                    if (!valid)
-                        return Clutter.EVENT_PROPAGATE;
+                    const [dx, dy] = event.get_scroll_delta();
 
                     // Touchpads report smooth deltas instead of discrete directions.
                     // A vertical gesture remains useful on horizontal docks, while
