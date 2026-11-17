@@ -175,7 +175,13 @@ export class DockDragDrop {
         const items = this.getItems().filter(item => item !== this.draggedItem);
         const target = Math.max(0, Math.min(index, items.length));
         this.previewIndex = target;
-        this.content.set_child_at_index(this.previewSlot, target);
+
+        // The hidden source actor is still a child of the BoxLayout and thus
+        // still participates in child indices. Compensate when inserting the
+        // visible placeholder after the source's original position.
+        const sourceChildIndex = this.content.get_children().indexOf(this.draggedItem);
+        const childIndex = target + (sourceChildIndex >= 0 && sourceChildIndex <= target ? 1 : 0);
+        this.content.set_child_at_index(this.previewSlot, childIndex);
     }
 
     private endPreview(): void {
