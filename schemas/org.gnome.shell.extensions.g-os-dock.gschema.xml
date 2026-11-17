@@ -38,6 +38,9 @@
     <key name="indicator-opacity" type="d"><range min="0.0" max="1.0"/><default>0.72</default><summary>Indicator opacity</summary></key>
     <key name="indicator-bottom-offset" type="i"><range min="-32" max="32"/><default>0</default><summary>Indicator offset from icon bottom in pixels; positive moves upward</summary></key>
     <key name="indicator-size" type="i"><range min="1" max="16"/><default>5</default><summary>Indicator size in pixels</summary></key>
+    <key name="indicator-border-size" type="i"><range min="0" max="8"/><default>0</default><summary>Indicator border thickness in pixels</summary></key>
+    <key name="indicator-border-color" type="s"><default>'#ffffff'</default><summary>Indicator border color in hexadecimal</summary></key>
+    <key name="indicator-border-opacity" type="d"><range min="0.0" max="1.0"/><default>1.0</default><summary>Indicator border opacity</summary></key>
     <key name="indicator-show-open" type="b"><default>true</default><summary>Show indicator for open applications</summary></key>
     <key name="indicator-show-focused" type="b"><default>true</default><summary>Show indicator for focused applications</summary></key>
     <key name="indicator-show-minimized" type="b"><default>false</default><summary>Show indicator for minimized applications</summary></key>
