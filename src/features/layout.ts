@@ -45,7 +45,15 @@ export class DockLayout {
             y = this.monitor.y + Math.round((this.monitor.height - height) / 2);
         }
 
-        this.actor.set_position(x, y);
+        // Keep oversized docks anchored to the monitor instead of centering
+        // them at a negative stage coordinate. This is especially important
+        // for vertical docks with many running/favorite applications.
+        const maxX = Math.max(this.monitor.x, this.monitor.x + this.monitor.width - width);
+        const maxY = Math.max(this.monitor.y, this.monitor.y + this.monitor.height - height);
+        x = Math.max(this.monitor.x, Math.min(x, maxX));
+        y = Math.max(this.monitor.y, Math.min(y, maxY));
+
+        this.actor.set_position(Math.round(x), Math.round(y));
         this.positionSensor();
     }
 
