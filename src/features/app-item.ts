@@ -94,7 +94,9 @@ export class DockAppItemFactory {
             const nextIndex = currentIndex < 0
                 ? (step > 0 ? 0 : windows.length - 1)
                 : (currentIndex + step + windows.length) % windows.length;
-            app.activate_window(windows[nextIndex], global.get_current_time());
+            const nextWindow = windows[nextIndex];
+            if (nextWindow)
+                app.activate_window(nextWindow, global.get_current_time());
             return Clutter.EVENT_STOP;
         });
 
