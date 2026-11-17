@@ -32,17 +32,20 @@ export class DockLayout {
         const [minHeight, naturalHeight] = this.content.get_preferred_height(-1);
         const width = Math.max(minWidth, naturalWidth);
         const height = Math.max(minHeight, naturalHeight);
+        const viewportWidth = vertical
+            ? width
+            : Math.min(width, Math.max(1, this.monitor.width - 24));
         const viewportHeight = vertical
             ? Math.min(height, Math.max(1, this.monitor.height - 24))
             : height;
 
         this.actor.set_policy(
-            St.PolicyType.NEVER,
+            vertical ? St.PolicyType.NEVER : St.PolicyType.AUTOMATIC,
             vertical ? St.PolicyType.AUTOMATIC : St.PolicyType.NEVER,
         );
-        this.actor.set_size(width, viewportHeight);
+        this.actor.set_size(viewportWidth, viewportHeight);
 
-        let x = this.monitor.x + Math.round((this.monitor.width - width) / 2);
+        let x = this.monitor.x + Math.round((this.monitor.width - viewportWidth) / 2);
         let y = this.monitor.y + this.monitor.height - viewportHeight - 12;
 
         if (position === 'top') {
@@ -51,14 +54,14 @@ export class DockLayout {
             x = this.monitor.x;
             y = this.monitor.y + Math.round((this.monitor.height - viewportHeight) / 2);
         } else if (position === 'right') {
-            x = this.monitor.x + this.monitor.width - width;
+            x = this.monitor.x + this.monitor.width - viewportWidth;
             y = this.monitor.y + Math.round((this.monitor.height - viewportHeight) / 2);
         }
 
         // Keep oversized docks anchored to the monitor instead of centering
         // them at a negative stage coordinate. This is especially important
         // for vertical docks with many running/favorite applications.
-        const maxX = Math.max(this.monitor.x, this.monitor.x + this.monitor.width - width);
+        const maxX = Math.max(this.monitor.x, this.monitor.x + this.monitor.width - viewportWidth);
         const maxY = Math.max(this.monitor.y, this.monitor.y + this.monitor.height - viewportHeight);
         x = Math.max(this.monitor.x, Math.min(x, maxX));
         y = Math.max(this.monitor.y, Math.min(y, maxY));
