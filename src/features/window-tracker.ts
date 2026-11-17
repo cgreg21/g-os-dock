@@ -3,17 +3,21 @@ import Meta from 'gi://Meta?version=51';
 /** Tracks window geometry and lifetime signals for smart-hide updates. */
 export class WindowTracker {
     private tracked: Array<{ window: Meta.Window; signals: number[] }> = [];
+    private destroyed = false;
 
     constructor(private display: Meta.Display, private onChange: () => void) {}
 
     trackExisting(): void {
+        if (this.destroyed)
+            return;
+
         const windows = this.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
         for (const window of windows)
             this.track(window);
     }
 
     track(window: Meta.Window): void {
-        if (!window || this.tracked.some(entry => entry.window === window))
+        if (this.destroyed || !window || this.tracked.some(entry => entry.window === window))
             return;
 
         const signals: number[] = [];
@@ -26,6 +30,8 @@ export class WindowTracker {
         for (const signal of ['position-changed', 'size-changed', 'unmanaged']) {
             try {
                 signals.push(connectWindowSignal(signal, () => {
+                    if (this.destroyed)
+                        return;
                     if (signal === 'unmanaged')
                         this.untrack(window);
                     this.onChange();
@@ -39,6 +45,10 @@ export class WindowTracker {
     }
 
     destroy(): void {
+        if (this.destroyed)
+            return;
+
+        this.destroyed = true;
         for (const entry of [...this.tracked])
             this.untrack(entry.window);
     }
