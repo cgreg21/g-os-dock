@@ -164,34 +164,46 @@ export class DockView {
                 const direction = event.get_scroll_direction();
                 const position = this.settings.get_string('dock-position');
                 const vertical = position === 'left' || position === 'right';
-                let delta = 0;
+                const adjustment = vertical
+                    ? this.actor.get_vadjustment()
+                    : this.actor.get_hadjustment();
+                const iconSize = this.settings.get_int('icon-size');
+                const step = Math.max(iconSize, iconSize + this.settings.get_int('dock-spacing'));
 
+                if (direction === Clutter.ScrollDirection.SMOOTH) {
+                    const [valid, dx, dy] = event.get_scroll_delta();
+                    if (!valid)
+                        return Clutter.EVENT_PROPAGATE;
+
+                    // Touchpads report smooth deltas instead of discrete directions.
+                    // A vertical gesture remains useful on horizontal docks, while
+                    // a native horizontal gesture takes precedence when available.
+                    const smoothDelta = vertical
+                        ? dy
+                        : (Math.abs(dx) > 0.01 ? dx : dy);
+                    if (Math.abs(smoothDelta) < 0.01)
+                        return Clutter.EVENT_PROPAGATE;
+
+                    adjustment.set_value(adjustment.get_value() + smoothDelta * step);
+                    return Clutter.EVENT_STOP;
+                }
+
+                let delta = 0;
                 if (vertical) {
                     if (direction === Clutter.ScrollDirection.UP)
                         delta = -1;
                     else if (direction === Clutter.ScrollDirection.DOWN)
                         delta = 1;
                 } else {
-                    if (direction === Clutter.ScrollDirection.LEFT)
+                    if (direction === Clutter.ScrollDirection.LEFT || direction === Clutter.ScrollDirection.UP)
                         delta = -1;
-                    else if (direction === Clutter.ScrollDirection.RIGHT)
-                        delta = 1;
-                    else if (direction === Clutter.ScrollDirection.UP)
-                        delta = -1;
-                    else if (direction === Clutter.ScrollDirection.DOWN)
+                    else if (direction === Clutter.ScrollDirection.RIGHT || direction === Clutter.ScrollDirection.DOWN)
                         delta = 1;
                 }
 
                 if (delta === 0)
                     return Clutter.EVENT_PROPAGATE;
 
-                const adjustment = vertical
-                    ? this.actor.get_vadjustment()
-                    : this.actor.get_hadjustment();
-                const step = Math.max(
-                    this.settings.get_int('icon-size'),
-                    this.settings.get_int('icon-size') + this.settings.get_int('dock-spacing'),
-                );
                 adjustment.set_value(adjustment.get_value() + delta * step);
                 return Clutter.EVENT_STOP;
             });
