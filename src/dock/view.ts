@@ -78,9 +78,10 @@ export class DockView {
             reactive: true,
             track_hover: true,
         });
-        this.actor.set_policy(St.PolicyType.NEVER, vertical
-            ? St.PolicyType.AUTOMATIC
-            : St.PolicyType.NEVER);
+        this.actor.set_policy(
+            vertical ? St.PolicyType.NEVER : St.PolicyType.AUTOMATIC,
+            vertical ? St.PolicyType.AUTOMATIC : St.PolicyType.NEVER,
+        );
         this.actor.set_mouse_scrolling(true);
         this.appearance = new DockAppearance(this.actor, this.settings, this.desktopSettings);
         this.contextMenu = new AppContextMenu(this.actor, this.favorites);
