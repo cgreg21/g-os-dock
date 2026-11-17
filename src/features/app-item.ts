@@ -11,6 +11,7 @@ import { DockTooltip } from './tooltip.js';
 export type DockAppButton = St.Button & {
     _gOsDockApp: Shell.App;
     _gOsDockIndicator: St.Widget;
+    _gOsDockIcon: St.Widget;
     _gOsDockBadge: St.Label;
 };
 
@@ -145,6 +146,7 @@ export class DockAppItemFactory {
             const badge = new St.Label({ style_class: 'g-os-dock-window-count' });
             content.add_child(badge);
             item._gOsDockIndicator = indicator;
+            item._gOsDockIcon = icon;
             item._gOsDockBadge = badge;
             return item;
         } catch (error) {
