@@ -19,15 +19,20 @@ export class DockManager {
             return;
 
         this.enabled = true;
-        this.rebuild();
-        // GNOME Shell emits this JS-level signal; it is not exposed in the generated GIR type.
-        this.monitorSignal = (Main.layoutManager as unknown as {
-            connect: (signal: string, callback: () => void) => number;
-        }).connect('monitors-changed', () => this.rebuild());
-        this.settingsSignal = this.settings.connect(
-            'changed::show-on-all-monitors',
-            () => this.rebuild(),
-        );
+        try {
+            this.rebuild();
+            // GNOME Shell emits this JS-level signal; it is not exposed in the generated GIR type.
+            this.monitorSignal = (Main.layoutManager as unknown as {
+                connect: (signal: string, callback: () => void) => number;
+            }).connect('monitors-changed', () => this.rebuild());
+            this.settingsSignal = this.settings.connect(
+                'changed::show-on-all-monitors',
+                () => this.rebuild(),
+            );
+        } catch (error) {
+            this.disable();
+            throw error;
+        }
     }
 
     private rebuild(): void {
