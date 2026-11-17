@@ -72,6 +72,7 @@ export class DockDragDrop {
         });
         draggable.connect('drag-cancelled', () => {
             item.remove_style_class_name('dragging');
+            this.hideRemovalZone();
             this.clearDropTarget();
             this.endPreview();
         });
@@ -338,8 +339,7 @@ export class DockDragDrop {
         this.previewIndex = null;
         this.systemDropIndex = null;
         if (this.draggedItem) {
-            if (this.draggedItem instanceof St.Widget &&
-                (this.draggedItem as DockAppButton)._gOsDockApp?.get_id() !== this.removingAppId) {
+            if ((this.draggedItem as DockAppButton)._gOsDockApp?.get_id() !== this.removingAppId) {
                 this.draggedItem.opacity = 255;
                 this.draggedItem.scale_x = 1;
                 this.draggedItem.scale_y = 1;
