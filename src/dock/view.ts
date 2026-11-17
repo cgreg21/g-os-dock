@@ -47,6 +47,7 @@ export class DockView {
     private destroyed = false;
     private contextMenu: AppContextMenu;
     private itemActors: DockAppButton[] = [];
+    private itemSize = 0;
     private previews: WindowPreviews;
     private dragDrop: DockDragDrop;
     private visibility: DockVisibility;
@@ -267,9 +268,6 @@ export class DockView {
     private refresh(): void {
         if (this.destroyed)
             return;
-        this.previews.hide();
-        this.previews.cancelPending();
-        this.dragDrop.clearDropTarget();
 
         const pendingItems: DockAppButton[] = [];
         try {
@@ -297,8 +295,6 @@ export class DockView {
             const usableTop = panelAtMonitorTop
                 ? Math.min(this.monitor.y + this.monitor.height, panelBottom + edgeDistance)
                 : this.monitor.y;
-            // Reduce icon size before the configured padding and edge margins
-            // can make the dock exceed the available monitor area.
             const available = vertical
                 ? this.monitor.y + this.monitor.height - usableTop - edgeDistance -
                     paddingTop - paddingBottom - border * 2
@@ -313,27 +309,58 @@ export class DockView {
                 : configuredSize;
             const size = Math.min(configuredSize, Math.max(16, fittedSize));
 
-            for (const app of applications) {
-                const item = this.createItem(app, size);
-                pendingItems.push(item);
-                this.content.add_child(item);
+            // Rebuild only when the effective icon size changes. Ordinary
+            // app/window state changes keep the existing actors alive.
+            const sizeChanged = this.itemSize !== 0 && this.itemSize !== size;
+            const previousById = new Map<string, DockAppButton>();
+            if (!sizeChanged) {
+                for (const item of this.itemActors) {
+                    const id = item._gOsDockApp?.get_id();
+                    if (id)
+                        previousById.set(id, item);
+                }
             }
+
+            for (const app of applications) {
+                const id = app.get_id();
+                let item = id ? previousById.get(id) : undefined;
+                if (item) {
+                    previousById.delete(id!);
+                } else {
+                    item = this.createItem(app, size);
+                    pendingItems.push(item);
+                }
+                this.content.add_child(item);
+                this.content.set_child_at_index(item, applications.indexOf(app));
+                pendingItems.push(item);
+            }
+
+            // Remove actors for apps no longer present, and all old actors
+            // when a genuine size change requires rebuilding the icon widgets.
+            const retained = new Set(pendingItems);
+            for (const item of this.itemActors) {
+                if (!retained.has(item)) {
+                    this.dragDrop.release(item);
+                    if (item.get_parent())
+                        item.get_parent()?.remove_child(item);
+                    item.destroy();
+                }
+            }
+
+            this.itemActors = pendingItems;
+            this.itemSize = size;
         } catch (error) {
             for (const item of pendingItems) {
-                this.dragDrop.release(item);
-                if (item.get_parent())
-                    item.get_parent()?.remove_child(item);
-                item.destroy();
+                if (!this.itemActors.includes(item)) {
+                    this.dragDrop.release(item);
+                    if (item.get_parent())
+                        item.get_parent()?.remove_child(item);
+                    item.destroy();
+                }
             }
             throw error;
         }
 
-        const previousItems = this.itemActors;
-        for (const item of previousItems) {
-            this.dragDrop.release(item);
-            item.destroy();
-        }
-        this.itemActors = pendingItems;
         this.appearance.apply();
         this.layout.position();
         this.updateIndicators();
