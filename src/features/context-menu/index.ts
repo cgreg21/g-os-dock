@@ -9,12 +9,16 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 export class AppContextMenu {
     private manager: PopupMenu.PopupMenuManager;
     private menus: PopupMenu.PopupMenu[] = [];
+    private destroyed = false;
 
     constructor(actor: St.Widget, private favorites: ReturnType<typeof AppFavorites.getAppFavorites>) {
         this.manager = new PopupMenu.PopupMenuManager(actor);
     }
 
     show(source: St.Widget, app: Shell.App): void {
+        if (this.destroyed)
+            return;
+
         const menu = new PopupMenu.PopupMenu(source, 0.5, St.Side.TOP);
         Main.uiGroup.add_child(menu.actor);
         this.manager.addMenu(menu);
@@ -68,21 +72,27 @@ export class AppContextMenu {
             menu.addMenuItem(moveLater);
         }
         menu.connect('open-state-changed', (_menu: PopupMenu.PopupMenu, isOpen: boolean) => {
-            if (!isOpen) {
-                this.manager.removeMenu(menu);
-                this.menus = this.menus.filter(entry => entry !== menu);
-                menu.destroy();
-            }
+            if (isOpen || !this.menus.includes(menu))
+                return;
+
+            this.menus = this.menus.filter(entry => entry !== menu);
+            this.manager.removeMenu(menu);
+            menu.destroy();
         });
         menu.open();
     }
 
     destroy(): void {
-        for (const menu of this.menus) {
+        if (this.destroyed)
+            return;
+
+        this.destroyed = true;
+        const menus = this.menus;
+        this.menus = [];
+        for (const menu of menus) {
             menu.close();
             this.manager.removeMenu(menu);
             menu.destroy();
         }
-        this.menus = [];
     }
 }
