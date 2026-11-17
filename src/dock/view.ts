@@ -1,6 +1,7 @@
 import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
+import Meta from 'gi://Meta?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
@@ -11,7 +12,7 @@ import { DockAppearance } from '../features/appearance.js';
 import { DockLayout } from '../features/layout.js';
 import { DockIndicators } from '../features/indicators.js';
 import { WindowTracker } from '../features/window-tracker.js';
-import { DockAppItemFactory } from '../features/app-item.js';
+import { DockAppItemFactory, type DockAppButton } from '../features/app-item.js';
 import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
 
@@ -19,15 +20,15 @@ const MAGNIFICATION_RADIUS = 2;
 const MAGNIFICATION_FACTOR = 1.28;
 
 export class DockView {
-    private actor: any;
-    private edgeSensor: any;
-    private monitor: any;
+    private actor: St.BoxLayout & { _delegate?: unknown };
+    private edgeSensor: St.Widget;
+    private monitor: Meta.Rectangle;
     private monitorIndex: number;
-    private settings: any;
-    private desktopSettings: any;
+    private settings: Gio.Settings;
+    private desktopSettings: Gio.Settings;
     private desktopThemeSignal = 0;
-    private appSystem: any;
-    private favorites: any;
+    private appSystem: Shell.AppSystem;
+    private favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
     private hoverSignal = 0;
     private sensorHoverSignal = 0;
     private settingsSignal = 0;
@@ -40,7 +41,7 @@ export class DockView {
 
     private destroyed = false;
     private contextMenu: AppContextMenu;
-    private itemActors: any[] = [];
+    private itemActors: DockAppButton[] = [];
     private previews: WindowPreviews;
     private dragDrop: DockDragDrop;
     private visibility: DockVisibility;
@@ -51,7 +52,7 @@ export class DockView {
     private appItemFactory: DockAppItemFactory;
     private keyboard: DockKeyboardNavigation;
 
-    constructor(index: number, monitor: any, settings: any) {
+    constructor(index: number, monitor: Meta.Rectangle, settings: Gio.Settings) {
         this.monitor = monitor;
         this.monitorIndex = index;
         this.settings = settings;
@@ -135,7 +136,7 @@ export class DockView {
         this.focusSignal = global.display.connect('notify::focus-window', () => { this.updateIndicators(); this.visibility.queueSmartHideCheck(); });
         this.restackedSignal = global.display.connect('restacked', () => this.visibility.queueSmartHideCheck());
         this.workspaceSignal = global.workspace_manager.connect('active-workspace-changed', () => this.visibility.queueSmartHideCheck());
-        this.windowCreatedSignal = global.display.connect('window-created', (_display: any, window: any) => this.windowTracker.track(window));
+        this.windowCreatedSignal = global.display.connect('window-created', (_display: Meta.Display, window: Meta.Window) => this.windowTracker.track(window));
         this.windowTracker.trackExisting();
         this.refresh();
         this.applySettings();
@@ -150,10 +151,10 @@ export class DockView {
         return this.dragDrop.acceptDrop(source, dragActor, x, y, time);
     }
 
-    private getApplications(): any[] {
+    private getApplications(): Shell.App[] {
         const favorites = this.favorites.getFavorites();
         const running = this.appSystem.get_running();
-        const result: any[] = [];
+        const result: Shell.App[] = [];
         const seen = new Set<string>();
         for (const app of [...favorites, ...running]) {
             const id = app.get_id();
@@ -187,7 +188,7 @@ export class DockView {
         this.visibility.queueSmartHideCheck();
     }
 
-    private createItem(app: any, size: number): any {
+    private createItem(app: Shell.App, size: number): DockAppButton {
         return this.appItemFactory.create(app, size);
     }
 
@@ -195,11 +196,11 @@ export class DockView {
         this.indicators.update(this.itemActors);
     }
 
-    private activateApp(app: any): void {
+    private activateApp(app: Shell.App): void {
         const windows = app.get_windows();
         if (windows.length > 0) {
             const focused = global.display.focus_window;
-            const next = windows.find((window: any) => window !== focused) ?? windows[0];
+            const next = windows.find((window: Meta.Window) => window !== focused) ?? windows[0];
             app.activate_window(next, global.get_current_time());
         } else {
             app.activate();
