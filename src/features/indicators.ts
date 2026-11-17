@@ -1,4 +1,4 @@
-import Shell from 'gi://Shell';
+import Shell from 'gi://Shell?version=51';
 
 /** Updates running dots, active state and per-app window-count badges. */
 export class DockIndicators {
