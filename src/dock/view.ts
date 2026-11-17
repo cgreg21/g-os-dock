@@ -3,7 +3,6 @@ import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
 import Meta from 'gi://Meta?version=51';
 import Gio from 'gi://Gio?version=2.0';
-import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import { AppContextMenu } from '../features/context-menu/index.js';
@@ -110,15 +109,6 @@ export class DockView {
             can_focus: false,
             track_hover: true,
         });
-        if (GLib.getenv('G_OS_DOCK_DEV_MODE') === '1') {
-            // Keep the debug shadow limited to this dock and all its descendants.
-            for (const actor of [
-                this.actor,
-                this.background,
-                this.edgeSensor,
-            ])
-                actor.add_style_class_name('g-os-dock-dev');
-        }
         // Keep both visual layers hidden while the dock is being assembled.
         // DockVisibility reveals them after the first refresh and layout pass.
         this.actor.hide();
@@ -386,6 +376,16 @@ export class DockView {
     private applySettings(): void {
         if (this.destroyed)
             return;
+
+        // Apply development styling immediately when the preference changes.
+        const devMode = this.settings.get_boolean('dev-mode');
+        for (const actor of [this.actor, this.background, this.edgeSensor]) {
+            if (devMode)
+                actor.add_style_class_name('g-os-dock-dev');
+            else
+                actor.remove_style_class_name('g-os-dock-dev');
+        }
+
         this.refresh();
         this.layout.position();
         this.visibility.applySettings();
