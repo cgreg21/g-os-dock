@@ -7,6 +7,7 @@ import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 
 const HIDE_DELAY_MS = 650;
 const EDGE_THICKNESS = 3;
@@ -58,6 +59,7 @@ export class DockView {
             track_hover: true,
         });
         this.menuManager = new PopupMenu.PopupMenuManager(this.actor);
+        this.actor._delegate = this;
         this.edgeSensor = new St.Widget({
             style_class: 'g-os-dock-edge-sensor',
             reactive: true,
@@ -81,6 +83,47 @@ export class DockView {
         this.trackExistingWindows();
         this.refresh();
         this.applySettings();
+    }
+
+
+    handleDragOver(source: any, _dragActor: any, _x: number, _y: number, _time: number): number {
+        if (!source?.app || !this.favorites.isFavorite(source.app.get_id()))
+            return DND.DragMotionResult.NO_DROP;
+        return DND.DragMotionResult.MOVE_DROP;
+    }
+
+    acceptDrop(source: any, _dragActor: any, x: number, y: number, _time: number): boolean {
+        if (!source?.app)
+            return false;
+        const appId = source.app.get_id();
+        if (!this.favorites.isFavorite(appId))
+            return false;
+
+        const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
+        const coordinate = vertical ? y : x;
+        const [dockX, dockY] = this.actor.get_transformed_position();
+        const favorites = this.favorites.getFavorites();
+        const targetItems = this.itemActors.filter(item =>
+            item._gOsDockApp && this.favorites.isFavorite(item._gOsDockApp.get_id()));
+        let targetIndex = favorites.length - 1;
+
+        for (const item of targetItems) {
+            if (item === source.actor)
+                continue;
+            const [itemX, itemY] = item.get_transformed_position();
+            const midpoint = vertical
+                ? itemY - dockY + item.height / 2
+                : itemX - dockX + item.width / 2;
+            if (coordinate < midpoint) {
+                targetIndex = favorites.findIndex((app: any) => app.get_id() === item._gOsDockApp.get_id());
+                break;
+            }
+        }
+
+        const currentIndex = favorites.findIndex((app: any) => app.get_id() === appId);
+        if (currentIndex >= 0 && targetIndex >= 0 && currentIndex !== targetIndex)
+            this.favorites.moveFavoriteToPos(appId, targetIndex);
+        return true;
     }
 
     private getApplications(): any[] {
@@ -142,6 +185,19 @@ export class DockView {
         // Keep the application reference on its actor so focus/window changes
         // can update badges without rebuilding the whole dock.
         item._gOsDockApp = app;
+        item._delegate = {
+            app,
+            actor: item,
+            getDragActor: () => new Clutter.Clone({ source: item }),
+            getDragActorSource: () => item,
+        };
+        item._gOsDockDraggable = DND.makeDraggable(item, { dragActorOpacity: 210 });
+        item._gOsDockDraggable.connect('drag-begin', () => {
+            this.hideWindowPreviews();
+            item.add_style_class_name('dragging');
+        });
+        item._gOsDockDraggable.connect('drag-end', () => item.remove_style_class_name('dragging'));
+        item._gOsDockDraggable.connect('drag-cancelled', () => item.remove_style_class_name('dragging'));
         item.connect('clicked', () => this.activateApp(app));
         item.connect('notify::hover', () => {
             if (item.hover) {
