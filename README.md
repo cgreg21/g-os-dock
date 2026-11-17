@@ -87,7 +87,7 @@ G-OS Dock includes an isolated **nested GNOME Shell** development session. It op
 
 ### Host requirements
 
-- A Linux desktop session with GNOME Shell 51 installed (the nested session uses the host's installed GNOME Shell version).
+- A Linux desktop session with GNOME Shell 51 installed (the development session uses the host's installed GNOME Shell version). For GNOME 49 and later, install the Mutter Development Kit (`mutter-devkit` on CachyOS/Fedora, `mutter-dev-bin` on Ubuntu/Debian). GNOME 48 and earlier use the legacy `--nested` backend.
 - Node.js 20+ and npm.
 - `dbus-run-session`, `gnome-shell` **51.x**, `gnome-extensions`, `gdbus`, `timeout`, `inotifywait` and the existing build tools (`zip`, `glib-compile-schemas`).
 
@@ -95,17 +95,17 @@ Install the missing tools using your distribution package manager. For example:
 
 ```sh
 # Fedora
-sudo dnf install gnome-shell inotify-tools dbus-daemon nodejs npm zip glib2
+sudo dnf install gnome-shell mutter-devkit inotify-tools dbus-daemon nodejs npm zip glib2
 
 # Ubuntu/Debian
-sudo apt install gnome-shell inotify-tools dbus-daemon nodejs npm zip libglib2.0-bin
+sudo apt install gnome-shell mutter-dev-bin inotify-tools dbus-daemon nodejs npm zip libglib2.0-bin
 
 # CachyOS
 bash scripts/install-dev-deps-cachyos.sh
 ```
 
 On CachyOS, the helper installs the host tools with `pacman` (GNOME Shell,
-GNOME Session, D-Bus, GLib, Node.js/npm, inotify-tools and ZIP). It does not
+GNOME Session, Mutter Devkit, D-Bus, GLib, Node.js/npm, inotify-tools and ZIP). It does not
 change your desktop session or graphics drivers. The same GNOME 51.x version
 check applies; if the rolling repositories have not yet provided GNOME 51,
 the development launcher will stop rather than silently testing against a
@@ -119,7 +119,7 @@ npm run dev:check
 npm run dev
 ```
 
-Run `npm run dev:check` at any time to validate the host dependencies and versions. The launcher performs the same checks automatically, verifies that the host provides GNOME Shell 51.x, and creates a private profile under `~/.local/share/g-os-dock-dev`, starts GNOME Shell nested on Wayland (or X11 when the host session is X11), waits for the Shell D-Bus service, then builds and installs the extension.
+Run `npm run dev:check` at any time to validate the host dependencies and versions. The launcher performs the same checks automatically, verifies that the host provides GNOME Shell 51.x, and creates a private profile under `~/.local/share/g-os-dock-dev`, starts GNOME Shell in the Mutter Development Kit on GNOME 49+ (or the legacy nested backend on older versions), waits for the Shell D-Bus service, then builds and installs the extension.
 
 ### Automatic rebuild and reload
 
