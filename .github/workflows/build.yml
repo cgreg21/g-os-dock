@@ -1,0 +1,27 @@
+name: Build G-OS Dock
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+jobs:
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: sudo apt-get update && sudo apt-get install -y zip libglib2.0-bin
+      - run: unzip -q g-os-dock-source.zip -d source
+      - working-directory: source
+        run: npm install
+      - working-directory: source
+        run: npm run check
+      - working-directory: source
+        run: npm run pack
+      - uses: actions/upload-artifact@v4
+        with:
+          name: g-os-dock-gnome-extension
+          path: source/g-os-dock@cgreg21.github.io.zip
