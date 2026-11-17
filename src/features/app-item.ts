@@ -11,7 +11,7 @@ import { DockTooltip } from './tooltip.js';
 export type DockAppButton = St.Button & {
     _gOsDockApp: Shell.App;
     _gOsDockIndicator: St.Widget;
-    _gOsDockIcon: St.Widget;
+    _gOsDockIcon: Clutter.Actor;
     _gOsDockBadge: St.Label;
 };
 
