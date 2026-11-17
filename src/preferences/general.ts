@@ -27,6 +27,8 @@ export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.S
 
     addSwitch(group, settings, 'show-system-icon', 'Show applications and system icon');
     addIconThemeSelector(group, settings);
+    addCombo(group, settings, 'system-icon-position', 'Applications icon position',
+        ['At the beginning', 'At the end'], ['start', 'end']);
     addSwitch(group, settings, 'dev-mode', 'Enable development mode (red element borders)');
     addSwitch(group, settings, 'show-on-all-monitors', 'Show on all monitors');
     addSwitch(group, settings, 'auto-hide', 'Automatically hide the dock');
@@ -48,10 +50,7 @@ function addIconThemeSelector(group: Adw.PreferencesGroup, settings: Gio.Setting
     if (!display)
         return;
     const theme = Gtk.IconTheme.get_for_display(display);
-    const names = [...theme.get_icon_names()]
-        .filter(name => !name.endsWith('-symbolic') || name.includes('app-grid') ||
-            name.includes('applications'))
-        .sort((a, b) => a.localeCompare(b));
+    const names = [...theme.get_icon_names()].sort((a, b) => a.localeCompare(b));
     const fallback = 'view-app-grid-symbolic';
     if (!names.includes(fallback))
         names.unshift(fallback);
