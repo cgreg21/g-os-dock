@@ -171,6 +171,8 @@ export class DockView {
     }
 
     private schedulePreview(app: any, item: any): void {
+        if (!this.settings.get_boolean('show-window-previews'))
+            return;
         if (this.previewSource)
             GLib.source_remove(this.previewSource);
         if (this.previewHideSource) {
@@ -201,6 +203,8 @@ export class DockView {
     }
 
     private showWindowPreviews(app: any, item: any): void {
+        if (!this.settings.get_boolean('show-window-previews'))
+            return;
         this.hideWindowPreviews();
         const windows = app.get_windows();
         if (windows.length === 0)
