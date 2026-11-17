@@ -29,6 +29,13 @@
     <key name="smart-hide" type="b"><default>false</default><summary>Hide the dock when a normal window overlaps it</summary></key>
     <key name="background-color" type="s"><default>'#20232d'</default><summary>Dock background color in hexadecimal</summary></key>
     <key name="background-opacity" type="d"><range min="0.0" max="1.0"/><default>0.78</default><summary>Dock background opacity</summary></key>
+    <key name="background-shadow-enabled" type="b"><default>true</default><summary>Show a shadow behind the dock background</summary></key>
+    <key name="background-shadow-color" type="s"><default>'#000000'</default><summary>Dock background shadow color</summary></key>
+    <key name="background-shadow-opacity" type="d"><range min="0.0" max="1.0"/><default>0.35</default><summary>Dock background shadow opacity</summary></key>
+    <key name="background-shadow-offset-x" type="i"><range min="-32" max="32"/><default>0</default><summary>Dock background shadow horizontal offset</summary></key>
+    <key name="background-shadow-offset-y" type="i"><range min="-32" max="32"/><default>6</default><summary>Dock background shadow vertical offset</summary></key>
+    <key name="background-shadow-blur" type="i"><range min="0" max="64"/><default>18</default><summary>Dock background shadow blur radius</summary></key>
+    <key name="background-shadow-spread" type="i"><range min="-16" max="32"/><default>0</default><summary>Dock background shadow spread radius</summary></key>
     <key name="border-color" type="s"><default>'#ffffff'</default><summary>Dock border color in hexadecimal</summary></key>
     <key name="border-opacity" type="d"><range min="0.0" max="1.0"/><default>0.16</default><summary>Dock border opacity</summary></key>
     <key name="border-size" type="i"><range min="0" max="12"/><default>1</default><summary>Dock border thickness</summary></key>
