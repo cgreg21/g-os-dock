@@ -4,7 +4,7 @@ import { addGeneralPreferences } from './preferences/general.js';
 import { addAppearancePreferences } from './preferences/appearance.js';
 
 export default class GOSDockPreferences extends ExtensionPreferences {
-    fillPreferencesWindow(window: any): void {
+    async fillPreferencesWindow(window: Adw.PreferencesWindow): Promise<void> {
         const page = new Adw.PreferencesPage({
             title: 'G-OS Dock',
             icon_name: 'dock-symbolic',
