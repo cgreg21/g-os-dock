@@ -128,6 +128,7 @@ export class DockView {
             showPreviews: (app, item, focusFirst) => this.previews.show(app, item, focusFirst),
             hidePreviews: () => this.previews.hide(),
             magnify: (index, enabled) => this.applyMagnification(index, enabled),
+            ensureVisible: item => this.ensureItemVisible(item),
         });
         this.appItemFactory = new DockAppItemFactory({
             favorites: this.favorites,
@@ -279,6 +280,25 @@ export class DockView {
                 app.activate_window(next, global.get_current_time());
         } else {
             app.activate();
+        }
+    }
+
+    private ensureItemVisible(item: DockAppButton): void {
+        const position = this.settings.get_string('dock-position');
+        const vertical = position === 'left' || position === 'right';
+        const [itemX, itemY] = item.get_transformed_position();
+        const [actorX, actorY] = this.actor.get_transformed_position();
+
+        if (vertical) {
+            const adjustment = this.actor.get_vadjustment();
+            const center = itemY - actorY + item.height / 2;
+            const delta = center - this.actor.height / 2;
+            adjustment.set_value(adjustment.get_value() + delta);
+        } else {
+            const adjustment = this.actor.get_hadjustment();
+            const center = itemX - actorX + item.width / 2;
+            const delta = center - this.actor.width / 2;
+            adjustment.set_value(adjustment.get_value() + delta);
         }
     }
 
