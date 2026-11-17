@@ -7,6 +7,8 @@ type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
 const EDGE_THICKNESS = 3;
 const DOCK_SCREEN_MARGIN = 12;
+// The ScrollView frame has 8px padding and may have a 1px border on each side.
+const DOCK_FRAME_INSET = 18;
 
 /** Calculates dock and reveal-sensor geometry for its monitor. */
 export class DockLayout {
@@ -31,8 +33,13 @@ export class DockLayout {
 
         const [minWidth, naturalWidth] = this.content.get_preferred_width(-1);
         const [minHeight, naturalHeight] = this.content.get_preferred_height(-1);
-        const width = Math.max(minWidth, naturalWidth);
-        const height = Math.max(minHeight, naturalHeight);
+        // Measure the full natural content in both axes. The viewport must also
+        // include the ScrollView's CSS padding/border, otherwise the first/last
+        // icons are clipped and the dock appears smaller than its contents.
+        const contentWidth = Math.max(minWidth, naturalWidth);
+        const contentHeight = Math.max(minHeight, naturalHeight);
+        const width = contentWidth + DOCK_FRAME_INSET;
+        const height = contentHeight + DOCK_FRAME_INSET;
 
         // GNOME's top panel is a separate chrome actor. Keep the dock and its
         // reveal sensor below it on the primary monitor instead of allowing
