@@ -384,14 +384,28 @@ export class DockView {
 
     private activateApp(app: Shell.App): void {
         const windows = app.get_windows();
-        if (windows.length > 0) {
-            const focused = global.display.focus_window;
-            const next = windows.find((window: Meta.Window) => window !== focused) ?? windows[0];
-            if (next)
-                app.activate_window(next, global.get_current_time());
-        } else {
+        if (windows.length === 0) {
             app.activate();
+            return;
         }
+
+        const focused = global.display.focus_window;
+        // Clicking the currently focused application's icon toggles its
+        // active window to the minimized state, like a conventional dock.
+        if (focused && windows.includes(focused)) {
+            focused.minimize();
+            return;
+        }
+
+        // Prefer a visible window; if every window is minimized, restore the
+        // first one before activating it.
+        const target = windows.find(window => !window.minimized) ?? windows[0];
+        if (!target)
+            return;
+        if (target.minimized)
+            target.unminimize();
+
+        app.activate_window(target, global.get_current_time());
     }
 
     private applySettings(): void {
