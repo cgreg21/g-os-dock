@@ -104,6 +104,13 @@ export class DockDragDrop {
             if (midpoint !== null && coordinate > midpoint)
                 index++;
         }
+        const dragged = this.getItems().find(item => item.id === sourceId);
+        const favoriteCount = targets.filter(item =>
+            item.app && this.isFavorite(item),
+        ).length;
+        if (dragged?.app && this.isFavorite(dragged) && index > favoriteCount)
+            return DND.DragMotionResult.NO_DROP;
+
         this.movePreview(index);
         return DND.DragMotionResult.MOVE_DROP;
     }
@@ -130,10 +137,25 @@ export class DockDragDrop {
             }
         }
         target = Math.max(0, Math.min(target, remaining.length));
+        const dragged = items[sourceIndex]!;
+        const favoriteCount = remaining.filter(item =>
+            item.app && this.isFavorite(item),
+        ).length;
+        // Favorite applications must remain in the favorites section.
+        // Non-favorites may still be dropped into that section to be pinned.
+        if (dragged.app && this.isFavorite(dragged) && target > favoriteCount)
+            return false;
+
         const ordered = [...remaining];
         ordered.splice(target, 0, items[sourceIndex]!);
         this.persistOrder(ordered.map(item => item.id));
         return true;
+    }
+
+    private isFavorite(item: DockDndItem): boolean {
+        return item.app?.get_id()
+            ? this.settings.get_strv('favorite-apps').includes(item.app.get_id()!)
+            : false;
     }
 
     private beginPreview(item: DockDndItem): void {
