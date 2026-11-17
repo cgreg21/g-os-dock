@@ -15,7 +15,8 @@
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true
   },
   "include": [
     "src/**/*.ts"
