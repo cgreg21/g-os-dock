@@ -22,6 +22,7 @@ interface DockAppItemDependencies {
     activateApp: (app: Shell.App) => void;
     handleKeyPress: (item: DockAppButton, event: Clutter.Event) => boolean;
     dockPosition: () => string;
+    settings: Gio.Settings;
 }
 
 /** Builds one interactive application button for the dock. */
@@ -51,7 +52,16 @@ export class DockAppItemFactory {
             x_expand: false,
             y_expand: false,
         }) as DockAppButton;
-        item.set_style(`min-width: ${size + 4}px; min-height: ${size + 4}px;`);
+        const settings = this.dependencies.settings;
+        const padTop = settings.get_int('icon-padding-top');
+        const padRight = settings.get_int('icon-padding-right');
+        const padBottom = settings.get_int('icon-padding-bottom');
+        const padLeft = settings.get_int('icon-padding-left');
+        item.set_style(
+            `padding: ${padTop}px ${padRight}px ${padBottom}px ${padLeft}px; ` +
+            `min-width: ${size + padLeft + padRight}px; ` +
+            `min-height: ${size + padTop + padBottom}px;`,
+        );
         new DockTooltip(item, app.get_name(), this.dependencies.dockPosition());
 
         try {
