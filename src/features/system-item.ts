@@ -1,6 +1,7 @@
 import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import Gio from 'gi://Gio?version=2.0';
+import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
@@ -67,14 +68,16 @@ export class DockSystemItem {
         this.menuManager.addMenu(menu);
         this.addItem(menu, 'System settings', () => {
             try { Gio.Subprocess.new(['gnome-control-center'], Gio.SubprocessFlags.NONE); }
-            catch (error) { logError(error, 'Unable to open GNOME Settings'); }
+            catch (error) { logError(error as Error, 'Unable to open GNOME Settings'); }
         });
         this.addItem(menu, 'Dock settings', () => Main.extensionManager.openExtensionPrefs(
             'g-os-dock@cgreg21.github.io', '', {}));
         menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-        this.addItem(menu, 'Log out…', () => Main.systemActions.activateLogout());
-        this.addItem(menu, 'Restart…', () => Main.systemActions.activateReboot());
-        this.addItem(menu, 'Shut down…', () => Main.systemActions.activatePowerOff());
+        this.addItem(menu, 'Log out…', () => this.requestSessionAction(
+            'Logout', new GLib.Variant('(u)', [0]),
+        ));
+        this.addItem(menu, 'Restart…', () => this.requestSessionAction('Reboot'));
+        this.addItem(menu, 'Shut down…', () => this.requestSessionAction('Shutdown'));
         menu.connect('open-state-changed', (_menu, open) => {
             if (!open && this.menu === menu) {
                 this.menu = null;
@@ -83,6 +86,28 @@ export class DockSystemItem {
             }
         });
         menu.open();
+    }
+
+    /** Ask GNOME SessionManager to show its normal end-session confirmation. */
+    private requestSessionAction(method: string, parameters: GLib.Variant | null = null): void {
+        Gio.DBus.session.call(
+            'org.gnome.SessionManager',
+            '/org/gnome/SessionManager',
+            'org.gnome.SessionManager',
+            method,
+            parameters,
+            null,
+            Gio.DBusCallFlags.NONE,
+            -1,
+            null,
+            (connection, result) => {
+                try {
+                    connection.call_finish(result);
+                } catch (error) {
+                    logError(error as Error, 'Unable to request session action: ' + method);
+                }
+            },
+        );
     }
 
     private addItem(menu: PopupMenu.PopupMenu, label: string, action: () => void): void {
