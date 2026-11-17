@@ -24,9 +24,9 @@ export class DockSystemItem {
         this.updateIcon();
         this.button.connect('clicked', () => Main.overview.showApps());
         this.button.connect('button-press-event', (_actor, event) => {
-            if (event.get_button() !== 3) return 0;
+            if (event.get_button() !== 3) return Clutter.EVENT_PROPAGATE;
             this.showMenu();
-            return 1;
+            return Clutter.EVENT_STOP;
         });
         (this.button as St.Button & { _delegate?: unknown })._delegate = {
             systemItem: true,
