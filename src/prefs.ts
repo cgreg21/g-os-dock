@@ -25,6 +25,9 @@ export default class GOSDockPreferences extends ExtensionPreferences {
         const autoHide = new Adw.SwitchRow({ title: 'Automatically hide the dock' });
         general.add(autoHide);
         settings.bind('auto-hide', autoHide, 'active', Gio.SettingsBindFlags.DEFAULT);
+        const windowPreviews = new Adw.SwitchRow({ title: 'Show window previews on hover' });
+        general.add(windowPreviews);
+        settings.bind('show-window-previews', windowPreviews, 'active', Gio.SettingsBindFlags.DEFAULT);
         const runningIndicator = new Adw.SwitchRow({ title: 'Show running application indicators' });
         general.add(runningIndicator);
         settings.bind('show-running-indicator', runningIndicator, 'active', Gio.SettingsBindFlags.DEFAULT);
