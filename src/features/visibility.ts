@@ -1,6 +1,8 @@
 import Clutter from 'gi://Clutter?version=51';
 import GLib from 'gi://GLib?version=2.0';
 import Meta from 'gi://Meta?version=51';
+import St from 'gi://St?version=51';
+import Gio from 'gi://Gio?version=2.0';
 
 const HIDE_DELAY_MS = 650;
 const SMART_HIDE_DELAY_MS = 80;
@@ -11,9 +13,9 @@ export class DockVisibility {
     private hideSource = 0;
 
     constructor(
-        private actor: any,
-        private edgeSensor: any,
-        private settings: any,
+        private actor: St.Widget,
+        private edgeSensor: St.Widget,
+        private settings: Gio.Settings,
         private monitorIndex: number,
         private isDestroyed: () => boolean,
     ) {}
@@ -126,7 +128,7 @@ export class DockVisibility {
         // incorrectly lets a window on another virtual desktop hide it here.
         const activeWorkspace = global.workspace_manager.get_active_workspace();
         const windows = global.display.get_tab_list(Meta.TabList.NORMAL, activeWorkspace);
-        const overlaps = windows.some((window: any) => {
+        const overlaps = windows.some((window: Meta.Window) => {
             if (!window || window.minimized || window.get_monitor() !== this.monitorIndex)
                 return false;
 
