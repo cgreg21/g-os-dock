@@ -85,9 +85,23 @@ export class DockLayout {
 
         x = Math.max(minX, Math.min(x, maxX));
         y = Math.max(minY, Math.min(y, maxY));
-        this.background.set_position(Math.round(x), Math.round(y));
         this.actor.set_position(Math.round(x), Math.round(y));
+
+        // Center the decorative background on the actual icon content.
+        // This keeps it visually centered even when the four padding values
+        // are different, rather than centering it on the padded outer actor.
+        this.syncBackgroundToContent();
         this.positionSensor();
+    }
+
+    private syncBackgroundToContent(): void {
+        if (this.isDestroyed())
+            return;
+
+        const [contentX, contentY] = this.content.get_transformed_position();
+        const x = contentX + (this.content.width - this.background.width) / 2;
+        const y = contentY + (this.content.height - this.background.height) / 2;
+        this.background.set_position(Math.round(x), Math.round(y));
     }
 
     positionSensor(): void {
