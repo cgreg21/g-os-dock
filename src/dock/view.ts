@@ -205,7 +205,8 @@ export class DockView {
         if (windows.length > 0) {
             const focused = global.display.focus_window;
             const next = windows.find((window: Meta.Window) => window !== focused) ?? windows[0];
-            app.activate_window(next, global.get_current_time());
+            if (next)
+                app.activate_window(next, global.get_current_time());
         } else {
             app.activate();
         }
