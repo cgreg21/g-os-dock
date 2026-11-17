@@ -13,6 +13,7 @@ export class DockVisibility {
     private smartHideSource = 0;
     private hideSource = 0;
     private destroyed = false;
+    private initialized = false;
 
     constructor(
         private actor: St.Widget,
@@ -26,6 +27,13 @@ export class DockVisibility {
     applySettings(): void {
         if (this.isInactive())
             return;
+
+        // The first reveal is deliberately deferred until DockView has built
+        // every item and completed its initial layout measurement.
+        if (!this.initialized) {
+            this.initialized = true;
+            this.show();
+        }
 
         const autoHide = this.settings.get_boolean('auto-hide');
         const smartHide = this.settings.get_boolean('smart-hide');
