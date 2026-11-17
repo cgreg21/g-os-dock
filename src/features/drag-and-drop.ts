@@ -13,6 +13,7 @@ export class DockDragDrop {
     private dropTarget: DockAppButton | null = null;
     private draggedItem: DockAppButton | null = null;
     private previewSlot: St.Widget | null = null;
+    private previewIndex: number | null = null;
     private draggables = new Map<DockAppButton, DND.Draggable>();
 
     constructor(
@@ -121,10 +122,14 @@ export class DockDragDrop {
             this.favorites.isFavorite(item._gOsDockApp.get_id()));
 
         let targetIndex = 0;
-        for (const item of targets) {
-            const midpoint = this.getItemMidpoint(item, vertical);
-            if (midpoint !== null && coordinate > midpoint)
-                targetIndex++;
+        if (this.previewIndex !== null) {
+            targetIndex = this.previewIndex;
+        } else {
+            for (const item of targets) {
+                const midpoint = this.getItemMidpoint(item, vertical);
+                if (midpoint !== null && coordinate > midpoint)
+                    targetIndex++;
+            }
         }
 
         targetIndex = Math.max(0, Math.min(targetIndex, favorites.length - 1));
@@ -167,6 +172,7 @@ export class DockDragDrop {
 
         const items = this.getItems().filter(item => item !== this.draggedItem);
         const target = Math.max(0, Math.min(index, items.length));
+        this.previewIndex = target;
         this.content.set_child_at_index(this.previewSlot, target);
     }
 
@@ -178,6 +184,7 @@ export class DockDragDrop {
             this.previewSlot.destroy();
             this.previewSlot = null;
         }
+        this.previewIndex = null;
         if (this.draggedItem) {
             this.draggedItem.opacity = 255;
             this.draggedItem = null;
