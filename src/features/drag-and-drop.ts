@@ -11,7 +11,7 @@ export type DockDragSource = { app?: Shell.App; systemItem?: boolean };
 /** Handles favorite-app drag sources and dock drop targets. */
 export class DockDragDrop {
     private dropTarget: DockAppButton | null = null;
-    private draggedItem: DockAppButton | null = null;
+    private draggedItem: St.Widget | null = null;
     private previewSlot: St.Widget | null = null;
     private previewIndex: number | null = null;
     private systemDropIndex: number | null = null;
@@ -64,6 +64,7 @@ export class DockDragDrop {
                     index++;
             }
             this.systemDropIndex = index;
+            this.movePreview(index);
             return DND.DragMotionResult.MOVE_DROP;
         }
         const app = source?.app;
@@ -126,7 +127,7 @@ export class DockDragDrop {
                 if (midpoint !== null && coordinate > midpoint)
                     index++;
             }
-            this.setSystemPosition(this.systemDropIndex ?? index);
+            this.setSystemPosition(this.previewIndex ?? this.systemDropIndex ?? index);
             this.systemDropIndex = null;
             return true;
         }
@@ -174,7 +175,16 @@ export class DockDragDrop {
             this.clearDropTarget();
     }
 
-    private beginPreview(item: DockAppButton): void {
+    beginSystemPreview(item: St.Widget): void {
+        this.beginPreview(item);
+    }
+
+    endSystemPreview(): void {
+        this.clearDropTarget();
+        this.endPreview();
+    }
+
+    private beginPreview(item: St.Widget): void {
         this.endPreview();
         this.draggedItem = item;
         this.previewSlot = new St.Widget({
