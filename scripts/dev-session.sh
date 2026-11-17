@@ -12,6 +12,8 @@ export XDG_DATA_HOME="$DEV_HOME/data"
 export XDG_CACHE_HOME="$DEV_HOME/cache"
 export XDG_STATE_HOME="$DEV_HOME/state"
 export GSETTINGS_BACKEND=dconf
+# Enable red one-pixel outlines only in the isolated development Shell.
+export G_OS_DOCK_DEV_MODE=1
 
 SHELL_MAJOR="$(gnome-shell --version | awk '{print $3}' | cut -d. -f1)"
 if ((SHELL_MAJOR >= 49)); then
