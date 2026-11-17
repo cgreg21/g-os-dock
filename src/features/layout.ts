@@ -44,9 +44,11 @@ export class DockLayout {
         const paddingRight = this.settings.get_int('background-padding-right');
         const paddingBottom = this.settings.get_int('background-padding-bottom');
         const paddingLeft = this.settings.get_int('background-padding-left');
-        const border = this.settings.get_int('border-size');
-        const width = Math.ceil(contentWidth + paddingLeft + paddingRight + border * 2);
-        const height = Math.ceil(contentHeight + paddingTop + paddingBottom + border * 2);
+        // The border is drawn by the background's CSS theme node. Its
+        // thickness must not be added here as well, otherwise the border is
+        // counted twice in the dock's outer dimensions.
+        const width = Math.ceil(contentWidth + paddingLeft + paddingRight);
+        const height = Math.ceil(contentHeight + paddingTop + paddingBottom);
         const edgeDistance = this.settings.get_int('edge-distance');
 
         const panel = Main.panel as unknown as St.Widget;
