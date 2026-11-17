@@ -100,6 +100,7 @@ export class DockView {
             this.settings,
             this.favorites,
             () => this.itemActors,
+            () => this.systemItem?.getActor() ?? null,
             index => this.settings.set_int('system-icon-position', index),
             this.monitor,
         );
@@ -423,6 +424,11 @@ export class DockView {
                     end: () => this.dragDrop.endSystemPreview(),
                 },
             );
+            const children = this.content.get_children();
+            const targetIndex = Math.max(0, Math.min(
+                this.settings.get_int('system-icon-position'), children.length - 1,
+            ));
+            this.content.set_child_at_index(this.systemItem.getActor(), targetIndex);
             return true;
         }
         this.systemItem.setIconSize(size);
