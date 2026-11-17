@@ -30,6 +30,7 @@ export class DockView {
     private settings: Gio.Settings;
     private desktopSettings: Gio.Settings;
     private desktopThemeSignal = 0;
+    private panelGeometrySignals: number[] = [];
     private appSystem: Shell.AppSystem;
     private favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
     private hoverSignal = 0;
@@ -156,6 +157,20 @@ export class DockView {
                 affectsStruts: false,
                 trackFullscreen: false,
             });
+            // Recalculate available dock space when the top panel changes
+            // size or position (for example after a scale/theme/layout change).
+            const panel = Main.panel as St.Widget;
+            for (const property of ['x', 'y', 'width', 'height']) {
+                this.panelGeometrySignals.push(panel.connect(
+                    `notify::${property}`,
+                    () => {
+                        if (this.destroyed)
+                            return;
+                        this.layout.position();
+                        this.layout.positionSensor();
+                    },
+                ));
+            }
             this.hoverSignal = this.actor.connect(
                 'notify::hover',
                 () => this.onPointerChanged(),
@@ -430,6 +445,10 @@ export class DockView {
         if (this.sensorHoverSignal) this.edgeSensor.disconnect(this.sensorHoverSignal);
         if (this.settingsSignal) this.settings.disconnect(this.settingsSignal);
         if (this.desktopThemeSignal) this.desktopSettings.disconnect(this.desktopThemeSignal);
+        const panel = Main.panel as St.Widget;
+        for (const signal of this.panelGeometrySignals)
+            panel.disconnect(signal);
+        this.panelGeometrySignals = [];
         if (this.appStateSignal) this.appSystem.disconnect(this.appStateSignal);
         if (this.favoritesSignal) this.favorites.disconnect(this.favoritesSignal);
         if (this.focusSignal) global.display.disconnect(this.focusSignal);
