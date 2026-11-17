@@ -1,12 +1,18 @@
+import St from 'gi://St?version=51';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import Gio from 'gi://Gio?version=2.0';
+
+type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
+
 const EDGE_THICKNESS = 3;
 
 /** Calculates dock and reveal-sensor geometry for its monitor. */
 export class DockLayout {
     constructor(
-        private actor: any,
-        private edgeSensor: any,
-        private monitor: any,
-        private settings: any,
+        private actor: St.Widget,
+        private edgeSensor: St.Widget,
+        private monitor: MonitorGeometry,
+        private settings: Gio.Settings,
         private isDestroyed: () => boolean,
     ) {}
 
