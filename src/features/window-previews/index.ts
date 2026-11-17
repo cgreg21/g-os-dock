@@ -2,6 +2,7 @@ import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { createWindowPreviewCard } from './card.js';
 
 /**
  * Owns the lifecycle and rendering of application window previews.
@@ -83,144 +84,10 @@ export class WindowPreviews {
         previews.set_style('spacing: 8px; padding: 8px; border-radius: 14px; background-color: rgba(24,26,33,0.96); border: 1px solid rgba(255,255,255,0.18);');
         let firstPreviewButton: any = null;
         for (const [index, window] of windows.entries()) {
-            const card = new St.BoxLayout({
-                style_class: 'g-os-dock-preview-card',
-                vertical: true,
-                reactive: true,
-                track_hover: true,
-                x_expand: false,
-                y_expand: false,
-            });
-            card.set_style('spacing: 5px; padding: 6px; border-radius: 9px; background-color: rgba(255,255,255,0.07);');
-            const previewButton = new St.Button({
-                style_class: 'g-os-dock-preview-open',
-                reactive: true,
-                can_focus: true,
-                track_hover: true,
-                x_expand: false,
-                y_expand: false,
-            });
-            previewButton.set_style('padding: 0; background-color: transparent;');
-            const content = new St.BoxLayout({ vertical: true, style: 'spacing: 5px;' });
-            let compositorActor: any = null;
-            try { compositorActor = window.get_compositor_private(); } catch (_error) { /* unavailable */ }
-            if (compositorActor && !window.minimized) {
-                const clone = new Clutter.Clone({ source: compositorActor });
-                clone.set_size(176, 104);
-                const thumbnail = new St.Bin({
-                    style_class: 'g-os-dock-preview-thumbnail',
-                    width: 176,
-                    height: 104,
-                    child: clone,
-                });
-                content.add_child(thumbnail);
-            } else {
-                const fallback = app.create_icon_texture(56);
-                const placeholder = new St.Bin({
-                    width: 176,
-                    height: 104,
-                    child: fallback,
-                });
-                content.add_child(placeholder);
-            }
-            let title = '';
-            try { title = window.get_title() || ''; } catch (_error) { /* title unavailable */ }
-            const label = new St.Label({
-                text: (title.trim() || `Window ${index + 1}`).slice(0, 42),
-                style: 'max-width: 176px;',
-                x_align: Clutter.ActorAlign.CENTER,
-            });
-            content.add_child(label);
-
-            // Show the window's workspace and provide a direct switch action.
-            let workspace: any = null;
-            let workspaceIndex = -1;
-            let onAllWorkspaces = false;
-            try {
-                workspace = window.get_workspace();
-                workspaceIndex = workspace?.index?.() ?? -1;
-                onAllWorkspaces = window.is_on_all_workspaces();
-            } catch (_error) {
-                // Some special windows may not expose normal workspace metadata.
-            }
-            const activeWorkspaceIndex = global.workspace_manager.get_active_workspace_index();
-            const workspaceText = onAllWorkspaces
-                ? 'All workspaces'
-                : workspaceIndex >= 0 ? `Workspace ${workspaceIndex + 1}` : 'Workspace unavailable';
-            const workspaceLabel = new St.Label({
-                text: workspaceText,
-                style_class: 'g-os-dock-preview-workspace',
-                x_align: Clutter.ActorAlign.CENTER,
-            });
-            content.add_child(workspaceLabel);
-            previewButton.set_child(content);
+            const preview = createWindowPreviewCard(app, window, index, () => this.hide());
             if (!firstPreviewButton)
-                firstPreviewButton = previewButton;
-            previewButton.accessible_name = `Activate ${title.trim() || `window ${index + 1}`}`;
-            previewButton.connect('clicked', () => {
-                try { app.activate_window(window, global.get_current_time()); }
-                catch (_error) { window.activate(global.get_current_time()); }
-                this.hide();
-            });
-            card.add_child(previewButton);
-
-            const actions = new St.BoxLayout({
-                style_class: 'g-os-dock-preview-actions',
-                x_expand: true,
-                y_expand: false,
-            });
-            const minimize = new St.Button({
-                style_class: 'g-os-dock-preview-action',
-                child: new St.Icon({ icon_name: 'window-minimize-symbolic', icon_size: 14 }),
-                can_focus: true,
-                reactive: true,
-                tooltip_text: 'Minimize window',
-                accessible_name: 'Minimize window',
-                x_expand: true,
-            });
-            minimize.connect('clicked', () => {
-                window.minimize();
-                this.hide();
-            });
-            const close = new St.Button({
-                style_class: 'g-os-dock-preview-action close',
-                child: new St.Icon({ icon_name: 'window-close-symbolic', icon_size: 14 }),
-                can_focus: true,
-                reactive: true,
-                tooltip_text: 'Close window',
-                accessible_name: 'Close window',
-                x_expand: true,
-            });
-            close.connect('clicked', () => {
-                window.delete(global.get_current_time());
-                this.hide();
-            });
-            actions.add_child(minimize);
-
-            if (!onAllWorkspaces && workspace && workspaceIndex >= 0 &&
-                workspaceIndex !== activeWorkspaceIndex) {
-                const switchWorkspace = new St.Button({
-                    style_class: 'g-os-dock-preview-action workspace',
-                    child: new St.Label({ text: 'Go to workspace' }),
-                    can_focus: true,
-                    reactive: true,
-                    tooltip_text: `Switch to workspace ${workspaceIndex + 1}`,
-                    accessible_name: `Switch to workspace ${workspaceIndex + 1}`,
-                    x_expand: true,
-                });
-                switchWorkspace.connect('clicked', () => {
-                    const timestamp = global.get_current_time();
-                    workspace.activate(timestamp);
-                    try { app.activate_window(window, timestamp); }
-                    catch (_error) { window.activate(timestamp); }
-                    this.hide();
-                });
-                actions.add_child(switchWorkspace);
-            }
-
-            actions.add_child(close);
-            card.add_child(actions);
-            previews.add_child(card);
+                firstPreviewButton = preview.previewButton;
+            previews.add_child(preview.card);
         }
 
         Main.layoutManager.addChrome(previews, { affectsStruts: false, trackFullscreen: false });
