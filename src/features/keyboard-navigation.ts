@@ -1,4 +1,4 @@
-import Clutter from 'gi://Clutter';
+import Clutter from 'gi://Clutter?version=51';
 
 interface DockKeyboardDependencies {
     settings: any;
