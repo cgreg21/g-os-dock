@@ -39,6 +39,9 @@ export class DockIndicators {
             const running = windows.length > 0 || app.get_state() === Shell.AppState.RUNNING;
             const active = !!focused && windows.includes(focused);
             const minimized = windows.length > 0 && windows.every(window => window.minimized);
+            // Dim the application icon itself when all of its windows are minimized.
+            if (item._gOsDockIcon)
+                item._gOsDockIcon.opacity = minimized ? 128 : 255;
             const shouldShow = enabled && (
                 (showOpen && running) ||
                 (showFocused && active) ||
