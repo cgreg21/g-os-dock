@@ -43,6 +43,7 @@ export class DockView {
     private previewSource = 0;
     private previewHideSource = 0;
     private previewHoverSignal = 0;
+    private dropTargetActor: any = null;
 
     constructor(index: number, monitor: any, settings: any) {
         this.monitor = monitor;
@@ -86,13 +87,52 @@ export class DockView {
     }
 
 
-    handleDragOver(source: any, _dragActor: any, _x: number, _y: number, _time: number): number {
-        if (!source?.app || !this.favorites.isFavorite(source.app.get_id()))
+    handleDragOver(source: any, _dragActor: any, x: number, y: number, _time: number): number {
+        if (!source?.app || !this.favorites.isFavorite(source.app.get_id())) {
+            this.clearDropTarget();
             return DND.DragMotionResult.NO_DROP;
+        }
+
+        const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
+        const coordinate = vertical ? y : x;
+        const candidates = this.itemActors.filter(item =>
+            item._gOsDockApp &&
+            item._gOsDockApp.get_id() !== source.app.get_id() &&
+            this.favorites.isFavorite(item._gOsDockApp.get_id()));
+
+        let nearest: any = null;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+        for (const item of candidates) {
+            const [itemX, itemY] = item.get_transformed_position();
+            const [valid, localX, localY] = this.actor.transform_stage_point(
+                itemX + item.width / 2, itemY + item.height / 2);
+            if (!valid)
+                continue;
+            const midpoint = vertical ? localY : localX;
+            const distance = Math.abs(coordinate - midpoint);
+            if (distance < nearestDistance) {
+                nearest = item;
+                nearestDistance = distance;
+            }
+        }
+
+        if (nearest !== this.dropTargetActor) {
+            this.clearDropTarget();
+            this.dropTargetActor = nearest;
+            this.dropTargetActor?.add_style_class_name('drop-target');
+        }
         return DND.DragMotionResult.MOVE_DROP;
     }
 
+    private clearDropTarget(): void {
+        if (this.dropTargetActor) {
+            this.dropTargetActor.remove_style_class_name('drop-target');
+            this.dropTargetActor = null;
+        }
+    }
+
     acceptDrop(source: any, _dragActor: any, x: number, y: number, _time: number): boolean {
+        this.clearDropTarget();
         if (!source?.app)
             return false;
         const appId = source.app.get_id();
@@ -145,6 +185,7 @@ export class DockView {
         if (this.destroyed)
             return;
         this.hideWindowPreviews();
+        this.clearDropTarget();
         if (this.previewSource) {
             GLib.source_remove(this.previewSource);
             this.previewSource = 0;
@@ -185,19 +226,27 @@ export class DockView {
         // Keep the application reference on its actor so focus/window changes
         // can update badges without rebuilding the whole dock.
         item._gOsDockApp = app;
-        item._delegate = {
-            app,
-            actor: item,
-            getDragActor: () => new Clutter.Clone({ source: item }),
-            getDragActorSource: () => item,
-        };
-        item._gOsDockDraggable = DND.makeDraggable(item, { dragActorOpacity: 210 });
-        item._gOsDockDraggable.connect('drag-begin', () => {
-            this.hideWindowPreviews();
-            item.add_style_class_name('dragging');
-        });
-        item._gOsDockDraggable.connect('drag-end', () => item.remove_style_class_name('dragging'));
-        item._gOsDockDraggable.connect('drag-cancelled', () => item.remove_style_class_name('dragging'));
+        if (this.favorites.isFavorite(app.get_id())) {
+            item._delegate = {
+                app,
+                actor: item,
+                getDragActor: () => new Clutter.Clone({ source: item }),
+                getDragActorSource: () => item,
+            };
+            item._gOsDockDraggable = DND.makeDraggable(item, { dragActorOpacity: 210 });
+            item._gOsDockDraggable.connect('drag-begin', () => {
+                this.hideWindowPreviews();
+                item.add_style_class_name('dragging');
+            });
+            item._gOsDockDraggable.connect('drag-end', () => {
+                item.remove_style_class_name('dragging');
+                this.clearDropTarget();
+            });
+            item._gOsDockDraggable.connect('drag-cancelled', () => {
+                item.remove_style_class_name('dragging');
+                this.clearDropTarget();
+            });
+        }
         item.connect('clicked', () => this.activateApp(app));
         item.connect('notify::hover', () => {
             if (item.hover) {
