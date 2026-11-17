@@ -31,6 +31,8 @@ export class DockView {
     private desktopThemeSignal = 0;
     private panelGeometrySignals: number[] = [];
     private dockGeometrySignals: number[] = [];
+    private contentGeometrySignals: number[] = [];
+    private layoutIdleSource = 0;
     private appSystem: Shell.AppSystem;
     private favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
     private hoverSignal = 0;
@@ -160,7 +162,10 @@ export class DockView {
         try {
             this.desktopThemeSignal = this.desktopSettings.connect(
                 'changed::color-scheme',
-                () => this.appearance.apply(),
+                () => {
+                    this.appearance.apply();
+                    this.queueLayoutUpdate();
+                },
             );
             Main.layoutManager.addChrome(this.background, {
                 affectsStruts: false,
@@ -241,6 +246,15 @@ export class DockView {
                 'window-created',
                 (_display: Meta.Display, window: Meta.Window) => this.windowTracker.track(window),
             );
+            // Recompute the dock's natural size whenever its content tree
+            // changes or Clutter reallocates it. The idle callback coalesces
+            // bursts of relayout notifications into one geometry update.
+            for (const signal of ['actor-added', 'actor-removed', 'allocation-changed']) {
+                this.contentGeometrySignals.push(this.content.connect(
+                    signal,
+                    () => this.queueLayoutUpdate(),
+                ));
+            }
             this.windowTracker.trackExisting();
             this.applySettings();
         } catch (error) {
@@ -374,6 +388,20 @@ export class DockView {
         }
     }
 
+    private queueLayoutUpdate(): void {
+        if (this.destroyed || this.layoutIdleSource)
+            return;
+
+        this.layoutIdleSource = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this.layoutIdleSource = 0;
+            if (!this.destroyed) {
+                this.layout.position();
+                this.layout.positionSensor();
+            }
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
     private onPointerChanged(): void {
         this.visibility.onPointerChanged();
     }
@@ -382,6 +410,13 @@ export class DockView {
         if (this.destroyed)
             return;
         this.destroyed = true;
+        if (this.layoutIdleSource) {
+            GLib.Source.remove(this.layoutIdleSource);
+            this.layoutIdleSource = 0;
+        }
+        for (const signal of this.contentGeometrySignals)
+            this.content.disconnect(signal);
+        this.contentGeometrySignals = [];
         this.visibility.destroy();
         this.previews.destroy();
         if (this.hoverSignal) this.actor.disconnect(this.hoverSignal);
