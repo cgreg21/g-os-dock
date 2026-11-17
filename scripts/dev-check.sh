@@ -37,4 +37,8 @@ fi
 echo "Development environment checks passed."
 echo "Node.js: $(node --version)"
 echo "$SHELL_VERSION"
-echo "Display backend: ${WAYLAND_DISPLAY:+Wayland}${DISPLAY:+X11}"
+if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
+    echo "Display backend: Wayland"
+else
+    echo "Display backend: X11"
+fi
