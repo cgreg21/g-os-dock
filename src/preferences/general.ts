@@ -2,7 +2,7 @@ import Adw from 'gi://Adw?version=1';
 import Gio from 'gi://Gio?version=2.0';
 import Gtk from 'gi://Gtk?version=4.0';
 
-export function addGeneralPreferences(page: any, settings: any): void {
+export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.Settings): void {
     const group = new Adw.PreferencesGroup({ title: 'General' });
     page.add(group);
 
@@ -29,7 +29,7 @@ export function addGeneralPreferences(page: any, settings: any): void {
     addSwitch(group, settings, 'show-window-count', 'Show window count badges');
 }
 
-function addSwitch(group: any, settings: any, key: string, title: string): void {
+function addSwitch(group: Adw.PreferencesGroup, settings: Gio.Settings, key: string, title: string): void {
     const row = new Adw.SwitchRow({ title });
     group.add(row);
     settings.bind(key, row, 'active', Gio.SettingsBindFlags.DEFAULT);
