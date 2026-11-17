@@ -23,6 +23,24 @@ export class AppContextMenu {
         Main.uiGroup.add_child(menu.actor);
         this.manager.addMenu(menu);
         this.menus.push(menu);
+        const appInfo = app.get_app_info();
+        const actions = appInfo?.list_actions() ?? [];
+        if (actions.length > 0) {
+            for (const action of actions) {
+                const label = appInfo?.get_action_name(action) || action;
+                const item = new PopupMenu.PopupMenuItem(label);
+                item.connect('activate', () => {
+                    try {
+                        app.launch_action(action, global.get_current_time());
+                    } catch (error) {
+                        logError(error as Error, `Unable to launch application action: ${action}`);
+                    }
+                });
+                menu.addMenuItem(item);
+            }
+            menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        }
+
         const windows = app.get_windows();
         const open = new PopupMenu.PopupMenuItem('Open new window');
         open.connect('activate', () => app.open_new_window(global.get_current_time()));
