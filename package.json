@@ -12,7 +12,8 @@
     "dev": "bash scripts/dev-session.sh",
     "dev:watch": "bash scripts/dev-watch.sh",
     "dev:check": "bash scripts/dev-check.sh",
-    "dev:install:cachyos": "bash scripts/install-dev-deps-cachyos.sh"
+    "dev:install:cachyos": "bash scripts/install-dev-deps-cachyos.sh",
+    "dev:install:fedora": "bash scripts/install-dev-deps-fedora.sh"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
