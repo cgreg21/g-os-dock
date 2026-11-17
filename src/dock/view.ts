@@ -100,6 +100,7 @@ export class DockView {
             this.settings,
             this.favorites,
             () => this.itemActors,
+            index => this.settings.set_int('system-icon-position', index),
         );
         this.actor._delegate = this;
         this.previews = new WindowPreviews(
