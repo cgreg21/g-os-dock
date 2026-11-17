@@ -351,10 +351,18 @@ export class DockView {
                 this.settings.set_strv('dock-item-order', saved);
         }
         const rank = new Map(saved.map((id, index) => [id, index]));
-        actors.sort((a, b) =>
-            (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
-            (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER),
-        );
+        actors.sort((a, b) => {
+            const aFavorite = a.app
+                ? this.favorites.isFavorite(a.app.get_id())
+                : false;
+            const bFavorite = b.app
+                ? this.favorites.isFavorite(b.app.get_id())
+                : false;
+            if (a.app && b.app && aFavorite !== bFavorite)
+                return aFavorite ? -1 : 1;
+            return (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+                (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER);
+        });
         for (const [index, item] of actors.entries()) {
             const current = this.content.get_children().indexOf(item.actor);
             if (current >= 0 && current !== index)
