@@ -1,6 +1,11 @@
 import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
+import Gio from 'gi://Gio?version=2.0';
+import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
+import { DockDragDrop } from './drag-and-drop.js';
+import { WindowPreviews } from './window-previews/index.js';
+import { AppContextMenu } from './context-menu/index.js';
 
 export type DockAppButton = St.Button & {
     _gOsDockApp: Shell.App;
@@ -9,10 +14,10 @@ export type DockAppButton = St.Button & {
 };
 
 interface DockAppItemDependencies {
-    favorites: any;
-    dragDrop: any;
-    previews: any;
-    contextMenu: any;
+    favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
+    dragDrop: DockDragDrop;
+    previews: WindowPreviews;
+    contextMenu: AppContextMenu;
     getItems: () => DockAppButton[];
     isDockHovered: () => boolean;
     activateApp: (app: Shell.App) => void;
@@ -58,7 +63,7 @@ export class DockAppItemFactory {
         }
 
         item.connect('clicked', () => this.dependencies.activateApp(app));
-        item.connect('key-press-event', (_actor: any, event: any) =>
+        item.connect('key-press-event', (_actor: St.Button, event: Clutter.Event) =>
             this.dependencies.handleKeyPress(item, event));
 
         item.connect('notify::hover', () => {
