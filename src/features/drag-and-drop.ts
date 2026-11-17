@@ -4,6 +4,7 @@ import Gio from 'gi://Gio?version=2.0';
 import Shell from 'gi://Shell?version=51';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import type { DockAppButton } from './app-item.js';
 
 export type DockDragSource = { app?: Shell.App; systemItem?: boolean };
@@ -16,6 +17,8 @@ export class DockDragDrop {
     private previewIndex: number | null = null;
     private systemDropIndex: number | null = null;
     private draggables = new Map<DockAppButton, DND.Draggable>();
+    private removalZone: St.Widget;
+    private removalZoneDelegate: { handleDragOver: (source: DockDragSource) => number; acceptDrop: (source: DockDragSource) => boolean };
 
     constructor(
         private actor: St.Widget,
@@ -24,7 +27,25 @@ export class DockDragDrop {
         private favorites: ReturnType<typeof AppFavorites.getAppFavorites>,
         private getItems: () => DockAppButton[],
         private setSystemPosition: (index: number) => void,
-    ) {}
+        private monitor: { x: number; y: number; width: number; height: number },
+    ) {
+        this.removalZone = new St.Widget({
+            style_class: 'g-os-dock-removal-zone',
+            reactive: false,
+            can_focus: false,
+        });
+        this.removalZoneDelegate = {
+            handleDragOver: source => this.handleRemovalDragOver(source),
+            acceptDrop: source => this.acceptRemovalDrop(source),
+        };
+        (this.removalZone as St.Widget & { _delegate?: unknown })._delegate = this.removalZoneDelegate;
+        this.updateRemovalZoneGeometry();
+        Main.layoutManager.addChrome(this.removalZone, {
+            affectsStruts: false,
+            trackFullscreen: false,
+        });
+        this.removalZone.hide();
+    }
 
     makeFavoriteDraggable(item: DockAppButton, app: Shell.App, onStart: () => void): void {
         item._delegate = {
@@ -37,12 +58,14 @@ export class DockDragDrop {
         // Keep the GJS wrapper alive for as long as its dock actor is displayed.
         this.draggables.set(item, draggable);
         draggable.connect('drag-begin', () => {
+            this.showRemovalZone();
             onStart();
             item.add_style_class_name('dragging');
             this.beginPreview(item);
         });
         draggable.connect('drag-end', () => {
             item.remove_style_class_name('dragging');
+            this.hideRemovalZone();
             this.clearDropTarget();
             this.endPreview();
         });
@@ -195,6 +218,75 @@ export class DockDragDrop {
         this.endPreview();
     }
 
+    private updateRemovalZoneGeometry(): void {
+        const extent = Math.floor((this.isVertical() ? this.monitor.width : this.monitor.height) * 2 / 3);
+        const position = this.settings.get_string('dock-position');
+        let x = this.monitor.x;
+        let y = this.monitor.y;
+        let width = this.monitor.width;
+        let height = this.monitor.height;
+
+        // Leave the one-third strip nearest the dock outside the removal zone.
+        if (position === 'bottom') {
+            height = extent;
+        } else if (position === 'top') {
+            y += this.monitor.height - extent;
+            height = extent;
+        } else if (position === 'left') {
+            x += this.monitor.width - extent;
+            width = extent;
+        } else {
+            width = extent;
+        }
+
+        this.removalZone.set_position(x, y);
+        this.removalZone.set_size(width, height);
+    }
+
+    private showRemovalZone(): void {
+        this.updateRemovalZoneGeometry();
+        this.removalZone.reactive = true;
+        this.removalZone.show();
+    }
+
+    private hideRemovalZone(): void {
+        this.removalZone.reactive = false;
+        this.removalZone.hide();
+    }
+
+    private handleRemovalDragOver(source: DockDragSource): number {
+        if (source?.app && this.favorites.isFavorite(source.app.get_id()))
+            return DND.DragMotionResult.MOVE_DROP;
+        return DND.DragMotionResult.NO_DROP;
+    }
+
+    private acceptRemovalDrop(source: DockDragSource): boolean {
+        const app = source?.app;
+        if (!app || !this.favorites.isFavorite(app.get_id()))
+            return false;
+
+        const appId = app.get_id();
+        const item = this.draggedItem as DockAppButton | null;
+        if (!item || item._gOsDockApp?.get_id() !== appId) {
+            this.favorites.removeFavorite(appId);
+            return true;
+        }
+
+        // Animate first; removeFavorite triggers refresh and destroys the item.
+        item.ease({
+            opacity: 0,
+            scale_x: 0.08,
+            scale_y: 0.08,
+            duration: 240,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                if (this.favorites.isFavorite(appId))
+                    this.favorites.removeFavorite(appId);
+            },
+        });
+        return true;
+    }
+
     private beginPreview(item: St.Widget): void {
         this.endPreview();
         this.draggedItem = item;
@@ -243,6 +335,9 @@ export class DockDragDrop {
         this.previewIndex = null;
         this.systemDropIndex = null;
         if (this.draggedItem) {
+            this.draggedItem.opacity = 255;
+            this.draggedItem.scale_x = 1;
+            this.draggedItem.scale_y = 1;
             this.draggedItem.show();
             this.draggedItem = null;
         }
@@ -256,9 +351,12 @@ export class DockDragDrop {
     }
 
     destroy(): void {
+        this.hideRemovalZone();
         this.clearDropTarget();
         this.endPreview();
         this.draggables.clear();
+        Main.layoutManager.removeChrome(this.removalZone);
+        this.removalZone.destroy();
     }
 
     private isVertical(): boolean {
