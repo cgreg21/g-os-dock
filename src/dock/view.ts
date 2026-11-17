@@ -302,6 +302,8 @@ export class DockView {
             id: `app:${item._gOsDockApp.get_id()}`,
             actor: item,
             app: item._gOsDockApp,
+            canRemove: () => this.favorites.isFavorite(item._gOsDockApp.get_id()),
+            onRemove: () => this.favorites.removeFavorite(item._gOsDockApp.get_id()),
         }));
         if (this.systemItem)
             items.push({ id: 'system:launcher', actor: this.systemItem.getActor() });
