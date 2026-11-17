@@ -321,9 +321,6 @@ export class DockView {
             if (current >= 0 && current !== index)
                 this.favorites.moveFavoriteToPos(id, index);
         }
-        const systemIndex = ids.indexOf('system:launcher');
-        if (systemIndex >= 0)
-            this.settings.set_int('system-icon-position', systemIndex);
     }
 
     private applySavedItemOrder(): void {
@@ -340,7 +337,8 @@ export class DockView {
                 legacy.splice(target, 0, 'system:launcher');
             }
             saved = legacy;
-            this.settings.set_strv('dock-item-order', saved);
+            if (saved.length > 0)
+                this.settings.set_strv('dock-item-order', saved);
         }
         const rank = new Map(saved.map((id, index) => [id, index]));
         actors.sort((a, b) =>
