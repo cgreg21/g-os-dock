@@ -17,6 +17,7 @@ import { WindowTracker } from '../features/window-tracker.js';
 import { DockAppItemFactory, type DockAppButton } from '../features/app-item.js';
 import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
+import { DockSystemItem } from '../features/system-item.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -58,6 +59,7 @@ export class DockView {
     private windowTracker: WindowTracker;
     private appItemFactory: DockAppItemFactory;
     private keyboard: DockKeyboardNavigation;
+    private systemItem: DockSystemItem | null = null;
 
     constructor(index: number, monitor: MonitorGeometry, settings: Gio.Settings) {
         this.monitor = monitor;
@@ -302,10 +304,11 @@ export class DockView {
                 : this.monitor.width - edgeDistance * 2 -
                     paddingLeft - paddingRight - border * 2;
             const itemOverhead = vertical ? 25 : 4;
-            const fittedSize = applications.length > 0
+            const itemCount = applications.length + (this.settings.get_boolean('show-system-icon') ? 1 : 0);
+            const fittedSize = itemCount > 0
                 ? Math.floor(
-                    (available - spacing * Math.max(0, applications.length - 1)) /
-                    applications.length,
+                    (available - spacing * Math.max(0, itemCount - 1)) /
+                    itemCount,
                 ) - itemOverhead - iconPadding
                 : configuredSize;
             const size = Math.min(configuredSize, Math.max(16, fittedSize));
@@ -357,8 +360,10 @@ export class DockView {
             if (structureChanged) {
                 for (const [index, item] of pendingItems.entries())
                     this.content.set_child_at_index(item, index);
-                this.layout.position();
             }
+            const systemItemChanged = this.syncSystemItem(size);
+            if (structureChanged || systemItemChanged)
+                this.layout.position();
         } catch (error) {
             for (const item of pendingItems) {
                 if (!this.itemActors.includes(item)) {
@@ -373,6 +378,35 @@ export class DockView {
 
         this.updateIndicators();
         this.visibility.queueSmartHideCheck();
+    }
+
+    private syncSystemItem(size: number): boolean {
+        const enabled = this.settings.get_boolean('show-system-icon');
+        if (!enabled) {
+            if (!this.systemItem)
+                return false;
+            this.systemItem.destroy();
+            this.systemItem = null;
+            return true;
+        }
+        if (!this.systemItem) {
+            this.systemItem = new DockSystemItem(
+                this.content, this.settings, size,
+                () => this.settings.get_string('dock-position'),
+            );
+            return true;
+        }
+        this.systemItem.setIconSize(size);
+        const children = this.content.get_children();
+        if (children[children.length - 1] !== this.systemItemActor()) {
+            this.content.set_child_at_index(this.systemItemActor(), children.length - 1);
+            return true;
+        }
+        return false;
+    }
+
+    private systemItemActor(): St.Button | null {
+        return this.systemItem ? this.systemItem.actor : null;
     }
 
     private createItem(app: Shell.App, size: number): DockAppButton {
@@ -508,6 +542,8 @@ export class DockView {
         if (this.windowCreatedSignal) global.display.disconnect(this.windowCreatedSignal);
         this.windowTracker.destroy();
         this.contextMenu.destroy();
+        this.systemItem?.destroy();
+        this.systemItem = null;
         this.dragDrop.destroy();
         Main.layoutManager.removeChrome(this.actor);
         Main.layoutManager.removeChrome(this.background);
