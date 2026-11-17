@@ -1,6 +1,6 @@
-import St from 'gi://St';
-import Clutter from 'gi://Clutter';
-import GLib from 'gi://GLib';
+import St from 'gi://St?version=51';
+import Clutter from 'gi://Clutter?version=51';
+import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { createWindowPreviewCard } from './card.js';
 
