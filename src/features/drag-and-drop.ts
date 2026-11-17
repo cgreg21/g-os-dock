@@ -17,6 +17,7 @@ export class DockDragDrop {
     private previewIndex: number | null = null;
     private systemDropIndex: number | null = null;
     private draggables = new Map<DockAppButton, DND.Draggable>();
+    private removingAppId: string | null = null;
     private removalZone: St.Widget;
     private removalZoneDelegate: { handleDragOver: (source: DockDragSource) => number; acceptDrop: (source: DockDragSource) => boolean };
 
@@ -273,6 +274,7 @@ export class DockDragDrop {
         }
 
         // Animate first; removeFavorite triggers refresh and destroys the item.
+        this.removingAppId = appId;
         item.ease({
             opacity: 0,
             scale_x: 0.08,
@@ -282,6 +284,7 @@ export class DockDragDrop {
             onComplete: () => {
                 if (this.favorites.isFavorite(appId))
                     this.favorites.removeFavorite(appId);
+                this.removingAppId = null;
             },
         });
         return true;
@@ -335,9 +338,12 @@ export class DockDragDrop {
         this.previewIndex = null;
         this.systemDropIndex = null;
         if (this.draggedItem) {
-            this.draggedItem.opacity = 255;
-            this.draggedItem.scale_x = 1;
-            this.draggedItem.scale_y = 1;
+            if (this.draggedItem instanceof St.Widget &&
+                (this.draggedItem as DockAppButton)._gOsDockApp?.get_id() !== this.removingAppId) {
+                this.draggedItem.opacity = 255;
+                this.draggedItem.scale_x = 1;
+                this.draggedItem.scale_y = 1;
+            }
             this.draggedItem.show();
             this.draggedItem = null;
         }
