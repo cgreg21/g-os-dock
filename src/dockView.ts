@@ -396,15 +396,24 @@ export class DockView {
         });
         previews.set_style('spacing: 8px; padding: 8px; border-radius: 14px; background-color: rgba(24,26,33,0.96); border: 1px solid rgba(255,255,255,0.18);');
         for (const [index, window] of windows.entries()) {
-            const card = new St.Button({
+            const card = new St.BoxLayout({
                 style_class: 'g-os-dock-preview-card',
+                vertical: true,
+                reactive: true,
+                track_hover: true,
+                x_expand: false,
+                y_expand: false,
+            });
+            card.set_style('spacing: 5px; padding: 6px; border-radius: 9px; background-color: rgba(255,255,255,0.07);');
+            const previewButton = new St.Button({
+                style_class: 'g-os-dock-preview-open',
                 reactive: true,
                 can_focus: true,
                 track_hover: true,
                 x_expand: false,
                 y_expand: false,
             });
-            card.set_style('padding: 6px; border-radius: 9px; background-color: rgba(255,255,255,0.07);');
+            previewButton.set_style('padding: 0; background-color: transparent;');
             const content = new St.BoxLayout({ vertical: true, style: 'spacing: 5px;' });
             let compositorActor: any = null;
             try { compositorActor = window.get_compositor_private(); } catch (_error) { /* unavailable */ }
@@ -435,12 +444,49 @@ export class DockView {
                 x_align: Clutter.ActorAlign.CENTER,
             });
             content.add_child(label);
-            card.set_child(content);
-            card.connect('clicked', () => {
+            previewButton.set_child(content);
+            previewButton.accessible_name = `Activate ${title.trim() || `window ${index + 1}`}`;
+            previewButton.connect('clicked', () => {
                 try { app.activate_window(window, global.get_current_time()); }
                 catch (_error) { window.activate(global.get_current_time()); }
                 this.hideWindowPreviews();
             });
+            card.add_child(previewButton);
+
+            const actions = new St.BoxLayout({
+                style_class: 'g-os-dock-preview-actions',
+                x_expand: true,
+                y_expand: false,
+            });
+            const minimize = new St.Button({
+                style_class: 'g-os-dock-preview-action',
+                child: new St.Icon({ icon_name: 'window-minimize-symbolic', icon_size: 14 }),
+                can_focus: true,
+                reactive: true,
+                tooltip_text: 'Minimize window',
+                accessible_name: 'Minimize window',
+                x_expand: true,
+            });
+            minimize.connect('clicked', () => {
+                window.minimize();
+                this.hideWindowPreviews();
+            });
+            const close = new St.Button({
+                style_class: 'g-os-dock-preview-action close',
+                child: new St.Icon({ icon_name: 'window-close-symbolic', icon_size: 14 }),
+                can_focus: true,
+                reactive: true,
+                tooltip_text: 'Close window',
+                accessible_name: 'Close window',
+                x_expand: true,
+            });
+            close.connect('clicked', () => {
+                window.delete(global.get_current_time());
+                this.hideWindowPreviews();
+            });
+            actions.add_child(minimize);
+            actions.add_child(close);
+            card.add_child(actions);
             previews.add_child(card);
         }
 
