@@ -9,9 +9,9 @@ import { AppContextMenu } from './appContextMenu.js';
 import { DockDragDrop } from './features/drag-and-drop.js';
 import { DockVisibility } from './features/visibility.js';
 import { DockAppearance } from './features/appearance.js';
+import { DockLayout } from './features/layout.js';
 import { WindowPreviews } from './windowPreviews.js';
 
-const EDGE_THICKNESS = 3;
 const MAGNIFICATION_RADIUS = 2;
 const MAGNIFICATION_FACTOR = 1.28;
 
@@ -41,6 +41,7 @@ export class DockView {
     private dragDrop: DockDragDrop;
     private visibility: DockVisibility;
     private appearance: DockAppearance;
+    private layout: DockLayout;
 
     constructor(index: number, monitor: any, settings: any) {
         this.monitor = monitor;
@@ -82,6 +83,13 @@ export class DockView {
             this.edgeSensor,
             this.settings,
             this.monitorIndex,
+            () => this.destroyed,
+        );
+        this.layout = new DockLayout(
+            this.actor,
+            this.edgeSensor,
+            this.monitor,
+            this.settings,
             () => this.destroyed,
         );
 
@@ -143,7 +151,7 @@ export class DockView {
             this.actor.add_child(item);
         }
         this.appearance.apply();
-        this.position();
+        this.layout.position();
         this.applyMagnification(-1, false);
         this.updateIndicators();
         this.visibility.queueSmartHideCheck();
@@ -366,67 +374,23 @@ export class DockView {
             if (icon)
                 icon.ease({ width: size, height: size, duration: 120, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
         });
-        this.position();
+        this.layout.position();
     }
 
     private applySettings(): void {
         if (this.destroyed)
             return;
         this.refresh();
-        this.position();
+        this.layout.position();
         this.visibility.applySettings();
 
         const autoHide = this.settings.get_boolean('auto-hide');
         const smartHide = this.settings.get_boolean('smart-hide');
         if (autoHide || smartHide) {
             this.edgeSensor.show();
-            this.positionSensor();
+            this.layout.positionSensor();
         } else {
             this.edgeSensor.hide();
-        }
-    }
-
-    private position(): void {
-        if (this.destroyed)
-            return;
-        const position = this.settings.get_string('dock-position');
-        const vertical = position === 'left' || position === 'right';
-        this.actor.set_vertical(vertical);
-        const [minWidth, naturalWidth] = this.actor.get_preferred_width(-1);
-        const [minHeight, naturalHeight] = this.actor.get_preferred_height(-1);
-        const width = Math.max(minWidth, naturalWidth);
-        const height = Math.max(minHeight, naturalHeight);
-        let x = this.monitor.x + Math.round((this.monitor.width - width) / 2);
-        let y = this.monitor.y + this.monitor.height - height - 12;
-        if (position === 'top')
-            y = this.monitor.y + 12;
-        else if (position === 'left') {
-            x = this.monitor.x + 12;
-            y = this.monitor.y + Math.round((this.monitor.height - height) / 2);
-        } else if (position === 'right') {
-            x = this.monitor.x + this.monitor.width - width - 12;
-            y = this.monitor.y + Math.round((this.monitor.height - height) / 2);
-        }
-        this.actor.set_position(x, y);
-        this.positionSensor();
-    }
-
-    private positionSensor(): void {
-        if (!this.edgeSensor || this.destroyed)
-            return;
-        const position = this.settings.get_string('dock-position');
-        if (position === 'top') {
-            this.edgeSensor.set_position(this.monitor.x, this.monitor.y);
-            this.edgeSensor.set_size(this.monitor.width, EDGE_THICKNESS);
-        } else if (position === 'left') {
-            this.edgeSensor.set_position(this.monitor.x, this.monitor.y);
-            this.edgeSensor.set_size(EDGE_THICKNESS, this.monitor.height);
-        } else if (position === 'right') {
-            this.edgeSensor.set_position(this.monitor.x + this.monitor.width - EDGE_THICKNESS, this.monitor.y);
-            this.edgeSensor.set_size(EDGE_THICKNESS, this.monitor.height);
-        } else {
-            this.edgeSensor.set_position(this.monitor.x, this.monitor.y + this.monitor.height - EDGE_THICKNESS);
-            this.edgeSensor.set_size(this.monitor.width, EDGE_THICKNESS);
         }
     }
 
