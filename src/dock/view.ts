@@ -327,9 +327,21 @@ export class DockView {
     }
 
     private applySavedItemOrder(): void {
-        const children = this.content.get_children();
         const actors = this.getDndItems();
-        const saved = this.settings.get_strv('dock-item-order');
+        let saved = this.settings.get_strv('dock-item-order');
+        if (saved.length === 0) {
+            // One-time migration from the old launcher-only position setting.
+            const legacy = actors.filter(item => item.id !== 'system:launcher').map(item => item.id);
+            const launcherIndex = actors.findIndex(item => item.id === 'system:launcher');
+            if (launcherIndex >= 0) {
+                const target = Math.max(0, Math.min(
+                    this.settings.get_int('system-icon-position'), legacy.length,
+                ));
+                legacy.splice(target, 0, 'system:launcher');
+            }
+            saved = legacy;
+            this.settings.set_strv('dock-item-order', saved);
+        }
         const rank = new Map(saved.map((id, index) => [id, index]));
         actors.sort((a, b) =>
             (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
@@ -423,7 +435,7 @@ export class DockView {
             const retained = new Set(pendingItems);
             for (const item of this.itemActors) {
                 if (!retained.has(item)) {
-                    this.dragDrop.release(item);
+                    this.dragDrop.unregisterItem(item);
                     if (item.get_parent())
                         item.get_parent()?.remove_child(item);
                     item.destroy();
@@ -439,7 +451,7 @@ export class DockView {
         } catch (error) {
             for (const item of pendingItems) {
                 if (!this.itemActors.includes(item)) {
-                    this.dragDrop.release(item);
+                    this.dragDrop.unregisterItem(item);
                     if (item.get_parent())
                         item.get_parent()?.remove_child(item);
                     item.destroy();
