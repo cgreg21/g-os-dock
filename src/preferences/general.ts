@@ -1,6 +1,6 @@
-import Adw from 'gi://Adw';
-import Gio from 'gi://Gio';
-import Gtk from 'gi://Gtk';
+import Adw from 'gi://Adw?version=1';
+import Gio from 'gi://Gio?version=2.0';
+import Gtk from 'gi://Gtk?version=4.0';
 
 export function addGeneralPreferences(page: any, settings: any): void {
     const group = new Adw.PreferencesGroup({ title: 'General' });
