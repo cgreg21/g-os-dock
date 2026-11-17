@@ -1,26 +1,37 @@
 import Clutter from 'gi://Clutter?version=51';
+import St from 'gi://St?version=51';
+import Gio from 'gi://Gio?version=2.0';
+import Shell from 'gi://Shell?version=51';
+import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
+import type { DockAppButton } from './app-item.js';
+
+type DragSource = { app?: Shell.App };
+type DraggableDockItem = DockAppButton & {
+    _delegate?: unknown;
+    _gOsDockDraggable: ReturnType<typeof DND.makeDraggable>;
+};
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 
 /** Handles favorite-app drag sources and dock drop targets. */
 export class DockDragDrop {
-    private dropTarget: any = null;
+    private dropTarget: DockAppButton | null = null;
 
     constructor(
-        private actor: any,
-        private settings: any,
-        private favorites: any,
-        private getItems: () => any[],
+        private actor: St.Widget,
+        private settings: Gio.Settings,
+        private favorites: ReturnType<typeof AppFavorites.getAppFavorites>,
+        private getItems: () => DockAppButton[],
     ) {}
 
-    makeFavoriteDraggable(item: any, app: any, onStart: () => void): void {
+    makeFavoriteDraggable(item: DockAppButton, app: Shell.App, onStart: () => void): void {
         item._delegate = {
             app,
             actor: item,
             getDragActor: () => new Clutter.Clone({ source: item }),
             getDragActorSource: () => item,
         };
-        item._gOsDockDraggable = DND.makeDraggable(item, { dragActorOpacity: 210 });
-        item._gOsDockDraggable.connect('drag-begin', () => {
+        (item as DraggableDockItem)._gOsDockDraggable = DND.makeDraggable(item, { dragActorOpacity: 210 });
+        (item as DraggableDockItem)._gOsDockDraggable.connect('drag-begin', () => {
             onStart();
             item.add_style_class_name('dragging');
         });
@@ -34,7 +45,7 @@ export class DockDragDrop {
         });
     }
 
-    handleDragOver(source: any, _dragActor: any, x: number, y: number, _time: number): number {
+    handleDragOver(source: DragSource, _dragActor: Clutter.Actor, x: number, y: number, _time: number): number {
         if (!source?.app || !this.favorites.isFavorite(source.app.get_id())) {
             this.clearDropTarget();
             return DND.DragMotionResult.NO_DROP;
@@ -47,7 +58,7 @@ export class DockDragDrop {
             item._gOsDockApp.get_id() !== source.app.get_id() &&
             this.favorites.isFavorite(item._gOsDockApp.get_id()));
 
-        let nearest: any = null;
+        let nearest: DockAppButton | null = null;
         let nearestDistance = Number.POSITIVE_INFINITY;
         for (const item of candidates) {
             const midpoint = this.getItemMidpoint(item, vertical);
@@ -68,7 +79,7 @@ export class DockDragDrop {
         return DND.DragMotionResult.MOVE_DROP;
     }
 
-    acceptDrop(source: any, _dragActor: any, x: number, y: number, _time: number): boolean {
+    acceptDrop(source: DragSource, _dragActor: Clutter.Actor, x: number, y: number, _time: number): boolean {
         this.clearDropTarget();
         if (!source?.app)
             return false;
@@ -93,7 +104,7 @@ export class DockDragDrop {
         }
 
         targetIndex = Math.max(0, Math.min(targetIndex, favorites.length - 1));
-        const currentIndex = favorites.findIndex((app: any) => app.get_id() === appId);
+        const currentIndex = favorites.findIndex(app => app.get_id() === appId);
         if (currentIndex >= 0 && currentIndex !== targetIndex)
             this.favorites.moveFavoriteToPos(appId, targetIndex);
         return true;
@@ -114,7 +125,7 @@ export class DockDragDrop {
         return ['left', 'right'].includes(this.settings.get_string('dock-position'));
     }
 
-    private getItemMidpoint(item: any, vertical: boolean): number | null {
+    private getItemMidpoint(item: DockAppButton, vertical: boolean): number | null {
         const [x, y] = item.get_transformed_position();
         const [valid, localX, localY] = this.actor.transform_stage_point(
             x + item.width / 2,
