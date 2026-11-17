@@ -1,13 +1,15 @@
 import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
+import Meta from 'gi://Meta?version=51';
+import Shell from 'gi://Shell?version=51';
 
 /** Builds a single window preview card and its window actions. */
 export function createWindowPreviewCard(
-    app: any,
-    window: any,
+    app: Shell.App,
+    window: Meta.Window,
     index: number,
     onClose: () => void,
-): { card: any; previewButton: any } {
+): { card: St.BoxLayout; previewButton: St.Button } {
     const card = new St.BoxLayout({
         style_class: 'g-os-dock-preview-card',
         vertical: true,
@@ -29,7 +31,7 @@ export function createWindowPreviewCard(
     previewButton.set_style('padding: 0; background-color: transparent;');
 
     const content = new St.BoxLayout({ vertical: true, style: 'spacing: 5px;' });
-    let compositorActor: any = null;
+    let compositorActor: Clutter.Actor | null = null;
     try {
         compositorActor = window.get_compositor_private();
     } catch (_error) {
@@ -138,13 +140,13 @@ export function createWindowPreviewCard(
     return { card, previewButton };
 }
 
-function getWorkspaceInfo(window: any): {
-    workspace: any;
+function getWorkspaceInfo(window: Meta.Window): {
+    workspace: Meta.Workspace | null;
     index: number;
     onAllWorkspaces: boolean;
     label: string;
 } {
-    let workspace: any = null;
+    let workspace: Meta.Workspace | null = null;
     let index = -1;
     let onAllWorkspaces = false;
     try {
@@ -161,7 +163,7 @@ function getWorkspaceInfo(window: any): {
     return { workspace, index, onAllWorkspaces, label };
 }
 
-function activateWindow(app: any, window: any, timestamp = global.get_current_time()): void {
+function activateWindow(app: Shell.App, window: Meta.Window, timestamp = global.get_current_time()): void {
     try {
         app.activate_window(window, timestamp);
     } catch (_error) {
