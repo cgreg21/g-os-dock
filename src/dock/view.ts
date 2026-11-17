@@ -19,6 +19,7 @@ import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
 import { DockSystemItem } from '../features/system-item.js';
 import { DockTrashItem } from '../features/trash-item.js';
+import { DockVolumeItems } from '../features/volume-items.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -62,6 +63,7 @@ export class DockView {
     private keyboard: DockKeyboardNavigation;
     private systemItem: DockSystemItem | null = null;
     private trashItem: DockTrashItem | null = null;
+    private volumeItems: DockVolumeItems | null = null;
     private favoritesSeparator: St.Widget | null = null;
 
     constructor(index: number, monitor: MonitorGeometry, settings: Gio.Settings) {
@@ -317,6 +319,8 @@ export class DockView {
             items.push({ id: 'system:launcher', actor: this.systemItem.getActor() });
         if (this.trashItem)
             items.push({ id: 'system:trash', actor: this.trashItem.getActor() });
+        if (this.volumeItems)
+            items.push(...this.volumeItems.getDndItems());
         const children = this.content.get_children();
         items.sort((a, b) =>
             children.indexOf(a.actor) - children.indexOf(b.actor),
@@ -390,6 +394,7 @@ export class DockView {
         try {
             const applications = this.getApplications();
             const configuredSize = this.settings.get_int('icon-size');
+            const volumeItemsChanged = this.syncVolumeItems(configuredSize);
             const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
             const spacing = this.settings.get_int('dock-spacing');
             const edgeDistance = this.settings.get_int('edge-distance');
@@ -431,7 +436,8 @@ export class DockView {
                 : 0;
             const itemCount = applications.length +
                 (this.settings.get_boolean('show-system-icon') ? 1 : 0) +
-                (this.settings.get_boolean('show-trash-icon') ? 1 : 0);
+                (this.settings.get_boolean('show-trash-icon') ? 1 : 0) +
+                (this.volumeItems?.getCount() ?? 0);
             const fittedSize = itemCount > 0
                 ? Math.floor(
                     (available - separatorSpace - spacing * Math.max(0, itemCount - 1)) /
@@ -487,9 +493,10 @@ export class DockView {
             this.itemSize = size;
             const systemItemChanged = this.syncSystemItem(size);
             const trashItemChanged = this.syncTrashItem(size);
+            this.volumeItems?.setIconSize(size);
             this.applySavedItemOrder();
             this.syncFavoritesSeparator(size, vertical);
-            if (structureChanged || systemItemChanged || trashItemChanged)
+            if (structureChanged || systemItemChanged || trashItemChanged || volumeItemsChanged)
                 this.layout.position();
         } catch (error) {
             for (const item of pendingItems) {
@@ -582,6 +589,20 @@ export class DockView {
         return false;
     }
 
+
+    private syncVolumeItems(size: number): boolean {
+        if (!this.volumeItems) {
+            this.volumeItems = new DockVolumeItems(
+                this.content,
+                this.settings,
+                this.dragDrop,
+                size,
+                () => this.refresh(),
+            );
+            return true;
+        }
+        return this.volumeItems.sync();
+    }
 
     private syncTrashItem(size: number): boolean {
         const enabled = this.settings.get_boolean('show-trash-icon');
@@ -759,6 +780,8 @@ export class DockView {
         this.systemItem = null;
         this.trashItem?.destroy();
         this.trashItem = null;
+        this.volumeItems?.destroy();
+        this.volumeItems = null;
         this.dragDrop.destroy();
         Main.layoutManager.removeChrome(this.actor);
         Main.layoutManager.removeChrome(this.background);
