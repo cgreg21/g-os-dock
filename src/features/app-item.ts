@@ -38,26 +38,33 @@ export class DockAppItemFactory {
             x_expand: false,
             y_expand: false,
         });
+        const iconLayout = new Clutter.BinLayout();
         const iconContainer = new St.Widget({
-            layout_manager: new Clutter.BinLayout(),
+            layout_manager: iconLayout,
             x_expand: false,
             y_expand: false,
         });
         iconContainer.set_size(size, size);
         const icon = app.create_icon_texture(size);
         icon.set_size(size, size);
-        iconContainer.add_child(icon);
+        iconLayout.pack(
+            icon,
+            Clutter.BinAlignment.CENTER,
+            Clutter.BinAlignment.CENTER,
+        );
         content.add_child(iconContainer);
 
-        // The running indicator is layered over the icon, centered along
-        // its bottom edge rather than taking up space in the dock layout.
+        // Use BinLayout child alignment explicitly: actor x_align/y_align
+        // properties do not position children inside a BinLayout.
         const indicator = new St.BoxLayout({
             style_class: 'g-os-dock-running-indicator',
             orientation: Clutter.Orientation.HORIZONTAL,
-            x_align: Clutter.ActorAlign.CENTER,
-            y_align: Clutter.ActorAlign.END,
         });
-        iconContainer.add_child(indicator);
+        iconLayout.pack(
+            indicator,
+            Clutter.BinAlignment.CENTER,
+            Clutter.BinAlignment.END,
+        );
 
         const item = new St.Button({
             style_class: 'g-os-dock-item',
