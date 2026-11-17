@@ -59,7 +59,17 @@ sudo dnf install gnome-shell inotify-tools dbus-daemon nodejs npm zip glib2
 
 # Ubuntu/Debian
 sudo apt install gnome-shell inotify-tools dbus-daemon nodejs npm zip libglib2.0-bin
+
+# CachyOS
+bash scripts/install-dev-deps-cachyos.sh
 ```
+
+On CachyOS, the helper installs the host tools with `pacman` (GNOME Shell,
+GNOME Session, D-Bus, GLib, Node.js/npm, inotify-tools and ZIP). It does not
+change your desktop session or graphics drivers. The same GNOME 51.x version
+check applies; if the rolling repositories have not yet provided GNOME 51,
+the development launcher will stop rather than silently testing against a
+different Shell version.
 
 Then install project dependencies and launch the environment:
 
