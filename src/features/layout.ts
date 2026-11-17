@@ -7,11 +7,14 @@ type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
 const EDGE_THICKNESS = 3;
 const DOCK_SCREEN_MARGIN = 12;
+// The ScrollView frame has 8px padding and may have a 1px border on each side.
+const DOCK_FRAME_INSET = 18;
 
 /** Calculates dock and reveal-sensor geometry for its monitor. */
 export class DockLayout {
     constructor(
         private actor: St.ScrollView,
+        private background: St.Widget,
         private content: St.BoxLayout,
         private edgeSensor: St.Widget,
         private monitor: MonitorGeometry,
@@ -31,8 +34,13 @@ export class DockLayout {
 
         const [minWidth, naturalWidth] = this.content.get_preferred_width(-1);
         const [minHeight, naturalHeight] = this.content.get_preferred_height(-1);
-        const width = Math.max(minWidth, naturalWidth);
-        const height = Math.max(minHeight, naturalHeight);
+        // Measure the full natural content in both axes. The viewport must also
+        // include the ScrollView's CSS padding/border, otherwise the first/last
+        // icons are clipped and the dock appears smaller than its contents.
+        const contentWidth = Math.max(minWidth, naturalWidth);
+        const contentHeight = Math.max(minHeight, naturalHeight);
+        const width = contentWidth + DOCK_FRAME_INSET;
+        const height = contentHeight + DOCK_FRAME_INSET;
 
         // GNOME's top panel is a separate chrome actor. Keep the dock and its
         // reveal sensor below it on the primary monitor instead of allowing
@@ -61,6 +69,7 @@ export class DockLayout {
             vertical ? St.PolicyType.NEVER : St.PolicyType.AUTOMATIC,
             vertical ? St.PolicyType.AUTOMATIC : St.PolicyType.NEVER,
         );
+        this.background.set_size(viewportWidth, viewportHeight);
         this.actor.set_size(viewportWidth, viewportHeight);
 
         const minX = this.monitor.x + DOCK_SCREEN_MARGIN;
@@ -89,6 +98,7 @@ export class DockLayout {
         x = Math.max(minX, Math.min(x, maxX));
         y = Math.max(minY, Math.min(y, maxY));
 
+        this.background.set_position(Math.round(x), Math.round(y));
         this.actor.set_position(Math.round(x), Math.round(y));
         this.positionSensor();
     }

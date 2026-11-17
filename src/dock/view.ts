@@ -21,6 +21,7 @@ type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
 export class DockView {
     private actor: St.ScrollView & { _delegate?: unknown };
+    private background: St.Widget;
     private content: St.BoxLayout;
     private edgeSensor: St.Widget;
     private scrollStartZone: St.Widget;
@@ -78,8 +79,13 @@ export class DockView {
             reactive: true,
             track_hover: true,
         });
+        this.background = new St.Widget({
+            style_class: 'g-os-dock-background',
+            reactive: false,
+            can_focus: false,
+        });
         this.actor = new St.ScrollView({
-            style_class: 'g-os-dock',
+            style_class: 'g-os-dock-content',
             child: this.content,
             overlay_scrollbars: true,
             reactive: true,
@@ -89,7 +95,7 @@ export class DockView {
         // The stylesheet collapses the native scrollbar actors themselves.
         this.actor.set_policy(St.PolicyType.NEVER, St.PolicyType.NEVER);
         this.actor.set_mouse_scrolling(true);
-        this.appearance = new DockAppearance(this.actor, this.content, this.settings, this.desktopSettings);
+        this.appearance = new DockAppearance(this.background, this.content, this.settings, this.desktopSettings);
         this.contextMenu = new AppContextMenu(this.actor, this.favorites);
         this.dragDrop = new DockDragDrop(
             this.actor,
@@ -125,8 +131,20 @@ export class DockView {
             can_focus: false,
             track_hover: true,
         });
+        if (GLib.getenv('G_OS_DOCK_DEV_MODE') === '1') {
+            // Keep the debug shadow limited to this dock and all its descendants.
+            for (const actor of [
+                this.actor,
+                this.background,
+                this.edgeSensor,
+                this.scrollStartZone,
+                this.scrollEndZone,
+            ])
+                actor.add_style_class_name('g-os-dock-dev');
+        }
         this.visibility = new DockVisibility(
             this.actor,
+            this.background,
             this.edgeSensor,
             this.settings,
             this.monitorIndex,
@@ -134,6 +152,7 @@ export class DockView {
         );
         this.layout = new DockLayout(
             this.actor,
+            this.background,
             this.content,
             this.edgeSensor,
             this.monitor,
@@ -164,6 +183,10 @@ export class DockView {
                 'changed::color-scheme',
                 () => this.appearance.apply(),
             );
+            Main.layoutManager.addChrome(this.background, {
+                affectsStruts: false,
+                trackFullscreen: false,
+            });
             Main.layoutManager.addChrome(this.actor, {
                 affectsStruts: false,
                 trackFullscreen: false,
@@ -559,6 +582,7 @@ export class DockView {
             adjustment.disconnect(signal);
         this.scrollAdjustmentSignals = [];
         Main.layoutManager.removeChrome(this.actor);
+        Main.layoutManager.removeChrome(this.background);
         Main.layoutManager.removeChrome(this.edgeSensor);
         if (this.scrollStartHoverSignal) this.scrollStartZone.disconnect(this.scrollStartHoverSignal);
         if (this.scrollEndHoverSignal) this.scrollEndZone.disconnect(this.scrollEndHoverSignal);
@@ -566,6 +590,7 @@ export class DockView {
         Main.layoutManager.removeChrome(this.scrollStartZone);
         Main.layoutManager.removeChrome(this.scrollEndZone);
         this.actor.destroy();
+        this.background.destroy();
         this.edgeSensor.destroy();
         this.scrollStartZone.destroy();
         this.scrollEndZone.destroy();

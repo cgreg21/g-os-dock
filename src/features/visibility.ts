@@ -15,6 +15,7 @@ export class DockVisibility {
 
     constructor(
         private actor: St.Widget,
+        private background: St.Widget,
         private edgeSensor: St.Widget,
         private settings: Gio.Settings,
         private monitorIndex: number,
@@ -33,6 +34,7 @@ export class DockVisibility {
             this.actor.remove_all_transitions();
             this.actor.show();
             this.actor.opacity = 255;
+            this.background.opacity = 255;
             this.actor.reactive = true;
         } else if (autoHide) {
             this.scheduleHide();
@@ -97,6 +99,13 @@ export class DockVisibility {
         this.cancelHide();
         // A previous hide completion must not make a newly shown dock inert.
         this.actor.remove_all_transitions();
+        this.background.remove_all_transitions();
+        this.background.show();
+        this.background.ease({
+            opacity: 255,
+            duration: 160,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
         this.actor.show();
         this.actor.ease({
             opacity: 255,
@@ -113,6 +122,12 @@ export class DockVisibility {
 
         // Replace any in-flight show/hide transition before starting this one.
         this.actor.remove_all_transitions();
+        this.background.remove_all_transitions();
+        this.background.ease({
+            opacity: 0,
+            duration: 160,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
         this.actor.ease({
             opacity: 0,
             duration: 160,
@@ -134,6 +149,7 @@ export class DockVisibility {
             GLib.source_remove(this.smartHideSource);
         this.smartHideSource = 0;
         this.actor.remove_all_transitions();
+        this.background.remove_all_transitions();
     }
 
     private isInactive(): boolean {

@@ -1,6 +1,12 @@
-.g-os-dock {
-  spacing: 6px;
+.g-os-dock-background {
+  border-radius: 18px;
+}
+
+.g-os-dock-content {
+  background-color: transparent;
+  border: 0;
   padding: 8px;
+  spacing: 6px;
 }
 
 .g-os-dock-item {
@@ -112,12 +118,8 @@
   background-color: transparent;
 }
 
-/* Keep St.ScrollView adjustments active, but remove the native scrollbar
- * actors from the dock's visible and interactive area. */
-StScrollView.g-os-dock StScrollBar {
-  width: 0;
-  height: 0;
-  min-width: 0;
-  min-height: 0;
-  opacity: 0;
+/* Development-only geometry aid: outline every dock actor and its children. */
+.g-os-dock-dev,
+.g-os-dock-dev * {
+  box-shadow: 0 0 0 1px red;
 }
