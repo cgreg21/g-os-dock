@@ -6,6 +6,8 @@ import Gio from 'gi://Gio?version=2.0';
 
 const HIDE_DELAY_MS = 650;
 const SMART_HIDE_DELAY_MS = 80;
+const SLIDE_DURATION_MS = 240;
+const EDGE_REVEAL_SIZE = 4;
 
 /** Controls dock visibility, auto-hide and overlap-aware smart-hide. */
 export class DockVisibility {
@@ -35,6 +37,10 @@ export class DockVisibility {
             this.actor.show();
             this.actor.opacity = 255;
             this.background.opacity = 255;
+            this.actor.translation_x = 0;
+            this.actor.translation_y = 0;
+            this.background.translation_x = 0;
+            this.background.translation_y = 0;
             this.actor.reactive = true;
         } else if (autoHide) {
             this.scheduleHide();
@@ -97,22 +103,27 @@ export class DockVisibility {
             return;
 
         this.cancelHide();
-        // A previous hide completion must not make a newly shown dock inert.
+        // Cancel an in-flight slide before returning the dock to its layout position.
         this.actor.remove_all_transitions();
         this.background.remove_all_transitions();
         this.background.show();
-        this.background.ease({
-            opacity: 255,
-            duration: 160,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        });
         this.actor.show();
-        this.actor.ease({
-            opacity: 255,
-            duration: 160,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        });
         this.actor.reactive = true;
+
+        const transition = {
+            duration: SLIDE_DURATION_MS,
+            mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+        };
+        this.background.ease({
+            translationX: 0,
+            translationY: 0,
+            ...transition,
+        });
+        this.actor.ease({
+            translationX: 0,
+            translationY: 0,
+            ...transition,
+        });
     }
 
     hide(): void {
@@ -120,18 +131,35 @@ export class DockVisibility {
             (!this.settings.get_boolean('auto-hide') && !this.settings.get_boolean('smart-hide')))
             return;
 
-        // Replace any in-flight show/hide transition before starting this one.
+        // Move almost completely beyond the selected screen edge, leaving a
+        // narrow reveal strip. The independent edge sensor remains at the edge.
+        const position = this.settings.get_string('dock-position');
+        const distanceX = position === 'left'
+            ? -(this.actor.width - EDGE_REVEAL_SIZE)
+            : position === 'right'
+                ? this.actor.width - EDGE_REVEAL_SIZE
+                : 0;
+        const distanceY = position === 'top'
+            ? -(this.actor.height - EDGE_REVEAL_SIZE)
+            : position === 'bottom'
+                ? this.actor.height - EDGE_REVEAL_SIZE
+                : 0;
+
         this.actor.remove_all_transitions();
         this.background.remove_all_transitions();
+        const transition = {
+            duration: SLIDE_DURATION_MS,
+            mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+        };
         this.background.ease({
-            opacity: 0,
-            duration: 160,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            translationX: distanceX,
+            translationY: distanceY,
+            ...transition,
         });
         this.actor.ease({
-            opacity: 0,
-            duration: 160,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            translationX: distanceX,
+            translationY: distanceY,
+            ...transition,
             onComplete: () => {
                 if (!this.isInactive())
                     this.actor.reactive = false;
