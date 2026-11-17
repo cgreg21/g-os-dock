@@ -11,7 +11,8 @@
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "types": [],
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true
   },
   "include": [
     "src/**/*.ts"
