@@ -535,10 +535,10 @@ export class DockView {
 
             item.set_pivot_point(0.5, 0.5);
             item.ease({
-                scale_x: scale,
-                scale_y: scale,
-                translation_x: vertical ? 0 : push,
-                translation_y: vertical ? push : 0,
+                scaleX: scale,
+                scaleY: scale,
+                translationX: vertical ? 0 : push,
+                translationY: vertical ? push : 0,
                 duration: MAGNIFICATION_DURATION,
                 mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
                 ...(i === lastIndex ? {
