@@ -33,18 +33,20 @@ echo "Watching project source files (src/, schemas/, metadata.json, stylesheet.c
 echo "Changes are debounced, compiled, packaged, installed and re-enabled automatically."
 echo "Press Ctrl+C to stop."
 
+# inotify-tools does not allow --include and --exclude together.
+# The include expression already limits events to the files we build from.
+WATCH_INCLUDE='(^|/)(src/.*|schemas/.*|metadata\.json|stylesheet\.css)$'
+
 while true; do
     inotifywait -q -r \
-        --exclude '(^|/)(node_modules|dist|\.git)(/|$)' \
-        --include '(^|/)(src/.*|schemas/.*|metadata\.json|stylesheet\.css)$' \
+        --include "$WATCH_INCLUDE" \
         -e close_write,create,delete,move \
         "$ROOT" >/dev/null
 
     # Coalesce editor atomic-save sequences and bursts of changes.
     sleep 0.5
     while inotifywait -q -t 0.2 -r \
-        --exclude '(^|/)(node_modules|dist|\.git)(/|$)' \
-        --include '(^|/)(src/.*|schemas/.*|metadata\.json|stylesheet\.css)$' \
+        --include "$WATCH_INCLUDE" \
         -e close_write,create,delete,move \
         "$ROOT" >/dev/null 2>&1; do
         sleep 0.2
