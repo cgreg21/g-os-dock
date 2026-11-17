@@ -64,6 +64,7 @@ export class DockVolumeItems {
             const existing = this.items.get(id);
             if (existing) {
                 existing.icon.icon_size = this.iconSize;
+                this.updateButtonPadding(existing.button);
                 // Use the mount-provided GIcon, just like GNOME Files (Nautilus).
                 existing.icon.set_gicon(entry.mount.get_icon());
                 continue;
@@ -128,8 +129,22 @@ export class DockVolumeItems {
             }
         });
         this.content.add_child(button);
+        this.updateButtonPadding(button);
         this.items.set(entry.id, { button, icon, mount: entry.mount });
         this.dragDrop.registerItem({ id: entry.id, actor: button });
+    }
+
+    /** Apply the same configurable icon box geometry as app, launcher and trash items. */
+    private updateButtonPadding(button: St.Button): void {
+        const top = this.settings.get_int('icon-padding-top');
+        const right = this.settings.get_int('icon-padding-right');
+        const bottom = this.settings.get_int('icon-padding-bottom');
+        const left = this.settings.get_int('icon-padding-left');
+        button.set_style(
+            `padding: ${top}px ${right}px ${bottom}px ${left}px; ` +
+            `min-width: ${this.iconSize + left + right}px; ` +
+            `min-height: ${this.iconSize + top + bottom}px;`,
+        );
     }
 
     getCount(): number {
@@ -138,8 +153,10 @@ export class DockVolumeItems {
 
     setIconSize(size: number): void {
         this.iconSize = size;
-        for (const item of this.items.values())
+        for (const item of this.items.values()) {
             item.icon.icon_size = size;
+            this.updateButtonPadding(item.button);
+        }
     }
 
     getDndItems(): Array<{ id: string; actor: St.Button }> {
