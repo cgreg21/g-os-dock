@@ -236,6 +236,19 @@ export class DockView {
             this.focusItem(index + 1);
             return Clutter.EVENT_STOP;
         }
+
+        // Open the window switcher with the key pointing into the dock.
+        const inwardKey = this.settings.get_string('dock-position') === 'top'
+            ? Clutter.KEY_Down
+            : this.settings.get_string('dock-position') === 'bottom'
+                ? Clutter.KEY_Up
+                : this.settings.get_string('dock-position') === 'left'
+                    ? Clutter.KEY_Right
+                    : Clutter.KEY_Left;
+        if (key === inwardKey) {
+            this.showWindowPreviews(item._gOsDockApp, item, true);
+            return Clutter.EVENT_STOP;
+        }
         if (key === Clutter.KEY_Home) {
             this.focusItem(0);
             return Clutter.EVENT_STOP;
@@ -377,7 +390,7 @@ export class DockView {
         });
     }
 
-    private showWindowPreviews(app: any, item: any): void {
+    private showWindowPreviews(app: any, item: any, focusFirst = false): void {
         if (!this.settings.get_boolean('show-window-previews'))
             return;
         this.hideWindowPreviews();
@@ -395,6 +408,7 @@ export class DockView {
             y_expand: false,
         });
         previews.set_style('spacing: 8px; padding: 8px; border-radius: 14px; background-color: rgba(24,26,33,0.96); border: 1px solid rgba(255,255,255,0.18);');
+        let firstPreviewButton: any = null;
         for (const [index, window] of windows.entries()) {
             const card = new St.BoxLayout({
                 style_class: 'g-os-dock-preview-card',
@@ -445,6 +459,8 @@ export class DockView {
             });
             content.add_child(label);
             previewButton.set_child(content);
+            if (!firstPreviewButton)
+                firstPreviewButton = previewButton;
             previewButton.accessible_name = `Activate ${title.trim() || `window ${index + 1}`}`;
             previewButton.connect('clicked', () => {
                 try { app.activate_window(window, global.get_current_time()); }
@@ -492,6 +508,13 @@ export class DockView {
 
         Main.layoutManager.addChrome(previews, { affectsStruts: false, trackFullscreen: false });
         this.previewActor = previews;
+        previews.connect('key-press-event', (_actor: any, event: any) => {
+            if (event.get_key_symbol() !== Clutter.KEY_Escape)
+                return Clutter.EVENT_PROPAGATE;
+            this.hideWindowPreviews();
+            item.grab_key_focus();
+            return Clutter.EVENT_STOP;
+        });
         this.previewHoverSignal = previews.connect('notify::hover', () => {
             if (!previews.hover)
                 this.schedulePreviewHide();
@@ -523,6 +546,8 @@ export class DockView {
         y = Math.max(this.monitor.y + 8, Math.min(y, this.monitor.y + this.monitor.height - previewHeight - 8));
         previews.set_position(Math.round(x), Math.round(y));
         previews.show();
+        if (focusFirst)
+            firstPreviewButton?.grab_key_focus();
     }
 
     private hideWindowPreviews(): void {
