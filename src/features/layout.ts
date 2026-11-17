@@ -9,7 +9,7 @@ const EDGE_THICKNESS = 3;
 /** Calculates dock and reveal-sensor geometry for its monitor. */
 export class DockLayout {
     constructor(
-        private actor: St.Widget,
+        private actor: St.BoxLayout,
         private edgeSensor: St.Widget,
         private monitor: MonitorGeometry,
         private settings: Gio.Settings,
