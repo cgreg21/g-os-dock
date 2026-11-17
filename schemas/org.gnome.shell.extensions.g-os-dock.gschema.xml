@@ -13,5 +13,30 @@
     <key name="dock-spacing" type="i"><range min="0" max="24"/><default>6</default><summary>Space between dock icons</summary></key>
     <key name="theme" type="s"><default>'dark'</default><summary>Dock theme: dark, light or system</summary></key>
     <key name="smart-hide" type="b"><default>false</default><summary>Hide the dock when a normal window overlaps it</summary></key>
+    <key name="background-color" type="s"><default>'#20232d'</default><summary>Dock background color in hexadecimal</summary></key>
+    <key name="background-opacity" type="d"><range min="0.0" max="1.0"/><default>0.78</default><summary>Dock background opacity</summary></key>
+    <key name="border-color" type="s"><default>'#ffffff'</default><summary>Dock border color in hexadecimal</summary></key>
+    <key name="border-opacity" type="d"><range min="0.0" max="1.0"/><default>0.16</default><summary>Dock border opacity</summary></key>
+    <key name="border-size" type="i"><range min="0" max="12"/><default>1</default><summary>Dock border thickness</summary></key>
+    <key name="background-padding-top" type="i"><range min="0" max="48"/><default>8</default><summary>Dock top padding</summary></key>
+    <key name="background-padding-right" type="i"><range min="0" max="48"/><default>8</default><summary>Dock right padding</summary></key>
+    <key name="background-padding-bottom" type="i"><range min="0" max="48"/><default>8</default><summary>Dock bottom padding</summary></key>
+    <key name="background-padding-left" type="i"><range min="0" max="48"/><default>8</default><summary>Dock left padding</summary></key>
+    <key name="edge-distance" type="i"><range min="0" max="64"/><default>12</default><summary>Distance from the screen edge</summary></key>
+    <key name="radius-top-left" type="i"><range min="0" max="64"/><default>18</default><summary>Top-left corner radius</summary></key>
+    <key name="radius-top-right" type="i"><range min="0" max="64"/><default>18</default><summary>Top-right corner radius</summary></key>
+    <key name="radius-bottom-right" type="i"><range min="0" max="64"/><default>18</default><summary>Bottom-right corner radius</summary></key>
+    <key name="radius-bottom-left" type="i"><range min="0" max="64"/><default>18</default><summary>Bottom-left corner radius</summary></key>
+    <key name="icon-padding-top" type="i"><range min="0" max="24"/><default>2</default><summary>Icon top padding</summary></key>
+    <key name="icon-padding-right" type="i"><range min="0" max="24"/><default>2</default><summary>Icon right padding</summary></key>
+    <key name="icon-padding-bottom" type="i"><range min="0" max="24"/><default>2</default><summary>Icon bottom padding</summary></key>
+    <key name="icon-padding-left" type="i"><range min="0" max="24"/><default>2</default><summary>Icon left padding</summary></key>
+    <key name="indicator-mode" type="s"><default>'simple'</default><summary>Indicator mode: simple or multiple</summary></key>
+    <key name="indicator-shape" type="s"><default>'round'</default><summary>Indicator shape: round, square or line</summary></key>
+    <key name="indicator-color" type="s"><default>'#e6e6f0'</default><summary>Indicator color in hexadecimal</summary></key>
+    <key name="indicator-opacity" type="d"><range min="0.0" max="1.0"/><default>0.72</default><summary>Indicator opacity</summary></key>
+    <key name="indicator-show-open" type="b"><default>true</default><summary>Show indicator for open applications</summary></key>
+    <key name="indicator-show-focused" type="b"><default>true</default><summary>Show indicator for focused applications</summary></key>
+    <key name="indicator-show-minimized" type="b"><default>false</default><summary>Show indicator for minimized applications</summary></key>
   </schema>
 </schemalist>
