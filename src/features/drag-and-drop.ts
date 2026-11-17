@@ -164,14 +164,16 @@ export class DockDragDrop {
         // excluding both the hidden source and the moving placeholder. This
         // avoids off-by-one errors when the placeholder crosses its source.
         const children = this.content.get_children();
-        const siblings = children.filter(child =>
-            child !== this.draggedItem!.actor && child !== this.previewSlot,
-        );
+        const withoutPreview = children.filter(child => child !== this.previewSlot);
+        const siblings = withoutPreview.filter(child => child !== this.draggedItem!.actor);
         const reference = siblings[target];
         const childIndex = reference
-            ? children.indexOf(reference)
-            : children.length - 1;
-        this.content.set_child_at_index(this.previewSlot, Math.max(0, childIndex));
+            ? withoutPreview.indexOf(reference)
+            : withoutPreview.length;
+        this.content.set_child_at_index(
+            this.previewSlot,
+            Math.max(0, Math.min(childIndex, children.length - 1)),
+        );
     }
 
     private finishDrag(actor: St.Widget): void {
