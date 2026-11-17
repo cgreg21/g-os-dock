@@ -326,13 +326,16 @@ export class DockView {
             .filter(id => id.startsWith('app:'))
             .map(id => id.slice(4));
         const favoriteCount = this.favorites.getFavorites().length;
+        // With no favorites yet, the first app slot acts as the pinning area
+        // so the user can create the first favorite with the same gesture.
+        const pinningBoundary = Math.max(1, favoriteCount);
 
         this.settings.set_strv('dock-item-order', ids);
 
         // Dropping a running, non-favorite app into the favorites section pins
         // it in GNOME. Persist the order first because addFavorite emits
         // favorites.changed and can synchronously trigger a dock refresh.
-        for (const id of appIds.slice(0, favoriteCount)) {
+        for (const id of appIds.slice(0, pinningBoundary)) {
             if (!this.favorites.isFavorite(id))
                 this.favorites.addFavorite(id);
         }
