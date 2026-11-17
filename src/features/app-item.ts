@@ -78,7 +78,7 @@ export class DockAppItemFactory {
             }
         });
 
-        item.connect('scroll-event', (_actor: any, event: any) => {
+        item.connect('scroll-event', (_actor: St.Button, event: Clutter.Event) => {
             const direction = event.get_scroll_direction();
             if (direction !== Clutter.ScrollDirection.UP &&
                 direction !== Clutter.ScrollDirection.DOWN)
@@ -98,7 +98,7 @@ export class DockAppItemFactory {
             return Clutter.EVENT_STOP;
         });
 
-        item.connect('button-press-event', (_actor: any, event: any) => {
+        item.connect('button-press-event', (_actor: St.Button, event: Clutter.Event) => {
             const button = event.get_button();
             if (button === 2) {
                 app.open_new_window(global.get_current_time());
