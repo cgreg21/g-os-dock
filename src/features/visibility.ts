@@ -11,6 +11,7 @@ const SMART_HIDE_DELAY_MS = 80;
 export class DockVisibility {
     private smartHideSource = 0;
     private hideSource = 0;
+    private destroyed = false;
 
     constructor(
         private actor: St.Widget,
@@ -21,7 +22,7 @@ export class DockVisibility {
     ) {}
 
     applySettings(): void {
-        if (this.isDestroyed())
+        if (this.isInactive())
             return;
 
         const autoHide = this.settings.get_boolean('auto-hide');
@@ -40,6 +41,9 @@ export class DockVisibility {
     }
 
     onPointerChanged(): void {
+        if (this.isInactive())
+            return;
+
         if (this.actor.hover) {
             this.cancelHide();
             this.show();
@@ -49,7 +53,7 @@ export class DockVisibility {
     }
 
     queueSmartHideCheck(): void {
-        if (this.isDestroyed() || !this.settings.get_boolean('smart-hide'))
+        if (this.isInactive() || !this.settings.get_boolean('smart-hide'))
             return;
         if (this.smartHideSource)
             GLib.source_remove(this.smartHideSource);
@@ -62,13 +66,16 @@ export class DockVisibility {
     }
 
     scheduleHide(): void {
+        if (this.isInactive())
+            return;
+
         this.cancelHide();
         if (!this.settings.get_boolean('auto-hide') || this.actor.hover || this.edgeSensor.hover)
             return;
 
         this.hideSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, HIDE_DELAY_MS, () => {
             this.hideSource = 0;
-            if (!this.actor.hover && !this.edgeSensor.hover)
+            if (!this.isInactive() && !this.actor.hover && !this.edgeSensor.hover)
                 this.hide();
             return GLib.SOURCE_REMOVE;
         });
@@ -82,6 +89,9 @@ export class DockVisibility {
     }
 
     show(): void {
+        if (this.isInactive())
+            return;
+
         this.cancelHide();
         this.actor.show();
         this.actor.ease({
@@ -93,28 +103,39 @@ export class DockVisibility {
     }
 
     hide(): void {
-        if (!this.settings.get_boolean('auto-hide') && !this.settings.get_boolean('smart-hide'))
+        if (this.isInactive() ||
+            (!this.settings.get_boolean('auto-hide') && !this.settings.get_boolean('smart-hide')))
             return;
+
         this.actor.ease({
             opacity: 0,
             duration: 160,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => {
-                if (!this.isDestroyed())
+                if (!this.isInactive())
                     this.actor.reactive = false;
             },
         });
     }
 
     destroy(): void {
+        if (this.destroyed)
+            return;
+
+        this.destroyed = true;
         this.cancelHide();
         if (this.smartHideSource)
             GLib.source_remove(this.smartHideSource);
         this.smartHideSource = 0;
+        this.actor.remove_all_transitions();
+    }
+
+    private isInactive(): boolean {
+        return this.destroyed || this.isDestroyed();
     }
 
     private checkWindowOverlap(): void {
-        if (this.isDestroyed() || !this.settings.get_boolean('smart-hide'))
+        if (this.isInactive() || !this.settings.get_boolean('smart-hide'))
             return;
 
         const [dockX, dockY] = this.actor.get_transformed_position();
