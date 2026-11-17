@@ -22,7 +22,8 @@ const MAGNIFICATION_RADIUS = 2;
 const MAGNIFICATION_FACTOR = 1.28;
 
 export class DockView {
-    private actor: St.BoxLayout & { _delegate?: unknown };
+    private actor: St.ScrollView & { _delegate?: unknown };
+    private content: St.BoxLayout;
     private edgeSensor: St.Widget;
     private monitor: MonitorGeometry;
     private monitorIndex: number;
@@ -63,18 +64,28 @@ export class DockView {
         this.favorites = AppFavorites.getAppFavorites();
         const dockPosition = this.settings.get_string('dock-position');
         const vertical = dockPosition === 'left' || dockPosition === 'right';
-        this.actor = new St.BoxLayout({
-            style_class: 'g-os-dock',
+        this.content = new St.BoxLayout({
             orientation: vertical
                 ? Clutter.Orientation.VERTICAL
                 : Clutter.Orientation.HORIZONTAL,
             reactive: true,
             track_hover: true,
         });
+        this.actor = new St.ScrollView({
+            style_class: 'g-os-dock',
+            child: this.content,
+            overlay_scrollbars: true,
+            mouse_scrolling: true,
+            reactive: true,
+            track_hover: true,
+        });
+        this.actor.set_policy(St.PolicyType.NEVER, vertical
+            ? St.PolicyType.AUTOMATIC
+            : St.PolicyType.NEVER);
         this.appearance = new DockAppearance(this.actor, this.settings, this.desktopSettings);
         this.contextMenu = new AppContextMenu(this.actor, this.favorites);
         this.dragDrop = new DockDragDrop(
-            this.actor,
+            this.content,
             this.settings,
             this.favorites,
             () => this.itemActors,
@@ -224,7 +235,7 @@ export class DockView {
             for (const app of this.getApplications()) {
                 const item = this.createItem(app, size);
                 pendingItems.push(item);
-                this.actor.add_child(item);
+                this.content.add_child(item);
             }
         } catch (error) {
             for (const item of pendingItems) {
