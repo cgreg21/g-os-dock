@@ -89,12 +89,8 @@ export class DockView {
             reactive: true,
             track_hover: true,
         });
-        // Navigation is provided by the dock arrow controls, never by visible scrollbars.
+        // Keep the adjustments available for scrolling without displaying scrollbars.
         this.actor.set_policy(St.PolicyType.NEVER, St.PolicyType.NEVER);
-        // Keep both scrollbar actors hidden explicitly: the adjustments remain
-        // active for wheel, touchpad, keyboard and edge-hover scrolling.
-        this.actor.get_hscrollbar().hide();
-        this.actor.get_vscrollbar().hide();
         this.actor.set_mouse_scrolling(true);
         this.appearance = new DockAppearance(this.actor, this.content, this.settings, this.desktopSettings);
         this.contextMenu = new AppContextMenu(this.actor, this.favorites);
