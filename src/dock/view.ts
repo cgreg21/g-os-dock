@@ -321,6 +321,7 @@ export class DockView {
 
     private applyMagnification(index: number, enabled: boolean): void {
         const base = this.settings.get_int('icon-size');
+        const lastIndex = this.itemActors.length - 1;
         this.itemActors.forEach((item, i) => {
             const distance = Math.abs(i - index);
             const factor = enabled && distance <= MAGNIFICATION_RADIUS
@@ -328,9 +329,26 @@ export class DockView {
                 : 1;
             const size = Math.round(base * factor);
             const icon = item.get_child();
-            if (icon)
-                icon.ease({ width: size, height: size, duration: 120, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
+            if (!icon)
+                return;
+
+            icon.ease({
+                width: size,
+                height: size,
+                duration: 120,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                ...(i === lastIndex ? {
+                    onComplete: () => {
+                        if (!this.destroyed)
+                            this.layout.position();
+                    },
+                } : {}),
+            });
         });
+
+        // Update immediately for the start of the animation, then once more
+        // after the final icon reaches its target size. This keeps the scroll
+        // viewport centered and correctly constrained after magnification.
         this.layout.position();
     }
 
