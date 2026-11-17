@@ -16,6 +16,7 @@ G-OS Dock is a GNOME Shell extension written in TypeScript and compiled to JavaS
 - Configurable icon size, spacing, theme, and hover magnification.
 - Optional hover window previews with live compositor thumbnails, titles, and click-to-focus (configurable in preferences).
 - Window preview rendering and lifecycle are isolated in `src/windowPreviews.ts`; `src/dockView.ts` delegates preview operations to this module.
+- Application context-menu construction and cleanup are isolated in `src/appContextMenu.ts`.
 - Minimize or close individual windows directly from their preview cards; show each window's workspace and jump to another workspace from its preview.
 - Drag-and-drop reordering of pinned favorite applications, with live drop-target highlighting and synchronized ordering across monitors.
 - Preferences through GNOME Extensions.
