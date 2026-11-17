@@ -1,4 +1,5 @@
 import Adw from 'gi://Adw?version=1';
+import Gdk from 'gi://Gdk?version=4.0';
 import Gio from 'gi://Gio?version=2.0';
 import Gtk from 'gi://Gtk?version=4.0';
 
@@ -6,10 +7,8 @@ export function addAppearancePreferences(page: Adw.PreferencesPage, settings: Gi
     const base = new Adw.PreferencesGroup({ title: 'Appearance' });
     page.add(base);
     addSwitch(base, settings, 'acrylic-enabled', 'Enable translucent background');
-    addEntry(base, settings, 'background-color', 'Background color (hex)');
-    addSpin(base, settings, 'background-opacity', 'Background opacity', 0, 1, 0.05, true);
-    addEntry(base, settings, 'border-color', 'Border color (hex)');
-    addSpin(base, settings, 'border-opacity', 'Border opacity', 0, 1, 0.05, true);
+    addColorPicker(base, settings, 'background-color', 'background-opacity', 'Background color');
+    addColorPicker(base, settings, 'border-color', 'border-opacity', 'Border color');
     addSpin(base, settings, 'border-size', 'Border thickness', 0, 12, 1);
     addSpin(base, settings, 'edge-distance', 'Distance from screen edge', 0, 64, 1);
 
@@ -52,12 +51,10 @@ export function addAppearancePreferences(page: Adw.PreferencesPage, settings: Gi
         ['Simple', 'Multiple'], ['simple', 'multiple']);
     addCombo(indicators, settings, 'indicator-shape', 'Indicator shape',
         ['Round', 'Square', 'Line'], ['round', 'square', 'line']);
-    addEntry(indicators, settings, 'indicator-color', 'Indicator color (hex)');
-    addSpin(indicators, settings, 'indicator-opacity', 'Indicator opacity', 0, 1, 0.05, true);
+    addColorPicker(indicators, settings, 'indicator-color', 'indicator-opacity', 'Indicator color');
     addSpin(indicators, settings, 'indicator-size', 'Indicator size (px)', 1, 16, 1);
     addSpin(indicators, settings, 'indicator-border-size', 'Indicator border thickness (px)', 0, 8, 1);
-    addEntry(indicators, settings, 'indicator-border-color', 'Indicator border color (hex)');
-    addSpin(indicators, settings, 'indicator-border-opacity', 'Indicator border opacity', 0, 1, 0.05, true);
+    addColorPicker(indicators, settings, 'indicator-border-color', 'indicator-border-opacity', 'Indicator border color');
     addSpin(indicators, settings, 'indicator-bottom-offset', 'Distance from icon bottom (px)', -32, 32, 1);
     addSwitch(indicators, settings, 'indicator-show-open', 'Show when application is open');
     addSwitch(indicators, settings, 'indicator-show-focused', 'Show when application is focused');
@@ -67,6 +64,44 @@ export function addAppearancePreferences(page: Adw.PreferencesPage, settings: Gi
     page.add(themeGroup);
     addCombo(themeGroup, settings, 'theme', 'Dock theme',
         ['Dark', 'Light', 'System'], ['dark', 'light', 'system']);
+}
+
+function addColorPicker(
+    group: Adw.PreferencesGroup,
+    settings: Gio.Settings,
+    colorKey: string,
+    opacityKey: string,
+    title: string,
+): void {
+    const row = new Adw.ActionRow({ title });
+    const button = new Gtk.ColorButton({ use_alpha: true });
+    button.valign = Gtk.Align.CENTER;
+    button.tooltip_text = 'Choose color and opacity';
+    row.add_suffix(button);
+    group.add(row);
+
+    const sync = () => {
+        const rgba = new Gdk.RGBA();
+        const color = settings.get_string(colorKey);
+        if (!rgba.parse(color))
+            rgba.parse('#ffffff');
+        rgba.alpha = settings.get_double(opacityKey);
+        button.set_rgba(rgba);
+        row.subtitle = color.toUpperCase();
+    };
+
+    button.connect('color-set', () => {
+        const rgba = button.get_rgba();
+        const hex = [rgba.red, rgba.green, rgba.blue]
+            .map(channel => Math.round(channel * 255).toString(16).padStart(2, '0'))
+            .join('');
+        settings.set_string(colorKey, `#${hex}`);
+        settings.set_double(opacityKey, rgba.alpha);
+    });
+
+    settings.connect(`changed::${colorKey}`, sync);
+    settings.connect(`changed::${opacityKey}`, sync);
+    sync();
 }
 
 function addSpin(
@@ -89,17 +124,6 @@ function addSpin(
     });
     group.add(row);
     settings.bind(key, row, 'value', Gio.SettingsBindFlags.DEFAULT);
-}
-
-function addEntry(group: Adw.PreferencesGroup, settings: Gio.Settings, key: string, title: string): void {
-    const row = new Adw.EntryRow({ title });
-    row.text = settings.get_string(key);
-    row.connect('changed', () => settings.set_string(key, row.text));
-    settings.connect(`changed::${key}`, () => {
-        if (row.text !== settings.get_string(key))
-            row.text = settings.get_string(key);
-    });
-    group.add(row);
 }
 
 function addSwitch(group: Adw.PreferencesGroup, settings: Gio.Settings, key: string, title: string): void {
