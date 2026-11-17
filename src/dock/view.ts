@@ -250,10 +250,9 @@ export class DockView {
             // Recompute the dock's natural size whenever its content tree
             // changes or Clutter reallocates it. The idle callback coalesces
             // bursts of relayout notifications into one geometry update.
-            this.contentGeometrySignals.push(
-                this.content.connect('actor-added', () => this.queueLayoutUpdate()),
-                this.content.connect('actor-removed', () => this.queueLayoutUpdate()),
-            );
+            // Content changes made by refresh() already trigger a layout pass.
+            // Keep only the allocation notification here: actor-added/removed
+            // are not part of St.BoxLayout's typed signal signatures.
             this.contentGeometrySignals.push(
                 this.content.connect('notify::allocation', () => this.queueLayoutUpdate()),
             );
