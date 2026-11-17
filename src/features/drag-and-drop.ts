@@ -6,7 +6,7 @@ import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import type { DockAppButton } from './app-item.js';
 
-type DragSource = { app?: Shell.App };
+export type DockDragSource = { app?: Shell.App };
 
 /** Handles favorite-app drag sources and dock drop targets. */
 export class DockDragDrop {
@@ -41,7 +41,7 @@ export class DockDragDrop {
         });
     }
 
-    handleDragOver(source: DragSource, _dragActor: Clutter.Actor, x: number, y: number, _time: number): number {
+    handleDragOver(source: DockDragSource, _dragActor: Clutter.Actor, x: number, y: number, _time: number): number {
         if (!source?.app || !this.favorites.isFavorite(source.app.get_id())) {
             this.clearDropTarget();
             return DND.DragMotionResult.NO_DROP;
@@ -75,7 +75,7 @@ export class DockDragDrop {
         return DND.DragMotionResult.MOVE_DROP;
     }
 
-    acceptDrop(source: DragSource, _dragActor: Clutter.Actor, x: number, y: number, _time: number): boolean {
+    acceptDrop(source: DockDragSource, _dragActor: Clutter.Actor, x: number, y: number, _time: number): boolean {
         this.clearDropTarget();
         if (!source?.app)
             return false;
