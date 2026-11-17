@@ -93,7 +93,7 @@ export class WindowPreviews {
             y_expand: false,
         });
         previews.set_style('spacing: 8px; padding: 8px; border-radius: 14px; background-color: rgba(24,26,33,0.96); border: 1px solid rgba(255,255,255,0.18);');
-        if (GLib.getenv('G_OS_DOCK_DEV_MODE') === '1')
+        if (this.settings.get_boolean('dev-mode'))
             previews.add_style_class_name('g-os-dock-dev');
         let firstPreviewButton: St.Button | null = null;
         for (const [index, window] of windows.entries()) {
