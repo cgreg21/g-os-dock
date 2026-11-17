@@ -1,6 +1,5 @@
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
-import GLib from 'gi://GLib';
 import Shell from 'gi://Shell';
 import Meta from 'gi://Meta';
 import Gio from 'gi://Gio';
@@ -8,9 +7,9 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import { AppContextMenu } from './appContextMenu.js';
 import { DockDragDrop } from './features/drag-and-drop.js';
+import { DockVisibility } from './features/visibility.js';
 import { WindowPreviews } from './windowPreviews.js';
 
-const HIDE_DELAY_MS = 650;
 const EDGE_THICKNESS = 3;
 const MAGNIFICATION_RADIUS = 2;
 const MAGNIFICATION_FACTOR = 1.28;
@@ -34,13 +33,12 @@ export class DockView {
     private restackedSignal = 0;
     private windowCreatedSignal = 0;
     private windowSignals: Array<{ window: any; ids: number[] }> = [];
-    private smartHideSource = 0;
-    private hideSource = 0;
     private destroyed = false;
     private contextMenu: AppContextMenu;
     private itemActors: any[] = [];
     private previews: WindowPreviews;
     private dragDrop: DockDragDrop;
+    private visibility: DockVisibility;
 
     constructor(index: number, monitor: any, settings: any) {
         this.monitor = monitor;
@@ -76,19 +74,26 @@ export class DockView {
             can_focus: false,
             track_hover: true,
         });
+        this.visibility = new DockVisibility(
+            this.actor,
+            this.edgeSensor,
+            this.settings,
+            this.monitorIndex,
+            () => this.destroyed,
+        );
 
         Main.layoutManager.addChrome(this.actor, { affectsStruts: false, trackFullscreen: false });
         Main.layoutManager.addChrome(this.edgeSensor, { affectsStruts: false, trackFullscreen: false });
         this.hoverSignal = this.actor.connect('notify::hover', () => this.onPointerChanged());
         this.sensorHoverSignal = this.edgeSensor.connect('notify::hover', () => {
             if (this.edgeSensor.hover)
-                this.show();
+                this.visibility.show();
         });
         this.settingsSignal = this.settings.connect('changed', () => this.applySettings());
         this.appStateSignal = this.appSystem.connect('app-state-changed', () => this.refresh());
         this.favoritesSignal = this.favorites.connect('changed', () => this.refresh());
-        this.focusSignal = global.display.connect('notify::focus-window', () => { this.updateIndicators(); this.queueSmartHideCheck(); });
-        this.restackedSignal = global.display.connect('restacked', () => this.queueSmartHideCheck());
+        this.focusSignal = global.display.connect('notify::focus-window', () => { this.updateIndicators(); this.visibility.queueSmartHideCheck(); });
+        this.restackedSignal = global.display.connect('restacked', () => this.visibility.queueSmartHideCheck());
         this.windowCreatedSignal = global.display.connect('window-created', (_display: any, window: any) => this.trackWindow(window));
         this.trackExistingWindows();
         this.refresh();
@@ -138,7 +143,7 @@ export class DockView {
         this.position();
         this.applyMagnification(-1, false);
         this.updateIndicators();
-        this.queueSmartHideCheck();
+        this.visibility.queueSmartHideCheck();
     }
 
     private focusItem(index: number): void {
@@ -335,50 +340,6 @@ export class DockView {
         }
     }
 
-    private queueSmartHideCheck(): void {
-        if (this.destroyed || !this.settings.get_boolean('smart-hide'))
-            return;
-        if (this.smartHideSource)
-            GLib.source_remove(this.smartHideSource);
-        this.smartHideSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 80, () => {
-            this.smartHideSource = 0;
-            this.checkWindowOverlap();
-            return GLib.SOURCE_REMOVE;
-        });
-    }
-
-    private checkWindowOverlap(): void {
-        if (this.destroyed || !this.settings.get_boolean('smart-hide'))
-            return;
-        const [dockX, dockY] = this.actor.get_transformed_position();
-        const dockRect = {
-            x: dockX, y: dockY,
-            width: this.actor.width, height: this.actor.height,
-        };
-        const windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
-        const overlaps = windows.some((window: any) => {
-            if (!window || window.minimized || window.get_monitor() !== this.monitorIndex)
-                return false;
-            const type = window.get_window_type();
-            if (type !== Meta.WindowType.NORMAL && type !== Meta.WindowType.DIALOG && type !== Meta.WindowType.MODAL_DIALOG)
-                return false;
-            const rect = window.get_frame_rect();
-            return rect.x < dockRect.x + dockRect.width &&
-                rect.x + rect.width > dockRect.x &&
-                rect.y < dockRect.y + dockRect.height &&
-                rect.y + rect.height > dockRect.y;
-        });
-        if (overlaps) {
-            this.cancelHide();
-            this.hide();
-        } else if (!this.actor.hover && !this.edgeSensor.hover) {
-            if (this.settings.get_boolean('auto-hide'))
-                this.scheduleHide();
-            else
-                this.show();
-        }
-    }
-
     private activateApp(app: any): void {
         const windows = app.get_windows();
         if (windows.length > 0) {
@@ -424,25 +385,16 @@ export class DockView {
             return;
         this.refresh();
         this.position();
+        this.visibility.applySettings();
+
         const autoHide = this.settings.get_boolean('auto-hide');
         const smartHide = this.settings.get_boolean('smart-hide');
-        if (!autoHide && !smartHide) {
-            this.cancelHide();
-            this.actor.show();
-            this.actor.opacity = 255;
-        } else if (autoHide) {
-            this.scheduleHide();
-        }
-
-        // Keep a reveal sensor available when either hiding mode is enabled.
         if (autoHide || smartHide) {
             this.edgeSensor.show();
             this.positionSensor();
         } else {
             this.edgeSensor.hide();
         }
-        if (smartHide)
-            this.queueSmartHideCheck();
     }
 
     private position(): void {
@@ -490,52 +442,14 @@ export class DockView {
     }
 
     private onPointerChanged(): void {
-        if (this.actor.hover) {
-            this.cancelHide();
-            this.show();
-        } else if (this.settings.get_boolean('auto-hide')) {
-            this.scheduleHide();
-        }
-    }
-
-    private scheduleHide(): void {
-        this.cancelHide();
-        if (!this.settings.get_boolean('auto-hide') || this.actor.hover || this.edgeSensor.hover)
-            return;
-        this.hideSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, HIDE_DELAY_MS, () => {
-            this.hideSource = 0;
-            if (!this.actor.hover && !this.edgeSensor.hover)
-                this.hide();
-            return GLib.SOURCE_REMOVE;
-        });
-    }
-
-    private cancelHide(): void {
-        if (this.hideSource) {
-            GLib.source_remove(this.hideSource);
-            this.hideSource = 0;
-        }
-    }
-
-    private show(): void {
-        this.cancelHide();
-        this.actor.show();
-        this.actor.ease({ opacity: 255, duration: 160, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
-        this.actor.reactive = true;
-    }
-
-    private hide(): void {
-        if (!this.settings.get_boolean('auto-hide') && !this.settings.get_boolean('smart-hide'))
-            return;
-        this.actor.ease({ opacity: 0, duration: 160, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => { if (!this.destroyed) this.actor.reactive = false; } });
+        this.visibility.onPointerChanged();
     }
 
     destroy(): void {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        this.cancelHide();
+        this.visibility.destroy();
         this.previews.destroy();
         if (this.hoverSignal) this.actor.disconnect(this.hoverSignal);
         if (this.sensorHoverSignal) this.edgeSensor.disconnect(this.sensorHoverSignal);
@@ -546,8 +460,6 @@ export class DockView {
         if (this.focusSignal) global.display.disconnect(this.focusSignal);
         if (this.restackedSignal) global.display.disconnect(this.restackedSignal);
         if (this.windowCreatedSignal) global.display.disconnect(this.windowCreatedSignal);
-        if (this.smartHideSource) GLib.source_remove(this.smartHideSource);
-        this.smartHideSource = 0;
         for (const entry of [...this.windowSignals]) this.untrackWindow(entry.window);
         this.contextMenu.destroy();
         this.dragDrop.destroy();
