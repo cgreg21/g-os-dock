@@ -1,3 +1,4 @@
+import St from 'gi://St?version=51';
 import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import type { DockAppButton } from './app-item.js';
@@ -36,16 +37,23 @@ export class DockIndicators {
             );
 
             if (item._gOsDockIndicator) {
-                const count = multiple ? Math.max(1, windows.length) : 1;
-                const length = shape === 'line' ? Math.min(28, 10 + (count - 1) * 5)
-                    : multiple ? Math.min(24, 5 + (count - 1) * 4) : 5;
+                item._gOsDockIndicator.visible = shouldShow;
+                item._gOsDockIndicator.set_style('spacing: 2px;');
+                for (const child of item._gOsDockIndicator.get_children())
+                    child.destroy();
+                const markerCount = multiple ? Math.max(1, windows.length) : 1;
+                const length = shape === 'line' ? 10 : 5;
                 const thickness = shape === 'line' ? 3 : 5;
                 const radius = shape === 'round' ? '999px' : '0px';
-                item._gOsDockIndicator.visible = shouldShow;
-                item._gOsDockIndicator.set_style(
-                    `width: ${length}px; height: ${thickness}px; ` +
-                    `border-radius: ${radius}; background-color: rgba(${color}, ${opacity});`,
-                );
+                for (let index = 0; index < markerCount; index++) {
+                    const marker = new St.Widget();
+                    marker.set_size(length, thickness);
+                    marker.set_style(
+                        `width: ${length}px; height: ${thickness}px; ` +
+                        `border-radius: ${radius}; background-color: rgba(${color}, ${opacity});`,
+                    );
+                    item._gOsDockIndicator.add_child(marker);
+                }
                 item._gOsDockIndicator.remove_style_class_name('active');
                 if (active)
                     item._gOsDockIndicator.add_style_class_name('active');
