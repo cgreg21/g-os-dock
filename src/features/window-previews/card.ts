@@ -46,11 +46,12 @@ export function createWindowPreviewCard(
         style_class: 'g-os-dock-preview-thumbnail',
         width: 176,
         height: 104,
-        layout_manager: new Clutter.BinLayout(),
+        layout_manager: new Clutter.FixedLayout(),
     });
     if (compositorActor && !window.minimized) {
         const clone = new Clutter.Clone({ source: compositorActor });
         clone.set_size(176, 104);
+        clone.set_position(0, 0);
         thumbnail.add_child(clone);
     } else {
         thumbnail.add_child(new St.Bin({
@@ -71,9 +72,15 @@ export function createWindowPreviewCard(
         can_focus: true,
         reactive: true,
         accessible_name: 'Close window',
-        x_align: closeOnLeft ? Clutter.ActorAlign.START : Clutter.ActorAlign.END,
-        y_align: Clutter.ActorAlign.START,
     });
+    // FixedLayout makes the close control an explicit overlay, independent
+    // of BinLayout's child alignment and the thumbnail clone's allocation.
+    const closeButtonSize = 28;
+    closeButton.set_size(closeButtonSize, closeButtonSize);
+    closeButton.set_position(
+        closeOnLeft ? 0 : 176 - closeButtonSize,
+        0,
+    );
     closeButton.connect('clicked', () => {
         window.delete(global.get_current_time());
         onClose();
