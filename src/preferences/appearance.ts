@@ -34,7 +34,11 @@ export function addAppearancePreferences(page: Adw.PreferencesPage, settings: Gi
     });
     const themes = ['dark', 'light', 'system'];
     theme.selected = Math.max(0, themes.indexOf(settings.get_string('theme')));
-    theme.connect('notify::selected', () => settings.set_string('theme', themes[theme.selected]));
+    theme.connect('notify::selected', () => {
+        const selectedTheme = themes[theme.selected];
+        if (selectedTheme)
+            settings.set_string('theme', selectedTheme);
+    });
     settings.connect('changed::theme', () => {
         const selected = themes.indexOf(settings.get_string('theme'));
         if (selected >= 0)
