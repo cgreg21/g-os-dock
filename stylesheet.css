@@ -117,3 +117,9 @@
 .g-os-dock-edge-scroll-zone {
   background-color: transparent;
 }
+
+/* Development-only geometry aid: outline every dock actor and its children. */
+.g-os-dock-dev,
+.g-os-dock-dev * {
+  box-shadow: 0 0 0 1px red;
+}
