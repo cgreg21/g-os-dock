@@ -78,6 +78,8 @@ export class DockSystemItem {
         menu.addMenuItem(item);
     }
 
+    getActor(): St.Button { return this.button; }
+
     setIconSize(size: number): void { this.iconSize = size; this.updateIcon(); }
 
     destroy(): void {
