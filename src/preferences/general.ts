@@ -27,8 +27,16 @@ export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.S
 
     addSwitch(group, settings, 'show-system-icon', 'Show applications and system icon');
     addIconThemeSelector(group, settings);
-    addCombo(group, settings, 'system-icon-position', 'Applications icon position',
-        ['At the beginning', 'At the end'], ['start', 'end']);
+    const iconPosition = new Adw.SpinRow({
+        title: 'Applications icon position',
+        subtitle: 'Index in the dock; drag the icon to reposition it',
+        adjustment: new Gtk.Adjustment({
+            lower: 0, upper: 128, step_increment: 1, page_increment: 4,
+            value: settings.get_int('system-icon-position'),
+        }),
+    });
+    group.add(iconPosition);
+    settings.bind('system-icon-position', iconPosition, 'value', Gio.SettingsBindFlags.DEFAULT);
     addSwitch(group, settings, 'dev-mode', 'Enable development mode (red element borders)');
     addSwitch(group, settings, 'show-on-all-monitors', 'Show on all monitors');
     addSwitch(group, settings, 'auto-hide', 'Automatically hide the dock');
