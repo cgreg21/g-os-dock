@@ -20,6 +20,9 @@ export class DockIndicators {
         const shape = this.settings.get_string('indicator-shape');
         const color = this.validColor(this.settings.get_string('indicator-color'));
         const opacity = Math.max(0, Math.min(1, this.settings.get_double('indicator-opacity')));
+        // Positive values move the indicator upward inside the icon; negative
+        // values move it below the icon's bottom edge.
+        const bottomOffset = this.settings.get_int('indicator-bottom-offset');
 
         for (const item of items) {
             const app = item._gOsDockApp;
@@ -63,7 +66,7 @@ export class DockIndicators {
                     item._gOsDockIndicator.set_size(totalWidth, thickness);
                     item._gOsDockIndicator.set_position(
                         Math.max(0, (iconContainer.width - totalWidth) / 2),
-                        Math.max(0, iconContainer.height - thickness),
+                        iconContainer.height - thickness - bottomOffset,
                     );
                 }
                 item._gOsDockIndicator.remove_style_class_name('active');
