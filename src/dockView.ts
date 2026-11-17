@@ -101,27 +101,27 @@ export class DockView {
 
         const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
         const coordinate = vertical ? y : x;
-        const [dockX, dockY] = this.actor.get_transformed_position();
         const favorites = this.favorites.getFavorites();
         const targetItems = this.itemActors.filter(item =>
-            item._gOsDockApp && this.favorites.isFavorite(item._gOsDockApp.get_id()));
-        let targetIndex = favorites.length - 1;
+            item._gOsDockApp &&
+            item._gOsDockApp.get_id() !== appId &&
+            this.favorites.isFavorite(item._gOsDockApp.get_id()));
 
+        let targetIndex = 0;
         for (const item of targetItems) {
-            if (item === source.actor)
-                continue;
             const [itemX, itemY] = item.get_transformed_position();
-            const midpoint = vertical
-                ? itemY - dockY + item.height / 2
-                : itemX - dockX + item.width / 2;
-            if (coordinate < midpoint) {
-                targetIndex = favorites.findIndex((app: any) => app.get_id() === item._gOsDockApp.get_id());
-                break;
-            }
+            const [valid, localX, localY] = this.actor.transform_stage_point(
+                itemX + item.width / 2, itemY + item.height / 2);
+            if (!valid)
+                continue;
+            const midpoint = vertical ? localY : localX;
+            if (coordinate > midpoint)
+                targetIndex++;
         }
 
+        targetIndex = Math.max(0, Math.min(targetIndex, favorites.length - 1));
         const currentIndex = favorites.findIndex((app: any) => app.get_id() === appId);
-        if (currentIndex >= 0 && targetIndex >= 0 && currentIndex !== targetIndex)
+        if (currentIndex >= 0 && currentIndex !== targetIndex)
             this.favorites.moveFavoriteToPos(appId, targetIndex);
         return true;
     }
