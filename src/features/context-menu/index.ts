@@ -1,4 +1,4 @@
-import St from 'gi://St';
+import St from 'gi://St?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
