@@ -12,6 +12,7 @@ PACKAGES=(
     glib2
     gnome-shell
     gnome-session
+    mutter-devkit
     inotify-tools
     nodejs
     npm
