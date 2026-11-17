@@ -5,13 +5,19 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEV_HOME="${G_OS_DOCK_DEV_HOME:-$HOME/.local/share/g-os-dock-dev}"
 UUID="g-os-dock@cgreg21.github.io"
 
-for command in dbus-run-session gnome-shell gnome-extensions npm inotifywait; do
+for command in dbus-run-session gnome-shell gnome-extensions npm inotifywait gdbus timeout; do
     if ! command -v "$command" >/dev/null 2>&1; then
         echo "Missing required command: $command" >&2
         echo "See README.md, section 'Local development environment'." >&2
         exit 1
     fi
 done
+
+SHELL_VERSION="$(gnome-shell --version | grep -oE '[0-9]+' | head -n1 || true)"
+if [[ "$SHELL_VERSION" != "51" ]]; then
+    echo "G-OS Dock targets GNOME Shell 51; detected: $(gnome-shell --version)." >&2
+    exit 1
+fi
 
 if [[ -z "${WAYLAND_DISPLAY:-}" && -z "${DISPLAY:-}" ]]; then
     echo "No graphical display detected. Start this script from your desktop session." >&2
@@ -38,22 +44,23 @@ echo "Close the nested GNOME window or press Ctrl+C here to stop."
 dbus-run-session -- bash -Eeuo pipefail -c '
     ROOT="$1"
     SHELL_MODE="$2"
-    trap "kill ${SHELL_PID:-0} 2>/dev/null || true" EXIT INT TERM
+    SHELL_PID=""
+    cleanup() {
+        if [[ -n "$SHELL_PID" ]]; then
+            kill "$SHELL_PID" 2>/dev/null || true
+            wait "$SHELL_PID" 2>/dev/null || true
+        fi
+    }
+    trap cleanup EXIT INT TERM
 
     gnome-shell --nested "$SHELL_MODE" &
     SHELL_PID=$!
 
-    # Give GNOME Shell time to create its session bus services.
-    for attempt in {1..30}; do
-        if ! kill -0 "$SHELL_PID" 2>/dev/null; then
-            wait "$SHELL_PID"
-            exit $?
-        fi
-        if gnome-extensions list >/dev/null 2>&1; then
-            break
-        fi
-        sleep 1
-    done
+    # Wait until the nested Shell owns its D-Bus name before using gnome-extensions.
+    if ! timeout 45s gdbus wait --session org.gnome.Shell; then
+        echo "Nested GNOME Shell did not become ready within 45 seconds." >&2
+        exit 1
+    fi
 
     cd "$ROOT"
     npm run dev:watch
