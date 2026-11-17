@@ -33,6 +33,7 @@ export class DockView {
     private appSystem: Shell.AppSystem;
     private favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
     private hoverSignal = 0;
+    private scrollSignal = 0;
     private sensorHoverSignal = 0;
     private settingsSignal = 0;
     private appStateSignal = 0;
@@ -159,6 +160,41 @@ export class DockView {
                 'notify::hover',
                 () => this.onPointerChanged(),
             );
+            this.scrollSignal = this.actor.connect('scroll-event', (_actor: St.ScrollView, event: Clutter.Event) => {
+                const direction = event.get_scroll_direction();
+                const position = this.settings.get_string('dock-position');
+                const vertical = position === 'left' || position === 'right';
+                let delta = 0;
+
+                if (vertical) {
+                    if (direction === Clutter.ScrollDirection.UP)
+                        delta = -1;
+                    else if (direction === Clutter.ScrollDirection.DOWN)
+                        delta = 1;
+                } else {
+                    if (direction === Clutter.ScrollDirection.LEFT)
+                        delta = -1;
+                    else if (direction === Clutter.ScrollDirection.RIGHT)
+                        delta = 1;
+                    else if (direction === Clutter.ScrollDirection.UP)
+                        delta = -1;
+                    else if (direction === Clutter.ScrollDirection.DOWN)
+                        delta = 1;
+                }
+
+                if (delta === 0)
+                    return Clutter.EVENT_PROPAGATE;
+
+                const adjustment = vertical
+                    ? this.actor.get_vadjustment()
+                    : this.actor.get_hadjustment();
+                const step = Math.max(
+                    this.settings.get_int('icon-size'),
+                    this.settings.get_int('icon-size') + this.settings.get_int('dock-spacing'),
+                );
+                adjustment.set_value(adjustment.get_value() + delta * step);
+                return Clutter.EVENT_STOP;
+            });
             this.sensorHoverSignal = this.edgeSensor.connect('notify::hover', () => {
                 if (this.edgeSensor.hover)
                     this.visibility.show();
@@ -380,6 +416,7 @@ export class DockView {
         this.visibility.destroy();
         this.previews.destroy();
         if (this.hoverSignal) this.actor.disconnect(this.hoverSignal);
+        if (this.scrollSignal) this.actor.disconnect(this.scrollSignal);
         if (this.sensorHoverSignal) this.edgeSensor.disconnect(this.sensorHoverSignal);
         if (this.settingsSignal) this.settings.disconnect(this.settingsSignal);
         if (this.desktopThemeSignal) this.desktopSettings.disconnect(this.desktopThemeSignal);
