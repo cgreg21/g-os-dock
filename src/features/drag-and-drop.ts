@@ -53,8 +53,10 @@ export class DockDragDrop {
 
         const appId = app.get_id();
         const vertical = this.isVertical();
-        const [localX, localY] = this.toLocalPoint(x, y);
-        const coordinate = vertical ? localY : localX;
+        // GNOME Shell already passes target-local coordinates to DND delegates.
+        // Transforming them from stage space again collapses the coordinate
+        // toward the actor origin and makes every drop resolve to index zero.
+        const coordinate = vertical ? y : x;
         const candidates = this.getItems().filter(item =>
             item._gOsDockApp &&
             item._gOsDockApp.get_id() !== appId &&
@@ -92,8 +94,8 @@ export class DockDragDrop {
             return false;
 
         const vertical = this.isVertical();
-        const [localX, localY] = this.toLocalPoint(x, y);
-        const coordinate = vertical ? localY : localX;
+        // acceptDrop receives coordinates in this target actor's local space.
+        const coordinate = vertical ? y : x;
         const favorites = this.favorites.getFavorites();
         const targets = this.getItems().filter(item =>
             item._gOsDockApp &&
@@ -136,12 +138,6 @@ export class DockDragDrop {
         return ['left', 'right'].includes(this.settings.get_string('dock-position'));
     }
 
-
-    /** Convert DND's stage coordinates into the scroll view's local space. */
-    private toLocalPoint(stageX: number, stageY: number): [number, number] {
-        const [valid, localX, localY] = this.actor.transform_stage_point(stageX, stageY);
-        return valid ? [localX, localY] : [stageX, stageY];
-    }
 
     private getItemMidpoint(item: DockAppButton, vertical: boolean): number | null {
         const [x, y] = item.get_transformed_position();
