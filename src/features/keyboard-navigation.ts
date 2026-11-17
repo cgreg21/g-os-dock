@@ -9,7 +9,6 @@ interface DockKeyboardDependencies {
     showDock: () => void;
     showPreviews: (app: Shell.App, item: DockAppButton, focusFirst: boolean) => void;
     hidePreviews: () => void;
-    magnify: (index: number, enabled: boolean) => void;
     ensureVisible: (item: DockAppButton) => void;
 }
 
@@ -46,7 +45,6 @@ export class DockKeyboardNavigation {
             return this.focusItem(items.length - 1);
         if (key === Clutter.KEY_Escape) {
             this.dependencies.hidePreviews();
-            this.dependencies.magnify(-1, false);
             item.grab_key_focus();
             return Clutter.EVENT_STOP;
         }
@@ -67,7 +65,6 @@ export class DockKeyboardNavigation {
 
         this.dependencies.ensureVisible(target);
         target.grab_key_focus();
-        this.dependencies.magnify(normalized, true);
         return Clutter.EVENT_STOP;
     }
 

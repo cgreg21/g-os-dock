@@ -18,11 +18,8 @@ interface DockAppItemDependencies {
     dragDrop: DockDragDrop;
     previews: WindowPreviews;
     contextMenu: AppContextMenu;
-    getItems: () => DockAppButton[];
-    isDockHovered: () => boolean;
     activateApp: (app: Shell.App) => void;
     handleKeyPress: (item: DockAppButton, event: Clutter.Event) => boolean;
-    magnify: (index: number, enabled: boolean) => void;
 }
 
 /** Builds one interactive application button for the dock. */
@@ -70,12 +67,8 @@ export class DockAppItemFactory {
 
             item.connect('notify::hover', () => {
                 if (item.hover) {
-                    const index = this.dependencies.getItems().indexOf(item);
-                    this.dependencies.magnify(index, true);
                     this.dependencies.previews.scheduleShow(app, item);
                 } else {
-                    if (!this.dependencies.isDockHovered())
-                        this.dependencies.magnify(-1, false);
                     this.dependencies.previews.scheduleHide();
                 }
             });
