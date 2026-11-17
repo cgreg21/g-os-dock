@@ -13,6 +13,7 @@ G-OS Dock is a GNOME Shell extension written in TypeScript and compiled to JavaS
 - Application context menu for window selection, launch, minimize/close, pin/unpin, and favorite ordering.
 - Configurable icon size, spacing, theme, and hover magnification.
 - Optional hover window previews with live compositor thumbnails, titles, and click-to-focus (configurable in preferences).
+- Drag-and-drop reordering of pinned favorite applications, synchronized with GNOME favorites across monitors.
 - Preferences through GNOME Extensions.
 
 ## Requirements
