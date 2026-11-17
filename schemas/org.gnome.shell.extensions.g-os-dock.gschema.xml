@@ -9,6 +9,7 @@
     <key name="show-on-all-monitors" type="b"><default>true</default><summary>Show the dock on every monitor</summary></key>
     <key name="show-running-indicator" type="b"><default>true</default><summary>Show an indicator for running applications</summary></key>
     <key name="show-window-count" type="b"><default>true</default><summary>Show a badge when an application has multiple windows</summary></key>
+    <key name="show-window-previews" type="b"><default>true</default><summary>Show window previews when hovering over applications</summary></key>
     <key name="dock-spacing" type="i"><range min="0" max="24"/><default>6</default><summary>Space between dock icons</summary></key>
     <key name="theme" type="s"><default>'dark'</default><summary>Dock theme: dark, light or system</summary></key>
     <key name="smart-hide" type="b"><default>false</default><summary>Hide the dock when a normal window overlaps it</summary></key>
