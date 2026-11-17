@@ -24,6 +24,7 @@ export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.S
     });
     group.add(position);
 
+    addSwitch(group, settings, 'dev-mode', 'Enable development mode (red element borders)');
     addSwitch(group, settings, 'show-on-all-monitors', 'Show on all monitors');
     addSwitch(group, settings, 'auto-hide', 'Automatically hide the dock');
     addSwitch(group, settings, 'smart-hide', 'Hide when a window overlaps the dock');
