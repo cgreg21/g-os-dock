@@ -1,15 +1,22 @@
 import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
+import Shell from 'gi://Shell?version=51';
+
+export type DockAppButton = St.Button & {
+    _gOsDockApp: Shell.App;
+    _gOsDockIndicator: St.Widget;
+    _gOsDockBadge: St.Label;
+};
 
 interface DockAppItemDependencies {
     favorites: any;
     dragDrop: any;
     previews: any;
     contextMenu: any;
-    getItems: () => any[];
+    getItems: () => DockAppButton[];
     isDockHovered: () => boolean;
-    activateApp: (app: any) => void;
-    handleKeyPress: (item: any, event: any) => boolean;
+    activateApp: (app: Shell.App) => void;
+    handleKeyPress: (item: DockAppButton, event: Clutter.Event) => boolean;
     magnify: (index: number, enabled: boolean) => void;
 }
 
@@ -17,7 +24,7 @@ interface DockAppItemDependencies {
 export class DockAppItemFactory {
     constructor(private dependencies: DockAppItemDependencies) {}
 
-    create(app: any, size: number): any {
+    create(app: Shell.App, size: number): DockAppButton {
         // St.Button is a single-child container. Keep the icon and its
         // indicator/badge inside one content box instead of adding siblings
         // directly to the button (which throws and aborts extension startup).
@@ -30,7 +37,7 @@ export class DockAppItemFactory {
         icon.set_size(size, size);
         content.add_child(icon);
 
-        const item: any = new St.Button({
+        const item = new St.Button({
             style_class: 'g-os-dock-item',
             reactive: true,
             can_focus: true,
@@ -39,7 +46,7 @@ export class DockAppItemFactory {
             accessible_name: app.get_name(),
             x_expand: false,
             y_expand: false,
-        });
+        }) as DockAppButton;
         item._gOsDockApp = app;
 
         if (this.dependencies.favorites.isFavorite(app.get_id())) {
