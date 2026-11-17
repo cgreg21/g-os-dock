@@ -114,9 +114,6 @@
   font-size: 10px;
 }
 
-.g-os-dock-edge-scroll-zone {
-  background-color: transparent;
-}
 
 /* Development-only geometry aid: outline every dock actor and its children. */
 .g-os-dock-dev,

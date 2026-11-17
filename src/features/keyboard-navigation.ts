@@ -9,7 +9,6 @@ interface DockKeyboardDependencies {
     showDock: () => void;
     showPreviews: (app: Shell.App, item: DockAppButton, focusFirst: boolean) => void;
     hidePreviews: () => void;
-    ensureVisible: (item: DockAppButton) => void;
 }
 
 /** Handles keyboard navigation between dock apps and their window previews. */
@@ -63,7 +62,6 @@ export class DockKeyboardNavigation {
         if (!target)
             return Clutter.EVENT_PROPAGATE;
 
-        this.dependencies.ensureVisible(target);
         target.grab_key_focus();
         return Clutter.EVENT_STOP;
     }

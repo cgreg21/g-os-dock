@@ -21,13 +21,10 @@ export class DockAppearance {
         const foreground = dark ? '255,255,255' : '30,32,38';
 
         const surface = acrylic
-            ? `background-color: rgba(${background}, ${opacity}); border: 1px solid rgba(255,255,255,0.16); border-radius: 18px; padding: 8px;`
-            : `background-color: rgba(${background},0.97); border-radius: 18px; padding: 8px;`;
+            ? `background-color: rgba(${background}, ${opacity}); border: 1px solid rgba(255,255,255,0.16); border-radius: 18px;`
+            : `background-color: rgba(${background},0.97); border-radius: 18px;`;
 
-        // Spacing belongs to the BoxLayout child, not the ScrollView viewport.
-        // Keeping it on the viewport silently breaks icon spacing after wrapping
-        // the dock in St.ScrollView.
         this.content.set_style(`spacing: ${spacing}px; color: rgb(${foreground});`);
-        this.actor.set_style(`color: rgb(${foreground}); ${surface}`);
+        this.actor.set_style(surface);
     }
 }
