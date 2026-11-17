@@ -174,6 +174,8 @@ export class DockView {
         this.previews.hide();
         this.previews.cancelPending();
         this.dragDrop.clearDropTarget();
+        for (const item of this.itemActors)
+            this.dragDrop.release(item);
         for (const child of this.actor.get_children())
             child.destroy();
         this.itemActors = [];
