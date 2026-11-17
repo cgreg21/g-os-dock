@@ -39,6 +39,13 @@ install_extension() {
         return 1
     fi
 
+    # Always start development sessions with the visual debug outlines disabled.
+    if ! gsettings --schemadir "$EXTENSION_DIR/schemas" set org.gnome.shell.extensions.g-os-dock dev-mode false; then
+        echo "Could not disable the dock development mode." >&2
+        return 1
+    fi
+
+    echo "==> Development mode: disabled"
     echo "==> G-OS Dock deployed from: $EXTENSION_DIR"
     echo "==> G-OS Dock updated successfully."
 }
