@@ -1,6 +1,12 @@
-.g-os-dock {
-  spacing: 6px;
+.g-os-dock-background {
+  border-radius: 18px;
+}
+
+.g-os-dock-content {
+  background-color: transparent;
+  border: 0;
   padding: 8px;
+  spacing: 6px;
 }
 
 .g-os-dock-item {
