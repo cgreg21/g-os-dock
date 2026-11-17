@@ -45,16 +45,18 @@ export class DockDragDrop {
     }
 
     handleDragOver(source: DockDragSource, _dragActor: Clutter.Actor, x: number, y: number, _time: number): number {
-        if (!source?.app || !this.favorites.isFavorite(source.app.get_id())) {
+        const app = source?.app;
+        if (!app || !this.favorites.isFavorite(app.get_id())) {
             this.clearDropTarget();
             return DND.DragMotionResult.NO_DROP;
         }
 
+        const appId = app.get_id();
         const vertical = this.isVertical();
         const coordinate = vertical ? y : x;
         const candidates = this.getItems().filter(item =>
             item._gOsDockApp &&
-            item._gOsDockApp.get_id() !== source.app.get_id() &&
+            item._gOsDockApp.get_id() !== appId &&
             this.favorites.isFavorite(item._gOsDockApp.get_id()));
 
         let nearest: DockAppButton | null = null;
@@ -80,10 +82,11 @@ export class DockDragDrop {
 
     acceptDrop(source: DockDragSource, _dragActor: Clutter.Actor, x: number, y: number, _time: number): boolean {
         this.clearDropTarget();
-        if (!source?.app)
+        const app = source?.app;
+        if (!app)
             return false;
 
-        const appId = source.app.get_id();
+        const appId = app.get_id();
         if (!this.favorites.isFavorite(appId))
             return false;
 
@@ -103,7 +106,7 @@ export class DockDragDrop {
         }
 
         targetIndex = Math.max(0, Math.min(targetIndex, favorites.length - 1));
-        const currentIndex = favorites.findIndex(app => app.get_id() === appId);
+        const currentIndex = favorites.findIndex(favorite => favorite.get_id() === appId);
         if (currentIndex >= 0 && currentIndex !== targetIndex)
             this.favorites.moveFavoriteToPos(appId, targetIndex);
         return true;
