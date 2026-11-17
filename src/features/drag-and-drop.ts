@@ -1,4 +1,4 @@
-import Clutter from 'gi://Clutter';
+import Clutter from 'gi://Clutter?version=51';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 
 /** Handles favorite-app drag sources and dock drop targets. */
