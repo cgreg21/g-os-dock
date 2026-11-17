@@ -11,6 +11,7 @@ export type DockDragSource = { app?: Shell.App };
 /** Handles favorite-app drag sources and dock drop targets. */
 export class DockDragDrop {
     private dropTarget: DockAppButton | null = null;
+    private draggables = new Map<DockAppButton, DND.Draggable>();
 
     constructor(
         private actor: St.Widget,
@@ -27,6 +28,8 @@ export class DockDragDrop {
             getDragActorSource: () => item,
         };
         const draggable = DND.makeDraggable(item, { dragActorOpacity: 210 });
+        // Keep the GJS wrapper alive for as long as its dock actor is displayed.
+        this.draggables.set(item, draggable);
         draggable.connect('drag-begin', () => {
             onStart();
             item.add_style_class_name('dragging');
@@ -106,6 +109,12 @@ export class DockDragDrop {
         return true;
     }
 
+    release(item: DockAppButton): void {
+        this.draggables.delete(item);
+        if (this.dropTarget === item)
+            this.clearDropTarget();
+    }
+
     clearDropTarget(): void {
         if (!this.dropTarget)
             return;
@@ -115,6 +124,7 @@ export class DockDragDrop {
 
     destroy(): void {
         this.clearDropTarget();
+        this.draggables.clear();
     }
 
     private isVertical(): boolean {
