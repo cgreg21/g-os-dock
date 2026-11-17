@@ -18,6 +18,7 @@ import { DockAppItemFactory, type DockAppButton } from '../features/app-item.js'
 import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
 import { DockSystemItem } from '../features/system-item.js';
+import { DockTrashItem } from '../features/trash-item.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -60,6 +61,7 @@ export class DockView {
     private appItemFactory: DockAppItemFactory;
     private keyboard: DockKeyboardNavigation;
     private systemItem: DockSystemItem | null = null;
+    private trashItem: DockTrashItem | null = null;
     private favoritesSeparator: St.Widget | null = null;
 
     constructor(index: number, monitor: MonitorGeometry, settings: Gio.Settings) {
@@ -313,6 +315,8 @@ export class DockView {
         }));
         if (this.systemItem)
             items.push({ id: 'system:launcher', actor: this.systemItem.getActor() });
+        if (this.trashItem)
+            items.push({ id: 'system:trash', actor: this.trashItem.getActor() });
         const children = this.content.get_children();
         items.sort((a, b) =>
             children.indexOf(a.actor) - children.indexOf(b.actor),
@@ -425,7 +429,9 @@ export class DockView {
             const separatorSpace = showSeparator
                 ? this.settings.get_int('favorites-separator-size') + spacing
                 : 0;
-            const itemCount = applications.length + (this.settings.get_boolean('show-system-icon') ? 1 : 0);
+            const itemCount = applications.length +
+                (this.settings.get_boolean('show-system-icon') ? 1 : 0) +
+                (this.settings.get_boolean('show-trash-icon') ? 1 : 0);
             const fittedSize = itemCount > 0
                 ? Math.floor(
                     (available - separatorSpace - spacing * Math.max(0, itemCount - 1)) /
@@ -480,9 +486,10 @@ export class DockView {
             this.itemActors = pendingItems;
             this.itemSize = size;
             const systemItemChanged = this.syncSystemItem(size);
+            const trashItemChanged = this.syncTrashItem(size);
             this.applySavedItemOrder();
             this.syncFavoritesSeparator(size, vertical);
-            if (structureChanged || systemItemChanged)
+            if (structureChanged || systemItemChanged || trashItemChanged)
                 this.layout.position();
         } catch (error) {
             for (const item of pendingItems) {
@@ -575,6 +582,25 @@ export class DockView {
         return false;
     }
 
+
+    private syncTrashItem(size: number): boolean {
+        const enabled = this.settings.get_boolean('show-trash-icon');
+        if (!enabled) {
+            if (!this.trashItem)
+                return false;
+            this.trashItem.destroy();
+            this.trashItem = null;
+            return true;
+        }
+        if (!this.trashItem) {
+            this.trashItem = new DockTrashItem(
+                this.content, this.settings, size, this.dragDrop,
+            );
+            return true;
+        }
+        this.trashItem.setIconSize(size);
+        return false;
+    }
 
     /** Update per-side icon padding on retained actors when preferences change. */
     private updateItemPadding(item: DockAppButton, size: number): void {
@@ -731,6 +757,8 @@ export class DockView {
         }
         this.systemItem?.destroy();
         this.systemItem = null;
+        this.trashItem?.destroy();
+        this.trashItem = null;
         this.dragDrop.destroy();
         Main.layoutManager.removeChrome(this.actor);
         Main.layoutManager.removeChrome(this.background);
