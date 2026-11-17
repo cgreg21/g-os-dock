@@ -16,7 +16,7 @@ export GSETTINGS_BACKEND=dconf
 SHELL_MAJOR="$(gnome-shell --version | awk '{print $3}' | cut -d. -f1)"
 if ((SHELL_MAJOR >= 49)); then
     # GNOME 49 removed --nested; use the Mutter Development Kit instead.
-    SHELL_ARGS=(--wayland --devkit)
+    SHELL_ARGS=(--devkit --wayland)
     SHELL_MODE="Wayland devkit"
 else
     if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
@@ -48,9 +48,21 @@ dbus-run-session -- bash -Eeuo pipefail -c '
     gnome-shell "$@" &
     SHELL_PID=$!
 
-    # Wait until the nested Shell owns its D-Bus name before using gnome-extensions.
-    if ! timeout 45s gdbus wait --session org.gnome.Shell; then
-        echo "Nested GNOME Shell did not become ready within 45 seconds." >&2
+    # Wait for the Shell D-Bus name while detecting an early process exit.
+    timeout 45s gdbus wait --session org.gnome.Shell &
+    WAIT_PID=$!
+    while kill -0 "$WAIT_PID" 2>/dev/null; do
+        if ! kill -0 "$SHELL_PID" 2>/dev/null; then
+            wait "$SHELL_PID" || true
+            wait "$WAIT_PID" 2>/dev/null || true
+            echo "GNOME Shell exited before its D-Bus service became ready." >&2
+            echo "Review the Mutter/GNOME Shell messages above." >&2
+            exit 1
+        fi
+        sleep 0.25
+    done
+    if ! wait "$WAIT_PID"; then
+        echo "GNOME Shell did not expose org.gnome.Shell within 45 seconds." >&2
         exit 1
     fi
 
