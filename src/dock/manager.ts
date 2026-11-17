@@ -9,6 +9,7 @@ export class DockManager {
     private monitorSignal = 0;
     private settingsSignal = 0;
     private enabled = false;
+    private overviewDashWasVisible: boolean | null = null;
 
     constructor(settings: Gio.Settings) {
         this.settings = settings;
@@ -20,6 +21,9 @@ export class DockManager {
 
         this.enabled = true;
         try {
+            const dash = Main.overview.dash;
+            this.overviewDashWasVisible = dash.visible;
+            dash.hide();
             this.rebuild();
             // GNOME Shell emits this JS-level signal; it is not exposed in the generated GIR type.
             this.monitorSignal = (Main.layoutManager as unknown as {
@@ -64,6 +68,10 @@ export class DockManager {
             return;
 
         this.enabled = false;
+        if (this.overviewDashWasVisible) {
+            Main.overview.dash.show();
+        }
+        this.overviewDashWasVisible = null;
         if (this.monitorSignal)
             Main.layoutManager.disconnect(this.monitorSignal);
         if (this.settingsSignal)
