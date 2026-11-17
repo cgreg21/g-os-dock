@@ -6,7 +6,7 @@ import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import type { DockAppButton } from './app-item.js';
 
-export type DockDragSource = { app?: Shell.App };
+export type DockDragSource = { app?: Shell.App; systemItem?: boolean };
 
 /** Handles favorite-app drag sources and dock drop targets. */
 export class DockDragDrop {
@@ -14,6 +14,7 @@ export class DockDragDrop {
     private draggedItem: DockAppButton | null = null;
     private previewSlot: St.Widget | null = null;
     private previewIndex: number | null = null;
+    private systemDropIndex: number | null = null;
     private draggables = new Map<DockAppButton, DND.Draggable>();
 
     constructor(
@@ -22,6 +23,7 @@ export class DockDragDrop {
         private settings: Gio.Settings,
         private favorites: ReturnType<typeof AppFavorites.getAppFavorites>,
         private getItems: () => DockAppButton[],
+        private setSystemPosition: (index: number) => void,
     ) {}
 
     makeFavoriteDraggable(item: DockAppButton, app: Shell.App, onStart: () => void): void {
@@ -52,6 +54,18 @@ export class DockDragDrop {
     }
 
     handleDragOver(source: DockDragSource, _dragActor: Clutter.Actor, x: number, y: number, _time: number): number {
+        if (source?.systemItem) {
+            const vertical = this.isVertical();
+            const coordinate = vertical ? y : x;
+            let index = 0;
+            for (const item of this.getItems()) {
+                const midpoint = this.getItemMidpoint(item, vertical);
+                if (midpoint !== null && coordinate > midpoint)
+                    index++;
+            }
+            this.systemDropIndex = index;
+            return DND.DragMotionResult.MOVE_DROP;
+        }
         const app = source?.app;
         if (!app || !this.favorites.isFavorite(app.get_id())) {
             this.clearDropTarget();
@@ -103,6 +117,19 @@ export class DockDragDrop {
     }
 
     acceptDrop(source: DockDragSource, _dragActor: Clutter.Actor, x: number, y: number, _time: number): boolean {
+        if (source?.systemItem) {
+            const vertical = this.isVertical();
+            const coordinate = vertical ? y : x;
+            let index = 0;
+            for (const item of this.getItems()) {
+                const midpoint = this.getItemMidpoint(item, vertical);
+                if (midpoint !== null && coordinate > midpoint)
+                    index++;
+            }
+            this.setSystemPosition(this.systemDropIndex ?? index);
+            this.systemDropIndex = null;
+            return true;
+        }
         const app = source?.app;
         if (!app)
             return false;
@@ -193,6 +220,7 @@ export class DockDragDrop {
             this.previewSlot = null;
         }
         this.previewIndex = null;
+        this.systemDropIndex = null;
         if (this.draggedItem) {
             this.draggedItem.show();
             this.draggedItem = null;
