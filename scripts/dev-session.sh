@@ -45,27 +45,44 @@ dbus-run-session -- bash -Eeuo pipefail -c '
     }
     trap cleanup EXIT INT TERM
 
-    gnome-shell "$@" &
-    SHELL_PID=$!
+    cd "$ROOT"
+    while true; do
+        echo
+        echo "Starting the isolated GNOME Shell DevKit..."
+        gnome-shell "$@" &
+        SHELL_PID=$!
 
-    # Wait for the Shell D-Bus name while detecting an early process exit.
-    timeout 45s gdbus wait --session org.gnome.Shell &
-    WAIT_PID=$!
-    while kill -0 "$WAIT_PID" 2>/dev/null; do
-        if ! kill -0 "$SHELL_PID" 2>/dev/null; then
-            wait "$SHELL_PID" || true
-            wait "$WAIT_PID" 2>/dev/null || true
-            echo "GNOME Shell exited before its D-Bus service became ready." >&2
-            echo "Review the Mutter/GNOME Shell messages above." >&2
+        # Wait for the Shell D-Bus name while detecting an early process exit.
+        timeout 45s gdbus wait --session org.gnome.Shell &
+        WAIT_PID=$!
+        while kill -0 "$WAIT_PID" 2>/dev/null; do
+            if ! kill -0 "$SHELL_PID" 2>/dev/null; then
+                wait "$SHELL_PID" || true
+                wait "$WAIT_PID" 2>/dev/null || true
+                echo "GNOME Shell exited before its D-Bus service became ready." >&2
+                echo "Review the Mutter/GNOME Shell messages above." >&2
+                exit 1
+            fi
+            sleep 0.25
+        done
+        if ! wait "$WAIT_PID"; then
+            echo "GNOME Shell did not expose org.gnome.Shell within 45 seconds." >&2
             exit 1
         fi
-        sleep 0.25
-    done
-    if ! wait "$WAIT_PID"; then
-        echo "GNOME Shell did not expose org.gnome.Shell within 45 seconds." >&2
-        exit 1
-    fi
 
-    cd "$ROOT"
-    npm run dev:watch
+        # Exit 75 requests a clean Shell restart after a successful deployment.
+        WATCH_STATUS=0
+        npm run dev:watch || WATCH_STATUS=$?
+
+        kill "$SHELL_PID" 2>/dev/null || true
+        wait "$SHELL_PID" 2>/dev/null || true
+        SHELL_PID=""
+
+        if ((WATCH_STATUS == 75)); then
+            echo "G-OS Dock refreshed; restarting the nested Shell with the new code."
+            continue
+        fi
+
+        exit "$WATCH_STATUS"
+    done
 ' _ "$ROOT" "$SHELL_MODE" "${SHELL_ARGS[@]}"
