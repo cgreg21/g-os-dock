@@ -1,4 +1,5 @@
 import St from 'gi://St?version=51';
+import Clutter from 'gi://Clutter?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Gio from 'gi://Gio?version=2.0';
 
@@ -22,7 +23,9 @@ export class DockLayout {
 
         const position = this.settings.get_string('dock-position');
         const vertical = position === 'left' || position === 'right';
-        this.actor.vertical = vertical;
+        this.actor.orientation = vertical
+            ? Clutter.Orientation.VERTICAL
+            : Clutter.Orientation.HORIZONTAL;
 
         const [minWidth, naturalWidth] = this.actor.get_preferred_width(-1);
         const [minHeight, naturalHeight] = this.actor.get_preferred_height(-1);
