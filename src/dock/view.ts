@@ -83,7 +83,7 @@ export class DockView {
             vertical ? St.PolicyType.AUTOMATIC : St.PolicyType.NEVER,
         );
         this.actor.set_mouse_scrolling(true);
-        this.appearance = new DockAppearance(this.actor, this.settings, this.desktopSettings);
+        this.appearance = new DockAppearance(this.actor, this.content, this.settings, this.desktopSettings);
         this.contextMenu = new AppContextMenu(this.actor, this.favorites);
         this.dragDrop = new DockDragDrop(
             this.actor,
