@@ -73,7 +73,7 @@ export class DockLayout {
         let x = this.monitor.x + Math.round((this.monitor.width - width) / 2);
         let y = this.monitor.y + this.monitor.height - height - edgeDistance;
         if (position === 'top') {
-            y = usableTop + edgeDistance;
+            y = usableTop;
         } else if (position === 'left' || position === 'right') {
             x = position === 'left'
                 ? minX
