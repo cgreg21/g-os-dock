@@ -35,6 +35,7 @@ export class DockView {
     private favoritesSignal = 0;
     private focusSignal = 0;
     private restackedSignal = 0;
+    private workspaceSignal = 0;
     private windowCreatedSignal = 0;
 
     private destroyed = false;
@@ -133,6 +134,7 @@ export class DockView {
         this.favoritesSignal = this.favorites.connect('changed', () => this.refresh());
         this.focusSignal = global.display.connect('notify::focus-window', () => { this.updateIndicators(); this.visibility.queueSmartHideCheck(); });
         this.restackedSignal = global.display.connect('restacked', () => this.visibility.queueSmartHideCheck());
+        this.workspaceSignal = global.workspace_manager.connect('active-workspace-changed', () => this.visibility.queueSmartHideCheck());
         this.windowCreatedSignal = global.display.connect('window-created', (_display: any, window: any) => this.windowTracker.track(window));
         this.windowTracker.trackExisting();
         this.refresh();
@@ -254,6 +256,7 @@ export class DockView {
         if (this.favoritesSignal) this.favorites.disconnect(this.favoritesSignal);
         if (this.focusSignal) global.display.disconnect(this.focusSignal);
         if (this.restackedSignal) global.display.disconnect(this.restackedSignal);
+        if (this.workspaceSignal) global.workspace_manager.disconnect(this.workspaceSignal);
         if (this.windowCreatedSignal) global.display.disconnect(this.windowCreatedSignal);
         this.windowTracker.destroy();
         this.contextMenu.destroy();
