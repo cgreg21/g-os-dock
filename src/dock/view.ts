@@ -255,17 +255,39 @@ export class DockView {
     }
 
     private getApplications(): Shell.App[] {
+        // Keep the dock in two strict sections: favorites in their configured
+        // order, followed by running applications that are not favorites.
+        // Do not rely on AppSystem.get_running() ordering for this invariant.
         const favorites = this.favorites.getFavorites();
         const running = this.appSystem.get_running();
-        const result: Shell.App[] = [];
-        const seen = new Set<string>();
-        for (const app of [...favorites, ...running]) {
+        const favoriteIds = new Set<string>();
+        const runningById = new Map<string, Shell.App>();
+
+        for (const app of running) {
             const id = app.get_id();
-            if (id && !seen.has(id)) {
-                seen.add(id);
+            if (id)
+                runningById.set(id, app);
+        }
+
+        const result: Shell.App[] = [];
+        for (const app of favorites) {
+            const id = app.get_id();
+            if (!id || favoriteIds.has(id))
+                continue;
+            favoriteIds.add(id);
+            result.push(app);
+        }
+
+        // Running favorites are already represented in the first section.
+        // Only non-favorites are appended, in the order reported by GNOME.
+        for (const app of running) {
+            const id = app.get_id();
+            if (id && !favoriteIds.has(id) && runningById.has(id)) {
+                favoriteIds.add(id);
                 result.push(app);
             }
         }
+
         return result;
     }
 
