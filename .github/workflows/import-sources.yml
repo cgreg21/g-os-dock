@@ -19,6 +19,9 @@ jobs:
           test -f g-os-dock-source.zip
           mkdir -p /tmp/g-os-dock-source
           unzip -q g-os-dock-source.zip -d /tmp/g-os-dock-source
+          # Keep repository-managed workflows: the GitHub App token cannot
+          # push workflow-file changes without the separate workflows scope.
+          rm -rf /tmp/g-os-dock-source/.github
           cp -a /tmp/g-os-dock-source/. .
           rm g-os-dock-source.zip
       - name: Commit individual source files
