@@ -302,8 +302,8 @@ export class DockDragDrop {
         this.removingAppId = appId;
         item.ease({
             opacity: 0,
-            scale_x: 0.08,
-            scale_y: 0.08,
+            scaleX: 0.08,
+            scaleY: 0.08,
             duration: 240,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => {
