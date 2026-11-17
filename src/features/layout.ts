@@ -22,7 +22,7 @@ export class DockLayout {
 
         const position = this.settings.get_string('dock-position');
         const vertical = position === 'left' || position === 'right';
-        this.actor.set_vertical(vertical);
+        this.actor.vertical = vertical;
 
         const [minWidth, naturalWidth] = this.actor.get_preferred_width(-1);
         const [minHeight, naturalHeight] = this.actor.get_preferred_height(-1);
