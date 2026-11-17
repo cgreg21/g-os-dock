@@ -34,31 +34,31 @@ export class WindowPreviews {
     scheduleShow(app: any, item: any): void {
         if (!this.settings.get_boolean('show-window-previews'))
             return;
-        if (this.previewSource)
-            GLib.source_remove(this.previewSource);
-        if (this.previewHideSource) {
-            GLib.source_remove(this.previewHideSource);
-            this.previewHideSource = 0;
+        if (this.showSource)
+            GLib.source_remove(this.showSource);
+        if (this.hideSource) {
+            GLib.source_remove(this.hideSource);
+            this.hideSource = 0;
         }
-        this.previewSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 320, () => {
-            this.previewSource = 0;
+        this.showSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 320, () => {
+            this.showSource = 0;
             if (!this.isDestroyed() && item.hover)
-                this.showWindowPreviews(app, item);
+                this.show(app, item);
             return GLib.SOURCE_REMOVE;
         });
     }
 
     scheduleHide(): void {
-        if (this.previewSource) {
-            GLib.source_remove(this.previewSource);
-            this.previewSource = 0;
+        if (this.showSource) {
+            GLib.source_remove(this.showSource);
+            this.showSource = 0;
         }
-        if (this.previewHideSource)
-            GLib.source_remove(this.previewHideSource);
-        this.previewHideSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 260, () => {
-            this.previewHideSource = 0;
-            if (!this.isDestroyed() && !this.actor.hover && !this.previewActor?.hover)
-                this.hideWindowPreviews();
+        if (this.hideSource)
+            GLib.source_remove(this.hideSource);
+        this.hideSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 260, () => {
+            this.hideSource = 0;
+            if (!this.isDestroyed() && !this.dockActor.hover && !this.actor?.hover)
+                this.hide();
             return GLib.SOURCE_REMOVE;
         });
     }
@@ -66,7 +66,7 @@ export class WindowPreviews {
     show(app: any, item: any, focusFirst = false): void {
         if (!this.settings.get_boolean('show-window-previews'))
             return;
-        this.hideWindowPreviews();
+        this.hide();
         const windows = app.get_windows();
         if (windows.length === 0)
             return;
@@ -160,7 +160,7 @@ export class WindowPreviews {
             previewButton.connect('clicked', () => {
                 try { app.activate_window(window, global.get_current_time()); }
                 catch (_error) { window.activate(global.get_current_time()); }
-                this.hideWindowPreviews();
+                this.hide();
             });
             card.add_child(previewButton);
 
@@ -180,7 +180,7 @@ export class WindowPreviews {
             });
             minimize.connect('clicked', () => {
                 window.minimize();
-                this.hideWindowPreviews();
+                this.hide();
             });
             const close = new St.Button({
                 style_class: 'g-os-dock-preview-action close',
@@ -193,7 +193,7 @@ export class WindowPreviews {
             });
             close.connect('clicked', () => {
                 window.delete(global.get_current_time());
-                this.hideWindowPreviews();
+                this.hide();
             });
             actions.add_child(minimize);
 
@@ -213,7 +213,7 @@ export class WindowPreviews {
                     workspace.activate(timestamp);
                     try { app.activate_window(window, timestamp); }
                     catch (_error) { window.activate(timestamp); }
-                    this.hideWindowPreviews();
+                    this.hide();
                 });
                 actions.add_child(switchWorkspace);
             }
@@ -224,20 +224,20 @@ export class WindowPreviews {
         }
 
         Main.layoutManager.addChrome(previews, { affectsStruts: false, trackFullscreen: false });
-        this.previewActor = previews;
+        this.actor = previews;
         previews.connect('key-press-event', (_actor: any, event: any) => {
             if (event.get_key_symbol() !== Clutter.KEY_Escape)
                 return Clutter.EVENT_PROPAGATE;
-            this.hideWindowPreviews();
+            this.hide();
             item.grab_key_focus();
             return Clutter.EVENT_STOP;
         });
-        this.previewHoverSignal = previews.connect('notify::hover', () => {
+        this.hoverSignal = previews.connect('notify::hover', () => {
             if (!previews.hover)
                 this.scheduleHide();
-            else if (this.previewHideSource) {
-                GLib.source_remove(this.previewHideSource);
-                this.previewHideSource = 0;
+            else if (this.hideSource) {
+                GLib.source_remove(this.hideSource);
+                this.hideSource = 0;
             }
         });
         const [itemX, itemY] = item.get_transformed_position();
@@ -267,15 +267,15 @@ export class WindowPreviews {
             firstPreviewButton?.grab_key_focus();
     }
 
-    hide()): void {
-        if (this.previewActor) {
-            if (this.previewHoverSignal) {
-                try { this.previewActor.disconnect(this.previewHoverSignal); } catch (_error) { /* already destroyed */ }
+    hide(): void {
+        if (this.actor) {
+            if (this.hoverSignal) {
+                try { this.actor.disconnect(this.hoverSignal); } catch (_error) { /* already destroyed */ }
             }
-            Main.layoutManager.removeChrome(this.previewActor);
-            this.previewActor.destroy();
-            this.previewActor = null;
-            this.previewHoverSignal = 0;
+            Main.layoutManager.removeChrome(this.actor);
+            this.actor.destroy();
+            this.actor = null;
+            this.hoverSignal = 0;
         }
     }
 
