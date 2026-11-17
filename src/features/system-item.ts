@@ -13,6 +13,7 @@ export class DockSystemItem {
     private menu: PopupMenu.PopupMenu | null = null;
     private iconSignal = 0;
     private destroyed = false;
+    private draggable: DND.Draggable;
 
     constructor(private content: St.BoxLayout, private settings: Gio.Settings,
         private iconSize: number, private dockPosition: () => string,
@@ -35,16 +36,16 @@ export class DockSystemItem {
             getDragActor: () => new Clutter.Clone({ source: this.button }),
             getDragActorSource: () => this.button,
         };
-        const draggable = DND.makeDraggable(this.button, { dragActorOpacity: 210 });
-        draggable.connect('drag-begin', () => {
+        this.draggable = DND.makeDraggable(this.button, { dragActorOpacity: 210 });
+        this.draggable.connect('drag-begin', () => {
             this.button.add_style_class_name('dragging');
             this.dragPreview.begin(this.button);
         });
-        draggable.connect('drag-end', () => {
+        this.draggable.connect('drag-end', () => {
             this.button.remove_style_class_name('dragging');
             this.dragPreview.end();
         });
-        draggable.connect('drag-cancelled', () => {
+        this.draggable.connect('drag-cancelled', () => {
             this.button.remove_style_class_name('dragging');
             this.dragPreview.end();
         });
