@@ -15,6 +15,7 @@ G-OS Dock is a GNOME Shell extension written in TypeScript and compiled to JavaS
 - Keyboard navigation between dock applications (arrow keys, Home/End), visible focus state, and accessible application names.
 - Configurable icon size, spacing, theme, and hover magnification.
 - Optional hover window previews with live compositor thumbnails, titles, and click-to-focus (configurable in preferences).
+- Minimize or close individual windows directly from their preview cards.
 - Drag-and-drop reordering of pinned favorite applications, with live drop-target highlighting and synchronized ordering across monitors.
 - Preferences through GNOME Extensions.
 
