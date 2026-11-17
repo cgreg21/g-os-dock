@@ -36,7 +36,6 @@ export class DockAppItemFactory {
             can_focus: true,
             track_hover: true,
             child: content,
-            tooltip_text: app.get_name(),
             accessible_name: app.get_name(),
             x_expand: false,
             y_expand: false,
