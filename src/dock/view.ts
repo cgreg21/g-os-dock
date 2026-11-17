@@ -321,17 +321,17 @@ export class DockView {
                 }
             }
 
-            for (const app of applications) {
+            for (const [index, app] of applications.entries()) {
                 const id = app.get_id();
                 let item = id ? previousById.get(id) : undefined;
                 if (item) {
                     previousById.delete(id!);
                 } else {
                     item = this.createItem(app, size);
-                    pendingItems.push(item);
                 }
-                this.content.add_child(item);
-                this.content.set_child_at_index(item, applications.indexOf(app));
+                if (item.get_parent() !== this.content)
+                    this.content.add_child(item);
+                this.content.set_child_at_index(item, index);
                 pendingItems.push(item);
             }
 
