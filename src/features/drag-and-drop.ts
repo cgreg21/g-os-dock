@@ -27,6 +27,7 @@ export class DockDragDrop {
         private settings: Gio.Settings,
         private favorites: ReturnType<typeof AppFavorites.getAppFavorites>,
         private getItems: () => DockAppButton[],
+        private getSystemActor: () => St.Widget | null,
         private setSystemPosition: (index: number) => void,
         private monitor: { x: number; y: number; width: number; height: number },
     ) {
@@ -188,6 +189,16 @@ export class DockDragDrop {
             targetIndex,
             sourceIsFavorite ? Math.max(0, favorites.length - 1) : favorites.length,
         ));
+        const systemActor = this.getSystemActor();
+        const systemChildIndex = systemActor
+            ? this.content.get_children().indexOf(systemActor)
+            : -1;
+        const currentSystemPosition = this.settings.get_int('system-icon-position');
+        const favoriteCountBeforeSystem = systemChildIndex >= 0
+            ? this.getItems().filter(item =>
+                this.favorites.isFavorite(item._gOsDockApp.get_id()) &&
+                this.content.get_children().indexOf(item) < systemChildIndex).length
+            : -1;
         this.clearDropTarget();
         this.endPreview();
 
@@ -196,12 +207,23 @@ export class DockDragDrop {
             // it there, at the exact position shown by the preview slot.
             this.favorites.addFavorite(appId);
             this.favorites.moveFavoriteToPos(appId, targetIndex);
+            if (favoriteCountBeforeSystem >= 0 && targetIndex < favoriteCountBeforeSystem)
+                this.setSystemPosition(currentSystemPosition + 1);
             return true;
         }
 
         const currentIndex = favorites.findIndex(favorite => favorite.get_id() === appId);
-        if (currentIndex >= 0 && currentIndex !== targetIndex)
+        if (currentIndex >= 0 && currentIndex !== targetIndex) {
             this.favorites.moveFavoriteToPos(appId, targetIndex);
+            if (favoriteCountBeforeSystem >= 0) {
+                const remainingBeforeSystem = favoriteCountBeforeSystem -
+                    (currentIndex < favoriteCountBeforeSystem ? 1 : 0);
+                const nextSystemPosition = remainingBeforeSystem +
+                    (targetIndex < remainingBeforeSystem ? 1 : 0);
+                if (nextSystemPosition !== currentSystemPosition)
+                    this.setSystemPosition(nextSystemPosition);
+            }
+        }
         return true;
     }
 
@@ -324,7 +346,19 @@ export class DockDragDrop {
         // still participates in child indices. Compensate when inserting the
         // visible placeholder after the source's original position.
         const sourceChildIndex = this.content.get_children().indexOf(this.draggedItem);
-        const childIndex = target + (sourceChildIndex >= 0 && sourceChildIndex <= target ? 1 : 0);
+        const systemActor = this.getSystemActor();
+        const systemChildIndex = systemActor
+            ? this.content.get_children().indexOf(systemActor)
+            : -1;
+        const favoriteItemsBeforeSystem = systemChildIndex >= 0
+            ? this.getItems().filter(item =>
+                item !== this.draggedItem &&
+                this.favorites.isFavorite(item._gOsDockApp.get_id()) &&
+                this.content.get_children().indexOf(item) < systemChildIndex).length
+            : Number.POSITIVE_INFINITY;
+        const systemBeforeTarget = systemChildIndex >= 0 && favoriteItemsBeforeSystem <= target;
+        const childIndex = target + (systemBeforeTarget ? 1 : 0) +
+            (sourceChildIndex >= 0 && sourceChildIndex <= target ? 1 : 0);
         this.content.set_child_at_index(this.previewSlot, childIndex);
     }
 
