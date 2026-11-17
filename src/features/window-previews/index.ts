@@ -1,7 +1,11 @@
 import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
+import Shell from 'gi://Shell?version=51';
+import type { DockAppButton } from '../app-item.js';
 import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+
+type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 import { createWindowPreviewCard } from './card.js';
 
 /**
@@ -9,15 +13,15 @@ import { createWindowPreviewCard } from './card.js';
  * DockView remains responsible for app items and delegates preview UI here.
  */
 export class WindowPreviews {
-    private actor: any = null;
+    private actor: St.BoxLayout | null = null;
     private showSource = 0;
     private hideSource = 0;
     private hoverSignal = 0;
 
     constructor(
-        private settings: any,
-        private monitor: any,
-        private dockActor: any,
+        private settings: Gio.Settings,
+        private monitor: MonitorGeometry,
+        private dockActor: St.Widget,
         private isDestroyed: () => boolean,
     ) {}
 
@@ -32,7 +36,7 @@ export class WindowPreviews {
         }
     }
 
-    scheduleShow(app: any, item: any): void {
+    scheduleShow(app: Shell.App, item: DockAppButton): void {
         if (!this.settings.get_boolean('show-window-previews'))
             return;
         if (this.showSource)
@@ -64,7 +68,7 @@ export class WindowPreviews {
         });
     }
 
-    show(app: any, item: any, focusFirst = false): void {
+    show(app: Shell.App, item: DockAppButton, focusFirst = false): void {
         if (!this.settings.get_boolean('show-window-previews'))
             return;
         this.hide();
@@ -82,7 +86,7 @@ export class WindowPreviews {
             y_expand: false,
         });
         previews.set_style('spacing: 8px; padding: 8px; border-radius: 14px; background-color: rgba(24,26,33,0.96); border: 1px solid rgba(255,255,255,0.18);');
-        let firstPreviewButton: any = null;
+        let firstPreviewButton: St.Button | null = null;
         for (const [index, window] of windows.entries()) {
             const preview = createWindowPreviewCard(app, window, index, () => this.hide());
             if (!firstPreviewButton)
@@ -92,7 +96,7 @@ export class WindowPreviews {
 
         Main.layoutManager.addChrome(previews, { affectsStruts: false, trackFullscreen: false });
         this.actor = previews;
-        previews.connect('key-press-event', (_actor: any, event: any) => {
+        previews.connect('key-press-event', (_actor: St.Widget, event: Clutter.Event) => {
             if (event.get_key_symbol() !== Clutter.KEY_Escape)
                 return Clutter.EVENT_PROPAGATE;
             this.hide();
