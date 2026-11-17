@@ -19,8 +19,9 @@ import { WindowPreviews } from '../features/window-previews/index.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
-const MAGNIFICATION_RADIUS = 2;
-const MAGNIFICATION_FACTOR = 1.28;
+const MAGNIFICATION_RADIUS = 2.4;
+const MAGNIFICATION_FACTOR = 1.55;
+const MAGNIFICATION_DURATION = 190;
 
 export class DockView {
     private actor: St.ScrollView & { _delegate?: unknown };
@@ -517,35 +518,39 @@ export class DockView {
 
     private applyMagnification(index: number, enabled: boolean): void {
         const base = this.settings.get_int('icon-size');
+        const vertical = this.isVerticalDock();
         const lastIndex = this.itemActors.length - 1;
+
         this.itemActors.forEach((item, i) => {
             const distance = Math.abs(i - index);
-            const factor = enabled && distance <= MAGNIFICATION_RADIUS
-                ? 1 + (MAGNIFICATION_FACTOR - 1) * (1 - distance / (MAGNIFICATION_RADIUS + 1))
-                : 1;
-            const size = Math.round(base * factor);
-            const icon = item.get_child();
-            if (!icon)
-                return;
+            // A smooth bell-shaped curve avoids abrupt size steps between
+            // the focused icon and its neighbours.
+            const influence = enabled && index >= 0
+                ? Math.exp(-0.5 * Math.pow(distance / MAGNIFICATION_RADIUS, 2))
+                : 0;
+            const scale = 1 + (MAGNIFICATION_FACTOR - 1) * influence;
+            const push = index >= 0 && enabled
+                ? Math.sign(i - index) * (scale - 1) * base * 0.42
+                : 0;
 
-            icon.ease({
-                width: size,
-                height: size,
-                duration: 120,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            item.set_pivot_point(0.5, 0.5);
+            item.ease({
+                scale_x: scale,
+                scale_y: scale,
+                translation_x: vertical ? 0 : push,
+                translation_y: vertical ? push : 0,
+                duration: MAGNIFICATION_DURATION,
+                mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
                 ...(i === lastIndex ? {
                     onComplete: () => {
-                        if (!this.destroyed)
+                        if (!this.destroyed) {
                             this.layout.position();
+                            this.updateScrollControls();
+                        }
                     },
                 } : {}),
             });
         });
-
-        // Update immediately for the start of the animation, then once more
-        // after the final icon reaches its target size. This keeps the scroll
-        // viewport centered and correctly constrained after magnification.
-        this.layout.position();
     }
 
     private applySettings(): void {
