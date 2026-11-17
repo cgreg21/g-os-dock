@@ -4,6 +4,11 @@
     <key name="show-system-icon" type="b"><default>true</default><summary>Show the app grid and system actions icon</summary></key>
     <key name="system-icon-position" type="i"><range min="0" max="128"/><default>128</default><summary>Legacy launcher position (migrated to dock item order)</summary></key>
     <key name="dock-item-order" type="as"><default>[]</default><summary>Persistent order of all dock items by stable identifier</summary></key>
+    <key name="show-favorites-separator" type="b"><default>true</default><summary>Show a separator between favorite and non-favorite applications</summary></key>
+    <key name="favorites-separator-color" type="s"><default>'#ffffff'</default><summary>Favorites separator color</summary></key>
+    <key name="favorites-separator-opacity" type="d"><range min="0.0" max="1.0"/><default>0.55</default><summary>Favorites separator opacity</summary></key>
+    <key name="favorites-separator-size" type="i"><range min="1" max="8"/><default>2</default><summary>Favorites separator thickness in pixels</summary></key>
+    <key name="favorites-separator-length" type="i"><range min="10" max="100"/><default>55</default><summary>Favorites separator length as a percentage of icon size</summary></key>
     <key name="system-icon-name" type="s"><default>'view-app-grid-symbolic'</default><summary>Icon theme name for the system dock item</summary></key>
     <key name="dev-mode" type="b"><default>false</default><summary>Show development borders around dock elements</summary></key>
     <key name="dock-position" type="s"><default>'bottom'</default><summary>Dock position: top, bottom, left or right</summary></key>
