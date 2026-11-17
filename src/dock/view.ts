@@ -716,6 +716,11 @@ export class DockView {
         if (this.windowCreatedSignal) global.display.disconnect(this.windowCreatedSignal);
         this.windowTracker.destroy();
         this.contextMenu.destroy();
+        if (this.favoritesSeparator) {
+            this.favoritesSeparator.get_parent()?.remove_child(this.favoritesSeparator);
+            this.favoritesSeparator.destroy();
+            this.favoritesSeparator = null;
+        }
         this.systemItem?.destroy();
         this.systemItem = null;
         this.dragDrop.destroy();
