@@ -23,6 +23,7 @@ export class DockIndicators {
         // Positive values move the indicator upward inside the icon; negative
         // values move it below the icon's bottom edge.
         const bottomOffset = this.settings.get_int('indicator-bottom-offset');
+        const indicatorSize = this.settings.get_int('indicator-size');
 
         for (const item of items) {
             const app = item._gOsDockApp;
@@ -45,8 +46,8 @@ export class DockIndicators {
                 for (const child of item._gOsDockIndicator.get_children())
                     child.destroy();
                 const markerCount = multiple ? Math.max(1, windows.length) : 1;
-                const length = shape === 'line' ? 10 : 5;
-                const thickness = shape === 'line' ? 3 : 5;
+                const length = shape === 'line' ? indicatorSize * 2 : indicatorSize;
+                const thickness = indicatorSize;
                 const radius = shape === 'round' ? '999px' : '0px';
                 for (let index = 0; index < markerCount; index++) {
                     const marker = new St.Widget();
