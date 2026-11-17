@@ -59,6 +59,9 @@ export class WindowTracker {
             return;
 
         const [entry] = this.tracked.splice(index, 1);
+        if (!entry)
+            return;
+
         for (const signal of entry.signals) {
             try {
                 entry.window.disconnect(signal);
