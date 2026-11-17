@@ -259,8 +259,32 @@ export class DockView {
                 this.schedulePreviewHide();
             }
         });
+        item.connect('scroll-event', (_actor: any, event: any) => {
+            const direction = event.get_scroll_direction();
+            if (direction !== Clutter.ScrollDirection.UP &&
+                direction !== Clutter.ScrollDirection.DOWN)
+                return Clutter.EVENT_PROPAGATE;
+
+            const windows = app.get_windows();
+            if (windows.length < 2)
+                return Clutter.EVENT_PROPAGATE;
+
+            const focused = global.display.focus_window;
+            const currentIndex = windows.indexOf(focused);
+            const step = direction === Clutter.ScrollDirection.UP ? -1 : 1;
+            const nextIndex = currentIndex < 0
+                ? (step > 0 ? 0 : windows.length - 1)
+                : (currentIndex + step + windows.length) % windows.length;
+            app.activate_window(windows[nextIndex], global.get_current_time());
+            return Clutter.EVENT_STOP;
+        });
         item.connect('button-press-event', (_actor: any, event: any) => {
-            if (event.get_button() === 3) {
+            const button = event.get_button();
+            if (button === 2) {
+                app.open_new_window(global.get_current_time());
+                return Clutter.EVENT_STOP;
+            }
+            if (button === 3) {
                 this.openContextMenu(item, app);
                 return Clutter.EVENT_STOP;
             }
