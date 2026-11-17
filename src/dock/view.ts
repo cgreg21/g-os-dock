@@ -398,8 +398,10 @@ export class DockView {
         }
         this.systemItem.setIconSize(size);
         const children = this.content.get_children();
-        if (children[children.length - 1] !== this.systemItem.getActor()) {
-            this.content.set_child_at_index(this.systemItem.getActor(), children.length - 1);
+        const targetIndex = this.settings.get_string('system-icon-position') === 'start'
+            ? 0 : children.length - 1;
+        if (children[targetIndex] !== this.systemItem.getActor()) {
+            this.content.set_child_at_index(this.systemItem.getActor(), targetIndex);
             return true;
         }
         return false;
