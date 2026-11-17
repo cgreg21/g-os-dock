@@ -12,8 +12,11 @@ export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.S
     });
     const positions = ['bottom', 'top', 'left', 'right'];
     position.selected = Math.max(0, positions.indexOf(settings.get_string('dock-position')));
-    position.connect('notify::selected', () =>
-        settings.set_string('dock-position', positions[position.selected]));
+    position.connect('notify::selected', () => {
+        const selectedPosition = positions[position.selected];
+        if (selectedPosition)
+            settings.set_string('dock-position', selectedPosition);
+    });
     settings.connect('changed::dock-position', () => {
         const selected = positions.indexOf(settings.get_string('dock-position'));
         if (selected >= 0)
