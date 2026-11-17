@@ -398,8 +398,9 @@ export class DockView {
         }
         this.systemItem.setIconSize(size);
         const children = this.content.get_children();
-        const targetIndex = this.settings.get_string('system-icon-position') === 'start'
-            ? 0 : children.length - 1;
+        const targetIndex = Math.max(0, Math.min(
+            this.settings.get_int('system-icon-position'), children.length - 1,
+        ));
         if (children[targetIndex] !== this.systemItem.getActor()) {
             this.content.set_child_at_index(this.systemItem.getActor(), targetIndex);
             return true;
