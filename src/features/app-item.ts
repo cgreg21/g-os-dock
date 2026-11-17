@@ -47,24 +47,17 @@ export class DockAppItemFactory {
         iconContainer.set_size(size, size);
         const icon = app.create_icon_texture(size);
         icon.set_size(size, size);
-        iconLayout.pack(
-            icon,
-            Clutter.BinAlignment.CENTER,
-            Clutter.BinAlignment.CENTER,
-        );
+        iconContainer.add_child(icon);
         content.add_child(iconContainer);
 
-        // Use BinLayout child alignment explicitly: actor x_align/y_align
-        // properties do not position children inside a BinLayout.
+        // Keep the indicator overlaid and align it to the icon's bottom edge.
         const indicator = new St.BoxLayout({
             style_class: 'g-os-dock-running-indicator',
             orientation: Clutter.Orientation.HORIZONTAL,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.END,
         });
-        iconLayout.pack(
-            indicator,
-            Clutter.BinAlignment.CENTER,
-            Clutter.BinAlignment.END,
-        );
+        iconContainer.add_child(indicator);
 
         const item = new St.Button({
             style_class: 'g-os-dock-item',
