@@ -41,7 +41,6 @@ export class DockAppItemFactory {
 
         const item = new St.Button({
             style_class: 'g-os-dock-item',
-            style: `min-width: ${size + 4}px; min-height: ${size + 4}px;`,
             reactive: true,
             can_focus: true,
             track_hover: true,
@@ -50,6 +49,7 @@ export class DockAppItemFactory {
             x_expand: false,
             y_expand: false,
         }) as DockAppButton;
+        item.set_style(`min-width: ${size + 4}px; min-height: ${size + 4}px;`);
 
         try {
             item._gOsDockApp = app;
