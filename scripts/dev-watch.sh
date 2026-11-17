@@ -71,5 +71,9 @@ while true; do
         sleep 0.2
     done
 
-    install_extension || true
+    if install_extension; then
+        # GNOME caches imported ES modules for the lifetime of the Shell process.
+        # Ask the dev-session supervisor to restart only the nested DevKit Shell.
+        exit 75
+    fi
 done
