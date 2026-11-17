@@ -1,4 +1,5 @@
 import Gio from 'gi://Gio?version=2.0';
+import Clutter from 'gi://Clutter?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { DockView } from './view.js';
 
@@ -9,6 +10,8 @@ export class DockManager {
     private monitorSignal = 0;
     private settingsSignal = 0;
     private enabled = false;
+    private overviewDashParent: Clutter.Actor | null = null;
+    private overviewDashIndex = -1;
     private overviewDashWasVisible: boolean | null = null;
 
     constructor(settings: Gio.Settings) {
@@ -21,9 +24,17 @@ export class DockManager {
 
         this.enabled = true;
         try {
-            const dash = Main.overview.dash;
+            const dash = Main.overview.dash as Clutter.Actor & {
+                visible: boolean;
+            };
+            const parent = dash.get_parent();
+            if (!parent)
+                throw new Error('GNOME Overview Dash has no parent actor');
+
             this.overviewDashWasVisible = dash.visible;
-            dash.hide();
+            this.overviewDashParent = parent;
+            this.overviewDashIndex = parent.get_children().indexOf(dash);
+            parent.remove_child(dash);
             this.rebuild();
             // GNOME Shell emits this JS-level signal; it is not exposed in the generated GIR type.
             this.monitorSignal = (Main.layoutManager as unknown as {
@@ -68,10 +79,7 @@ export class DockManager {
             return;
 
         this.enabled = false;
-        if (this.overviewDashWasVisible) {
-            Main.overview.dash.show();
-        }
-        this.overviewDashWasVisible = null;
+        this.restoreOverviewDash();
         if (this.monitorSignal)
             Main.layoutManager.disconnect(this.monitorSignal);
         if (this.settingsSignal)
@@ -79,6 +87,31 @@ export class DockManager {
         this.monitorSignal = 0;
         this.settingsSignal = 0;
         this.destroyViews();
+    }
+
+    private restoreOverviewDash(): void {
+        const parent = this.overviewDashParent;
+        if (parent) {
+            const dash = Main.overview.dash as Clutter.Actor & {
+                show(): void;
+                hide(): void;
+            };
+            if (!dash.get_parent()) {
+                if (this.overviewDashIndex >= 0)
+                    parent.insert_child_at_index(dash, this.overviewDashIndex);
+                else
+                    parent.add_child(dash);
+            }
+
+            if (this.overviewDashWasVisible)
+                dash.show();
+            else
+                dash.hide();
+        }
+
+        this.overviewDashParent = null;
+        this.overviewDashIndex = -1;
+        this.overviewDashWasVisible = null;
     }
 
     private destroyViews(): void {
