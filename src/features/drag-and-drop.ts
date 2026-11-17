@@ -7,10 +7,6 @@ import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import type { DockAppButton } from './app-item.js';
 
 type DragSource = { app?: Shell.App };
-type DraggableDockItem = DockAppButton & {
-    _delegate?: unknown;
-    _gOsDockDraggable: ReturnType<typeof DND.makeDraggable>;
-};
 
 /** Handles favorite-app drag sources and dock drop targets. */
 export class DockDragDrop {
@@ -30,16 +26,16 @@ export class DockDragDrop {
             getDragActor: () => new Clutter.Clone({ source: item }),
             getDragActorSource: () => item,
         };
-        (item as DraggableDockItem)._gOsDockDraggable = DND.makeDraggable(item, { dragActorOpacity: 210 });
-        (item as DraggableDockItem)._gOsDockDraggable.connect('drag-begin', () => {
+        const draggable = DND.makeDraggable(item, { dragActorOpacity: 210 });
+        draggable.connect('drag-begin', () => {
             onStart();
             item.add_style_class_name('dragging');
         });
-        (item as DraggableDockItem)._gOsDockDraggable.connect('drag-end', () => {
+        draggable.connect('drag-end', () => {
             item.remove_style_class_name('dragging');
             this.clearDropTarget();
         });
-        (item as DraggableDockItem)._gOsDockDraggable.connect('drag-cancelled', () => {
+        draggable.connect('drag-cancelled', () => {
             item.remove_style_class_name('dragging');
             this.clearDropTarget();
         });
