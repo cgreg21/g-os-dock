@@ -6,6 +6,7 @@ import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import { DockDragDrop } from './drag-and-drop.js';
 import { WindowPreviews } from './window-previews/index.js';
 import { AppContextMenu } from './context-menu/index.js';
+import { DockTooltip } from './tooltip.js';
 
 export type DockAppButton = St.Button & {
     _gOsDockApp: Shell.App;
@@ -20,6 +21,7 @@ interface DockAppItemDependencies {
     contextMenu: AppContextMenu;
     activateApp: (app: Shell.App) => void;
     handleKeyPress: (item: DockAppButton, event: Clutter.Event) => boolean;
+    dockPosition: () => string;
 }
 
 /** Builds one interactive application button for the dock. */
@@ -50,6 +52,7 @@ export class DockAppItemFactory {
             y_expand: false,
         }) as DockAppButton;
         item.set_style(`min-width: ${size + 4}px; min-height: ${size + 4}px;`);
+        new DockTooltip(item, app.get_name(), this.dependencies.dockPosition());
 
         try {
             item._gOsDockApp = app;
