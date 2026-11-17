@@ -91,7 +91,6 @@ export function createWindowPreviewCard(
         child: new St.Icon({ icon_name: 'window-minimize-symbolic', icon_size: 14 }),
         can_focus: true,
         reactive: true,
-        tooltip_text: 'Minimize window',
         accessible_name: 'Minimize window',
         x_expand: true,
     });
@@ -109,7 +108,6 @@ export function createWindowPreviewCard(
             child: new St.Label({ text: 'Go to workspace' }),
             can_focus: true,
             reactive: true,
-            tooltip_text: `Switch to workspace ${workspaceInfo.index + 1}`,
             accessible_name: `Switch to workspace ${workspaceInfo.index + 1}`,
             x_expand: true,
         });
@@ -127,7 +125,6 @@ export function createWindowPreviewCard(
         child: new St.Icon({ icon_name: 'window-close-symbolic', icon_size: 14 }),
         can_focus: true,
         reactive: true,
-        tooltip_text: 'Close window',
         accessible_name: 'Close window',
         x_expand: true,
     });
