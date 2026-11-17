@@ -14,7 +14,7 @@ export class AppContextMenu {
     show(source: any, app: any): void {
         const menu = new PopupMenu.PopupMenu(source, 0.5, St.Side.TOP);
         Main.uiGroup.add_child(menu.actor);
-        this.menuManager.addMenu(menu);
+        this.manager.addMenu(menu);
         this.menus.push(menu);
         const windows = app.get_windows();
         const open = new PopupMenu.PopupMenuItem('Open new window');
@@ -66,7 +66,7 @@ export class AppContextMenu {
         }
         menu.connect('open-state-changed', (_menu: any, isOpen: boolean) => {
             if (!isOpen) {
-                this.menuManager.removeMenu(menu);
+                this.manager.removeMenu(menu);
                 this.menus = this.menus.filter((entry: any) => entry !== menu);
                 menu.destroy();
             }
