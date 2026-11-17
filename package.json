@@ -8,7 +8,9 @@
     "check": "tsc --noEmit -p tsconfig.json",
     "build": "npm run clean && tsc -p tsconfig.json && cp metadata.json stylesheet.css dist/ && mkdir -p dist/schemas && cp schemas/*.gschema.xml dist/schemas/ && glib-compile-schemas --strict dist/schemas",
     "pack": "npm run build && cd dist && zip -qr ../g-os-dock@cgreg21.github.io.zip .",
-    "install-local": "npm run pack && gnome-extensions install --force g-os-dock@cgreg21.github.io.zip"
+    "install-local": "npm run pack && gnome-extensions install --force g-os-dock@cgreg21.github.io.zip",
+    "dev": "bash scripts/dev-session.sh",
+    "dev:watch": "bash scripts/dev-watch.sh"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
