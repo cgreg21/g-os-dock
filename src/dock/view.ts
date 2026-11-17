@@ -149,6 +149,7 @@ export class DockView {
             contextMenu: this.contextMenu,
             activateApp: app => this.activateApp(app),
             handleKeyPress: (item, event) => this.keyboard.handle(item, event),
+            dockPosition: () => this.settings.get_string('dock-position'),
         });
 
         try {
