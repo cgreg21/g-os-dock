@@ -5,7 +5,8 @@ export default class GOSDockExtension extends Extension {
     private manager: DockManager | null = null;
 
     enable(): void {
-        this.loadStylesheet();
+        // GNOME Shell automatically loads stylesheet.css before enable() and
+        // unloads it when the extension is disabled.
         this.manager = new DockManager(this.getSettings());
         this.manager.enable();
     }
