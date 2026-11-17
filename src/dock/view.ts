@@ -112,6 +112,7 @@ export class DockView {
         );
         this.layout = new DockLayout(
             this.actor,
+            this.content,
             this.edgeSensor,
             this.monitor,
             this.settings,
