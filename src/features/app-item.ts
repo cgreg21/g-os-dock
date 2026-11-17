@@ -13,6 +13,7 @@ export type DockAppButton = St.Button & {
     _gOsDockIndicator: St.Widget;
     _gOsDockIcon: Clutter.Actor;
     _gOsDockBadge: St.Label;
+    _gOsDockPaddingStyle?: string;
 };
 
 interface DockAppItemDependencies {
@@ -78,11 +79,11 @@ export class DockAppItemFactory {
         const padRight = settings.get_int('icon-padding-right');
         const padBottom = settings.get_int('icon-padding-bottom');
         const padLeft = settings.get_int('icon-padding-left');
-        item.set_style(
+        item._gOsDockPaddingStyle =
             `padding: ${padTop}px ${padRight}px ${padBottom}px ${padLeft}px; ` +
             `min-width: ${size + padLeft + padRight}px; ` +
-            `min-height: ${size + padTop + padBottom}px;`,
-        );
+            `min-height: ${size + padTop + padBottom}px;`;
+        item.set_style(item._gOsDockPaddingStyle);
         new DockTooltip(item, app.get_name(), this.dependencies.dockPosition());
 
         try {
