@@ -1,20 +1,24 @@
+import Gio from 'gi://Gio?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { DockView } from './view.js';
 
 export class DockManager {
-    private settings: any;
+    private settings: Gio.Settings;
     private views: DockView[] = [];
     private monitorSignal = 0;
     private settingsSignal = 0;
 
-    constructor(settings: any) {
+    constructor(settings: Gio.Settings) {
         this.settings = settings;
     }
 
     enable(): void {
         this.rebuild();
         // GNOME Shell emits this JS-level signal; it is not exposed in the generated GIR type.
-        this.monitorSignal = (Main.layoutManager as any).connect('monitors-changed', () => this.rebuild());
+        // This Shell JS signal is missing from the generated layout-manager GIR type.
+        this.monitorSignal = (Main.layoutManager as unknown as {
+            connect: (signal: string, callback: () => void) => number;
+        }).connect('monitors-changed', () => this.rebuild());
         this.settingsSignal = this.settings.connect('changed::show-on-all-monitors', () => this.rebuild());
     }
 
@@ -25,7 +29,7 @@ export class DockManager {
         if (monitors.length === 0) return;
         const showAll = this.settings.get_boolean('show-on-all-monitors');
         const primary = Main.layoutManager.primaryIndex;
-        const targets = showAll ? monitors.map((_: any, index: number) => index) : [primary];
+        const targets = showAll ? monitors.map((_, index) => index) : [primary];
         for (const index of targets) {
             const monitor = monitors[index];
             if (monitor) this.views.push(new DockView(index, monitor, this.settings));
