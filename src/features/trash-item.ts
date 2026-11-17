@@ -18,7 +18,7 @@ export class DockTrashItem {
         private dragDrop: DockDragDrop,
     ) {
         this.icon = new St.Icon({
-            icon_name: 'user-trash-symbolic',
+            icon_name: 'user-trash',
             icon_size: iconSize,
             style_class: 'g-os-dock-trash-icon',
         });
@@ -73,7 +73,7 @@ export class DockTrashItem {
             // Some minimal GVfs installations do not expose a trash backend.
             // Keep the empty-trash icon and leave the launcher usable.
         }
-        this.icon.icon_name = hasItems ? 'user-trash-full-symbolic' : 'user-trash-symbolic';
+        this.icon.icon_name = hasItems ? 'user-trash-full' : 'user-trash';
         this.icon.icon_size = this.iconSize;
         const top = this.settings.get_int('icon-padding-top');
         const right = this.settings.get_int('icon-padding-right');
