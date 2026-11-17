@@ -60,7 +60,11 @@ export class DockKeyboardNavigation {
 
         const normalized = (index + items.length) % items.length;
         this.dependencies.showDock();
-        items[normalized].grab_key_focus();
+        const target = items[normalized];
+        if (!target)
+            return Clutter.EVENT_PROPAGATE;
+
+        target.grab_key_focus();
         this.dependencies.magnify(normalized, true);
         return Clutter.EVENT_STOP;
     }
