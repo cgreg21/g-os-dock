@@ -29,10 +29,12 @@ export class DockSystemItem {
             this.showMenu();
             return Clutter.EVENT_STOP;
         });
-        dragDrop.registerItem({ id: 'system:launcher', actor: this.button });
         this.iconSignal = settings.connect('changed::system-icon-name', () => this.updateIcon());
         this.menuManager = new PopupMenu.PopupMenuManager(this.button);
+        // Register only after parenting: GNOME's draggable setup expects the
+        // source actor to belong to the live dock hierarchy.
         this.content.add_child(this.button);
+        dragDrop.registerItem({ id: 'system:launcher', actor: this.button });
     }
 
     private updateIcon(): void {
