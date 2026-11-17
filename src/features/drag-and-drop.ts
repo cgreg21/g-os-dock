@@ -226,7 +226,6 @@ export class DockDragDrop {
         if (!item?.app || !this.isFavorite(item.app))
             return false;
         const app = item.app;
-        const appId = app.get_id();
         this.removingItemId = item.id;
         item.actor.ease({
             opacity: 0,
@@ -237,6 +236,9 @@ export class DockDragDrop {
             onComplete: () => {
                 if (this.isFavorite(app))
                     this.removeFavorite(app);
+                item.actor.opacity = 255;
+                item.actor.scale_x = 1;
+                item.actor.scale_y = 1;
                 this.removingItemId = null;
             },
         });
