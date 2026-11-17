@@ -53,7 +53,9 @@ export class DockDragDrop {
 
         const appId = app.get_id();
         const vertical = this.isVertical();
-        const coordinate = vertical ? y : x;
+        const [localX, localY] = this.toLocalPoint(x, y);
+        const coordinate = vertical ? localY : localX;
+        this.autoScroll(vertical, localX, localY);
         const candidates = this.getItems().filter(item =>
             item._gOsDockApp &&
             item._gOsDockApp.get_id() !== appId &&
@@ -91,7 +93,8 @@ export class DockDragDrop {
             return false;
 
         const vertical = this.isVertical();
-        const coordinate = vertical ? y : x;
+        const [localX, localY] = this.toLocalPoint(x, y);
+        const coordinate = vertical ? localY : localX;
         const favorites = this.favorites.getFavorites();
         const targets = this.getItems().filter(item =>
             item._gOsDockApp &&
@@ -132,6 +135,37 @@ export class DockDragDrop {
 
     private isVertical(): boolean {
         return ['left', 'right'].includes(this.settings.get_string('dock-position'));
+    }
+
+
+    /** Convert DND's stage coordinates into the scroll view's local space. */
+    private toLocalPoint(stageX: number, stageY: number): [number, number] {
+        const [valid, localX, localY] = this.actor.transform_stage_point(stageX, stageY);
+        return valid ? [localX, localY] : [stageX, stageY];
+    }
+
+    /** Scroll the viewport while a favorite is dragged near its leading/trailing edge. */
+    private autoScroll(vertical: boolean, x: number, y: number): void {
+        const extent = vertical ? this.actor.height : this.actor.width;
+        const coordinate = vertical ? y : x;
+        const edge = Math.min(36, Math.max(18, extent * 0.15));
+        let direction = 0;
+        if (coordinate < edge)
+            direction = -1;
+        else if (coordinate > extent - edge)
+            direction = 1;
+        if (direction === 0)
+            return;
+
+        const adjustment = vertical
+            ? (this.actor as St.ScrollView).get_vadjustment()
+            : (this.actor as St.ScrollView).get_hadjustment();
+        const lower = adjustment.get_lower();
+        const maximum = Math.max(lower, adjustment.get_upper() - adjustment.get_page_size());
+        const step = Math.max(12, Math.round(this.settings.get_int('icon-size') / 2));
+        const next = Math.max(lower, Math.min(maximum, adjustment.get_value() + direction * step));
+        if (next !== adjustment.get_value())
+            adjustment.set_value(next);
     }
 
     private getItemMidpoint(item: DockAppButton, vertical: boolean): number | null {
