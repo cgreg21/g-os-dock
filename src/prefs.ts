@@ -1,4 +1,4 @@
-import Adw from 'gi://Adw';
+import Adw from 'gi://Adw?version=1';
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import { addGeneralPreferences } from './preferences/general.js';
 import { addAppearancePreferences } from './preferences/appearance.js';
