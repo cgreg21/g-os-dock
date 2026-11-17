@@ -14,6 +14,7 @@ const DOCK_FRAME_INSET = 18;
 export class DockLayout {
     constructor(
         private actor: St.ScrollView,
+        private background: St.Widget,
         private content: St.BoxLayout,
         private edgeSensor: St.Widget,
         private monitor: MonitorGeometry,
@@ -68,6 +69,7 @@ export class DockLayout {
             vertical ? St.PolicyType.NEVER : St.PolicyType.AUTOMATIC,
             vertical ? St.PolicyType.AUTOMATIC : St.PolicyType.NEVER,
         );
+        this.background.set_size(viewportWidth, viewportHeight);
         this.actor.set_size(viewportWidth, viewportHeight);
 
         const minX = this.monitor.x + DOCK_SCREEN_MARGIN;
@@ -96,6 +98,7 @@ export class DockLayout {
         x = Math.max(minX, Math.min(x, maxX));
         y = Math.max(minY, Math.min(y, maxY));
 
+        this.background.set_position(Math.round(x), Math.round(y));
         this.actor.set_position(Math.round(x), Math.round(y));
         this.positionSensor();
     }
