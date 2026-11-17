@@ -33,7 +33,6 @@ export class DockView {
     private appSystem: Shell.AppSystem;
     private favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
     private hoverSignal = 0;
-    private scrollSignal = 0;
     private sensorHoverSignal = 0;
     private settingsSignal = 0;
     private appStateSignal = 0;
@@ -354,7 +353,7 @@ export class DockView {
         this.windowTracker.destroy();
         this.contextMenu.destroy();
         this.dragDrop.destroy();
-scroll adjustments        Main.layoutManager.removeChrome(this.actor);
+        Main.layoutManager.removeChrome(this.actor);
         Main.layoutManager.removeChrome(this.background);
         Main.layoutManager.removeChrome(this.edgeSensor);
         this.actor.destroy();
