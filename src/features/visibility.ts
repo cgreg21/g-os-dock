@@ -1,6 +1,6 @@
-import Clutter from 'gi://Clutter';
-import GLib from 'gi://GLib';
-import Meta from 'gi://Meta';
+import Clutter from 'gi://Clutter?version=51';
+import GLib from 'gi://GLib?version=2.0';
+import Meta from 'gi://Meta?version=51';
 
 const HIDE_DELAY_MS = 650;
 const SMART_HIDE_DELAY_MS = 80;
