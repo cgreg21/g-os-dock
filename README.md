@@ -19,6 +19,7 @@ G-OS Dock is a GNOME Shell extension written in TypeScript and compiled to JavaS
 - Application context-menu construction and cleanup are isolated in `src/appContextMenu.ts`.
 - Minimize or close individual windows directly from their preview cards; show each window's workspace and jump to another workspace from its preview.
 - Drag-and-drop reordering of pinned favorite applications, with live drop-target highlighting and synchronized ordering across monitors.
+- Hides GNOME's built-in Overview Dash while G-OS Dock is enabled, and restores it when the extension is disabled.
 - Preferences through GNOME Extensions.
 
 ## Requirements
