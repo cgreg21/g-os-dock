@@ -85,7 +85,7 @@ export class DockView {
         this.appearance = new DockAppearance(this.actor, this.settings, this.desktopSettings);
         this.contextMenu = new AppContextMenu(this.actor, this.favorites);
         this.dragDrop = new DockDragDrop(
-            this.content,
+            this.actor,
             this.settings,
             this.favorites,
             () => this.itemActors,
