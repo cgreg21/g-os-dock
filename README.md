@@ -49,7 +49,7 @@ G-OS Dock includes an isolated **nested GNOME Shell** development session. It op
 
 - A Linux desktop session with GNOME Shell 51 installed (the nested session uses the host's installed GNOME Shell version).
 - Node.js 20+ and npm.
-- `dbus-run-session`, `gnome-shell`, `gnome-extensions`, `inotifywait` and the existing build tools (`zip`, `glib-compile-schemas`).
+- `dbus-run-session`, `gnome-shell` **51.x**, `gnome-extensions`, `gdbus`, `timeout`, `inotifywait` and the existing build tools (`zip`, `glib-compile-schemas`).
 
 Install the missing tools using your distribution package manager. For example:
 
@@ -68,7 +68,7 @@ npm install
 npm run dev
 ```
 
-The first launch creates a private profile under `~/.local/share/g-os-dock-dev`, starts GNOME Shell nested on Wayland (or X11 when the host session is X11), builds and installs the extension, and enables it in that session.
+The launcher verifies that the host provides GNOME Shell 51.x, creates a private profile under `~/.local/share/g-os-dock-dev`, starts GNOME Shell nested on Wayland (or X11 when the host session is X11), waits for the Shell D-Bus service, then builds and installs the extension.
 
 ### Automatic rebuild and reload
 
