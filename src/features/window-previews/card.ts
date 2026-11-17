@@ -2,6 +2,7 @@ import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import Meta from 'gi://Meta?version=51';
 import Shell from 'gi://Shell?version=51';
+import Gio from 'gi://Gio?version=2.0';
 
 /** Builds a single window preview card and its window actions. */
 export function createWindowPreviewCard(
@@ -41,22 +42,44 @@ export function createWindowPreviewCard(
         // A compositor actor may not be available for special windows.
     }
 
+    const thumbnail = new St.Widget({
+        style_class: 'g-os-dock-preview-thumbnail',
+        width: 176,
+        height: 104,
+        layout_manager: new Clutter.BinLayout(),
+    });
     if (compositorActor && !window.minimized) {
         const clone = new Clutter.Clone({ source: compositorActor });
         clone.set_size(176, 104);
-        content.add_child(new St.Bin({
-            style_class: 'g-os-dock-preview-thumbnail',
-            width: 176,
-            height: 104,
-            child: clone,
-        }));
+        thumbnail.add_child(clone);
     } else {
-        content.add_child(new St.Bin({
-            width: 176,
-            height: 104,
+        thumbnail.add_child(new St.Bin({
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
             child: app.create_icon_texture(56),
         }));
     }
+
+    // GNOME separates left and right titlebar controls with a colon.
+    const wmSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.wm.preferences' });
+    const buttonLayout = wmSettings.get_string('button-layout');
+    const [leftButtons] = buttonLayout.split(':');
+    const closeOnLeft = leftButtons.split(',').includes('close');
+    const closeButton = new St.Button({
+        style_class: 'g-os-dock-preview-close',
+        child: new St.Icon({ icon_name: 'window-close-symbolic', icon_size: 14 }),
+        can_focus: true,
+        reactive: true,
+        accessible_name: 'Close window',
+        x_align: closeOnLeft ? Clutter.ActorAlign.START : Clutter.ActorAlign.END,
+        y_align: Clutter.ActorAlign.START,
+    });
+    closeButton.connect('clicked', () => {
+        window.delete(global.get_current_time());
+        onClose();
+    });
+    thumbnail.add_child(closeButton);
+    content.add_child(thumbnail);
 
     let title = '';
     try {
@@ -91,19 +114,6 @@ export function createWindowPreviewCard(
         x_expand: true,
         y_expand: false,
     });
-    const minimize = new St.Button({
-        style_class: 'g-os-dock-preview-action',
-        child: new St.Icon({ icon_name: 'window-minimize-symbolic', icon_size: 14 }),
-        can_focus: true,
-        reactive: true,
-        accessible_name: 'Minimize window',
-        x_expand: true,
-    });
-    minimize.connect('clicked', () => {
-        window.minimize();
-        onClose();
-    });
-    actions.add_child(minimize);
 
     const workspace = workspaceInfo.workspace;
     if (workspace && !workspaceInfo.onAllWorkspaces &&
@@ -126,19 +136,6 @@ export function createWindowPreviewCard(
         actions.add_child(switchWorkspace);
     }
 
-    const close = new St.Button({
-        style_class: 'g-os-dock-preview-action close',
-        child: new St.Icon({ icon_name: 'window-close-symbolic', icon_size: 14 }),
-        can_focus: true,
-        reactive: true,
-        accessible_name: 'Close window',
-        x_expand: true,
-    });
-    close.connect('clicked', () => {
-        window.delete(global.get_current_time());
-        onClose();
-    });
-    actions.add_child(close);
     card.add_child(actions);
 
     return { card, previewButton };
