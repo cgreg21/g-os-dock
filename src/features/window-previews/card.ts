@@ -12,7 +12,7 @@ export function createWindowPreviewCard(
 ): { card: St.BoxLayout; previewButton: St.Button } {
     const card = new St.BoxLayout({
         style_class: 'g-os-dock-preview-card',
-        vertical: true,
+        orientation: Clutter.Orientation.VERTICAL,
         reactive: true,
         track_hover: true,
         x_expand: false,
@@ -30,7 +30,10 @@ export function createWindowPreviewCard(
     });
     previewButton.set_style('padding: 0; background-color: transparent;');
 
-    const content = new St.BoxLayout({ vertical: true, style: 'spacing: 5px;' });
+    const content = new St.BoxLayout({
+        orientation: Clutter.Orientation.VERTICAL,
+    });
+    content.set_style('spacing: 5px;');
     let compositorActor: Clutter.Actor | null = null;
     try {
         compositorActor = window.get_compositor_private();
