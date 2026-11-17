@@ -4,7 +4,7 @@ import Gio from 'gi://Gio?version=2.0';
 import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
+import { DockDragDrop } from './drag-and-drop.js';
 
 /** Configurable app-grid launcher and GNOME system actions. */
 export class DockSystemItem {
@@ -13,11 +13,10 @@ export class DockSystemItem {
     private menu: PopupMenu.PopupMenu | null = null;
     private iconSignal = 0;
     private destroyed = false;
-    private draggable: DND.Draggable;
 
     constructor(private content: St.BoxLayout, private settings: Gio.Settings,
         private iconSize: number, private dockPosition: () => string,
-        private dragPreview: { begin: (actor: St.Widget) => void; end: () => void }) {
+        dragDrop: DockDragDrop) {
         this.button = new St.Button({
             style_class: 'g-os-dock-item g-os-dock-system-item', reactive: true,
             can_focus: true, track_hover: true, x_expand: false, y_expand: false,
@@ -30,25 +29,7 @@ export class DockSystemItem {
             this.showMenu();
             return Clutter.EVENT_STOP;
         });
-        (this.button as St.Button & { _delegate?: unknown })._delegate = {
-            systemItem: true,
-            actor: this.button,
-            getDragActor: () => new Clutter.Clone({ source: this.button }),
-            getDragActorSource: () => this.button,
-        };
-        this.draggable = DND.makeDraggable(this.button, { dragActorOpacity: 210 });
-        this.draggable.connect('drag-begin', () => {
-            this.button.add_style_class_name('dragging');
-            this.dragPreview.begin(this.button);
-        });
-        this.draggable.connect('drag-end', () => {
-            this.button.remove_style_class_name('dragging');
-            this.dragPreview.end();
-        });
-        this.draggable.connect('drag-cancelled', () => {
-            this.button.remove_style_class_name('dragging');
-            this.dragPreview.end();
-        });
+        dragDrop.registerItem({ id: 'system:launcher', actor: this.button });
         this.iconSignal = settings.connect('changed::system-icon-name', () => this.updateIcon());
         this.menuManager = new PopupMenu.PopupMenuManager(this.button);
         this.content.add_child(this.button);
