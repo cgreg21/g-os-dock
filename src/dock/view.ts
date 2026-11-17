@@ -398,16 +398,13 @@ export class DockView {
         }
         this.systemItem.setIconSize(size);
         const children = this.content.get_children();
-        if (children[children.length - 1] !== this.systemItemActor()) {
-            this.content.set_child_at_index(this.systemItemActor(), children.length - 1);
+        if (children[children.length - 1] !== this.systemItem.getActor()) {
+            this.content.set_child_at_index(this.systemItem.getActor(), children.length - 1);
             return true;
         }
         return false;
     }
 
-    private systemItemActor(): St.Button | null {
-        return this.systemItem ? this.systemItem.actor : null;
-    }
 
     private createItem(app: Shell.App, size: number): DockAppButton {
         return this.appItemFactory.create(app, size);
