@@ -8,6 +8,7 @@ import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import { AppContextMenu } from './appContextMenu.js';
 import { DockDragDrop } from './features/drag-and-drop.js';
 import { DockVisibility } from './features/visibility.js';
+import { DockAppearance } from './features/appearance.js';
 import { WindowPreviews } from './windowPreviews.js';
 
 const EDGE_THICKNESS = 3;
@@ -39,13 +40,14 @@ export class DockView {
     private previews: WindowPreviews;
     private dragDrop: DockDragDrop;
     private visibility: DockVisibility;
+    private appearance: DockAppearance;
 
     constructor(index: number, monitor: any, settings: any) {
         this.monitor = monitor;
         this.monitorIndex = index;
         this.settings = settings;
         this.desktopSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
-        this.desktopThemeSignal = this.desktopSettings.connect('changed::color-scheme', () => this.applyStyle());
+        this.desktopThemeSignal = this.desktopSettings.connect('changed::color-scheme', () => this.appearance.apply());
         this.appSystem = Shell.AppSystem.get_default();
         this.favorites = AppFavorites.getAppFavorites();
         this.actor = new St.BoxLayout({
@@ -54,6 +56,7 @@ export class DockView {
             reactive: true,
             track_hover: true,
         });
+        this.appearance = new DockAppearance(this.actor, this.settings, this.desktopSettings);
         this.contextMenu = new AppContextMenu(this.actor, this.favorites);
         this.dragDrop = new DockDragDrop(
             this.actor,
@@ -139,7 +142,7 @@ export class DockView {
             this.itemActors.push(item);
             this.actor.add_child(item);
         }
-        this.applyStyle();
+        this.appearance.apply();
         this.position();
         this.applyMagnification(-1, false);
         this.updateIndicators();
@@ -364,20 +367,6 @@ export class DockView {
                 icon.ease({ width: size, height: size, duration: 120, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
         });
         this.position();
-    }
-
-    private applyStyle(): void {
-        const acrylic = this.settings.get_boolean('acrylic-enabled');
-        const opacity = this.settings.get_double('acrylic-opacity');
-        const spacing = this.settings.get_int('dock-spacing');
-        const theme = this.settings.get_string('theme');
-        const colorScheme = this.desktopSettings.get_string('color-scheme');
-        const dark = theme === 'dark' || (theme === 'system' && colorScheme !== 'prefer-light');
-        const background = dark ? '32,35,45' : '246,247,250';
-        const foreground = dark ? '255,255,255' : '30,32,38';
-        this.actor.set_style(`spacing: ${spacing}px; color: rgb(${foreground}); ` + (acrylic
-            ? `background-color: rgba(${background}, ${opacity}); border: 1px solid rgba(255,255,255,0.16); border-radius: 18px; padding: 8px;`
-            : `background-color: rgba(${background},0.97); border-radius: 18px; padding: 8px;`));
     }
 
     private applySettings(): void {
