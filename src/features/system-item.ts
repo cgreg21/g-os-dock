@@ -1,4 +1,5 @@
 import St from 'gi://St?version=51';
+import Clutter from 'gi://Clutter?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
@@ -30,10 +31,7 @@ export class DockSystemItem {
         (this.button as St.Button & { _delegate?: unknown })._delegate = {
             systemItem: true,
             actor: this.button,
-            getDragActor: () => new St.Widget({ child: new St.Icon({
-                icon_name: this.settings.get_string('system-icon-name'),
-                icon_size: this.iconSize,
-            }) }),
+            getDragActor: () => new Clutter.Clone({ source: this.button }),
             getDragActorSource: () => this.button,
         };
         this.draggable = DND.makeDraggable(this.button, { dragActorOpacity: 210 });
