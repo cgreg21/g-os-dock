@@ -1,4 +1,4 @@
-import Meta from 'gi://Meta';
+import Meta from 'gi://Meta?version=51';
 
 /** Tracks window geometry and lifetime signals for smart-hide updates. */
 export class WindowTracker {
