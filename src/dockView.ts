@@ -1,6 +1,5 @@
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
-import Meta from 'gi://Meta';
 import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
@@ -10,6 +9,7 @@ import { DockVisibility } from './features/visibility.js';
 import { DockAppearance } from './features/appearance.js';
 import { DockLayout } from './features/layout.js';
 import { DockIndicators } from './features/indicators.js';
+import { WindowTracker } from './features/window-tracker.js';
 import { WindowPreviews } from './windowPreviews.js';
 
 const MAGNIFICATION_RADIUS = 2;
@@ -33,7 +33,7 @@ export class DockView {
     private focusSignal = 0;
     private restackedSignal = 0;
     private windowCreatedSignal = 0;
-    private windowSignals: Array<{ window: any; ids: number[] }> = [];
+
     private destroyed = false;
     private contextMenu: AppContextMenu;
     private itemActors: any[] = [];
@@ -43,6 +43,7 @@ export class DockView {
     private appearance: DockAppearance;
     private layout: DockLayout;
     private indicators: DockIndicators;
+    private windowTracker: WindowTracker;
 
     constructor(index: number, monitor: any, settings: any) {
         this.monitor = monitor;
@@ -94,6 +95,7 @@ export class DockView {
             () => this.destroyed,
         );
         this.indicators = new DockIndicators(this.settings, () => this.destroyed);
+        this.windowTracker = new WindowTracker(global.display, () => this.visibility.queueSmartHideCheck());
 
         Main.layoutManager.addChrome(this.actor, { affectsStruts: false, trackFullscreen: false });
         Main.layoutManager.addChrome(this.edgeSensor, { affectsStruts: false, trackFullscreen: false });
@@ -108,7 +110,7 @@ export class DockView {
         this.focusSignal = global.display.connect('notify::focus-window', () => { this.updateIndicators(); this.visibility.queueSmartHideCheck(); });
         this.restackedSignal = global.display.connect('restacked', () => this.visibility.queueSmartHideCheck());
         this.windowCreatedSignal = global.display.connect('window-created', (_display: any, window: any) => this.trackWindow(window));
-        this.trackExistingWindows();
+        this.windowTracker.trackExisting();
         this.refresh();
         this.applySettings();
     }
@@ -293,40 +295,6 @@ export class DockView {
         this.indicators.update(this.itemActors);
     }
 
-    private trackExistingWindows(): void {
-        const windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
-        for (const window of windows)
-            this.trackWindow(window);
-    }
-
-    private trackWindow(window: any): void {
-        if (!window || this.windowSignals.some(entry => entry.window === window))
-            return;
-        const ids: number[] = [];
-        for (const signal of ['position-changed', 'size-changed', 'unmanaged']) {
-            try {
-                ids.push(window.connect(signal, () => {
-                    if (signal === 'unmanaged')
-                        this.untrackWindow(window);
-                    this.visibility.queueSmartHideCheck();
-                }));
-            } catch (_error) {
-                // Some special window types do not expose every geometry signal.
-            }
-        }
-        this.windowSignals.push({ window, ids });
-    }
-
-    private untrackWindow(window: any): void {
-        const index = this.windowSignals.findIndex(entry => entry.window === window);
-        if (index < 0)
-            return;
-        const [entry] = this.windowSignals.splice(index, 1);
-        for (const id of entry.ids) {
-            try { entry.window.disconnect(id); } catch (_error) { /* already disposed */ }
-        }
-    }
-
     private activateApp(app: any): void {
         const windows = app.get_windows();
         if (windows.length > 0) {
@@ -389,7 +357,7 @@ export class DockView {
         if (this.focusSignal) global.display.disconnect(this.focusSignal);
         if (this.restackedSignal) global.display.disconnect(this.restackedSignal);
         if (this.windowCreatedSignal) global.display.disconnect(this.windowCreatedSignal);
-        for (const entry of [...this.windowSignals]) this.untrackWindow(entry.window);
+        this.windowTracker.destroy();
         this.contextMenu.destroy();
         this.dragDrop.destroy();
         Main.layoutManager.removeChrome(this.actor);
