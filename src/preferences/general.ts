@@ -26,6 +26,12 @@ export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.S
     group.add(position);
 
     addSwitch(group, settings, 'show-system-icon', 'Show applications and system icon');
+    const separator = new Adw.PreferencesGroup({ title: 'Favorites separator' });
+    page.add(separator);
+    addSwitch(separator, settings, 'show-favorites-separator', 'Show separator between favorites and running apps');
+    addSeparatorColorPicker(separator, settings);
+    addSpin(separator, settings, 'favorites-separator-size', 'Thickness (px)', 1, 8);
+    addSpin(separator, settings, 'favorites-separator-length', 'Length (% of icon size)', 10, 100);
     addIconThemeSelector(group, settings);
     group.add(new Adw.ActionRow({
         title: 'Dock item order',
@@ -73,4 +79,52 @@ function addIconThemeSelector(group: Adw.PreferencesGroup, settings: Gio.Setting
     settings.connect('changed::system-icon-name', sync);
     group.add(row);
     sync();
+}
+
+function addSeparatorColorPicker(group: Adw.PreferencesGroup, settings: Gio.Settings): void {
+    const row = new Adw.ActionRow({ title: 'Color and opacity' });
+    const button = new Gtk.ColorButton({ use_alpha: true });
+    button.valign = Gtk.Align.CENTER;
+    button.tooltip_text = 'Choose separator color and opacity';
+    row.add_suffix(button);
+    group.add(row);
+
+    const sync = () => {
+        const rgba = new Gdk.RGBA();
+        if (!rgba.parse(settings.get_string('favorites-separator-color')))
+            rgba.parse('#ffffff');
+        rgba.alpha = settings.get_double('favorites-separator-opacity');
+        button.set_rgba(rgba);
+        row.subtitle = settings.get_string('favorites-separator-color').toUpperCase();
+    };
+    button.connect('color-set', () => {
+        const rgba = button.get_rgba();
+        const hex = [rgba.red, rgba.green, rgba.blue]
+            .map(channel => Math.round(channel * 255).toString(16).padStart(2, '0'))
+            .join('');
+        settings.set_string('favorites-separator-color', `#${hex}`);
+        settings.set_double('favorites-separator-opacity', rgba.alpha);
+    });
+    settings.connect('changed::favorites-separator-color', sync);
+    settings.connect('changed::favorites-separator-opacity', sync);
+    sync();
+}
+
+function addSpin(
+    group: Adw.PreferencesGroup,
+    settings: Gio.Settings,
+    key: string,
+    title: string,
+    lower: number,
+    upper: number,
+): void {
+    const row = new Adw.SpinRow({
+        title,
+        adjustment: new Gtk.Adjustment({
+            lower, upper, step_increment: 1, page_increment: 5,
+            value: settings.get_int(key),
+        }),
+    });
+    group.add(row);
+    settings.bind(key, row, 'value', Gio.SettingsBindFlags.DEFAULT);
 }
