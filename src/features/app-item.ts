@@ -18,7 +18,6 @@ interface DockAppItemDependencies {
     dragDrop: DockDragDrop;
     previews: WindowPreviews;
     contextMenu: AppContextMenu;
-    getItems: () => DockAppButton[];
     activateApp: (app: Shell.App) => void;
     handleKeyPress: (item: DockAppButton, event: Clutter.Event) => boolean;
 }
