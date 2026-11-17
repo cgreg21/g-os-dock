@@ -2,6 +2,7 @@ import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
 import Meta from 'gi://Meta?version=51';
+import Mtk from 'gi://Mtk?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -384,6 +385,7 @@ export class DockView {
 
     private activateApp(app: Shell.App): void {
         const windows = app.get_windows();
+        this.updateWindowIconGeometry(app, windows);
         if (windows.length === 0) {
             app.activate();
             return;
@@ -406,6 +408,29 @@ export class DockView {
             target.unminimize();
 
         app.activate_window(target, global.get_current_time());
+    }
+
+    /** Tell Mutter where this application's dock icon is for minimize/restore animations. */
+    private updateWindowIconGeometry(app: Shell.App, windows: Meta.Window[]): void {
+        const item = this.itemActors.find(candidate =>
+            candidate._gOsDockApp.get_id() === app.get_id(),
+        );
+        const icon = item?._gOsDockIcon;
+        if (!icon || !icon.is_mapped())
+            return;
+
+        const [x, y] = icon.get_transformed_position();
+        const [width, height] = icon.get_transformed_size();
+        if (width <= 0 || height <= 0)
+            return;
+
+        // Mutter's built-in minimize and unminimize animations use this
+        // root-window-relative rectangle as their destination/source.
+        const geometry = Mtk.Rectangle.new(
+            Math.round(x), Math.round(y), Math.round(width), Math.round(height),
+        );
+        for (const window of windows)
+            window.set_icon_geometry(geometry);
     }
 
     private applySettings(): void {
