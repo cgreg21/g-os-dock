@@ -38,10 +38,10 @@ export class DockLayout {
         if (position === 'top') {
             y = this.monitor.y + 12;
         } else if (position === 'left') {
-            x = this.monitor.x + 12;
+            x = this.monitor.x;
             y = this.monitor.y + Math.round((this.monitor.height - height) / 2);
         } else if (position === 'right') {
-            x = this.monitor.x + this.monitor.width - width - 12;
+            x = this.monitor.x + this.monitor.width - width;
             y = this.monitor.y + Math.round((this.monitor.height - height) / 2);
         }
 
