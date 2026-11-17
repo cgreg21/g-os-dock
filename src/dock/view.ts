@@ -89,7 +89,7 @@ export class DockView {
         });
         // The interactive content container sits above the independent background.
         this.actor.add_child(this.content);
-        this.appearance = new DockAppearance(this.background, this.content, this.settings, this.desktopSettings);
+        this.appearance = new DockAppearance(this.background, this.actor, this.content, this.settings, this.desktopSettings);
         this.contextMenu = new AppContextMenu(this.actor, this.favorites);
         this.dragDrop = new DockDragDrop(
             this.actor,
@@ -157,6 +157,7 @@ export class DockView {
             activateApp: app => this.activateApp(app),
             handleKeyPress: (item, event) => this.keyboard.handle(item, event),
             dockPosition: () => this.settings.get_string('dock-position'),
+            settings: this.settings,
         });
 
         try {
@@ -300,6 +301,16 @@ export class DockView {
             const configuredSize = this.settings.get_int('icon-size');
             const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
             const spacing = this.settings.get_int('dock-spacing');
+            const edgeDistance = this.settings.get_int('edge-distance');
+            const paddingTop = this.settings.get_int('background-padding-top');
+            const paddingRight = this.settings.get_int('background-padding-right');
+            const paddingBottom = this.settings.get_int('background-padding-bottom');
+            const paddingLeft = this.settings.get_int('background-padding-left');
+            const border = this.settings.get_int('border-size');
+            const iconPadding = this.settings.get_int('icon-padding-top') +
+                this.settings.get_int('icon-padding-right') +
+                this.settings.get_int('icon-padding-bottom') +
+                this.settings.get_int('icon-padding-left');
             const panel = Main.panel as St.Widget;
             const [panelX, panelY] = panel.get_transformed_position();
             const panelBottom = panelY + panel.height;
@@ -309,19 +320,21 @@ export class DockView {
                 panelY <= this.monitor.y + 2 &&
                 panelBottom > this.monitor.y;
             const usableTop = panelAtMonitorTop
-                ? Math.min(this.monitor.y + this.monitor.height, panelBottom + 12)
+                ? Math.min(this.monitor.y + this.monitor.height, panelBottom + edgeDistance)
                 : this.monitor.y;
-            // Reduce icon size before the natural content can extend beyond its monitor.
-            // The outer content container contributes 16px of padding.
+            // Reduce icon size before the configured padding and edge margins
+            // can make the dock exceed the available monitor area.
             const available = vertical
-                ? this.monitor.y + this.monitor.height - usableTop - 24 - 16
-                : this.monitor.width - 24 - 16;
+                ? this.monitor.y + this.monitor.height - usableTop - edgeDistance -
+                    paddingTop - paddingBottom - border * 2
+                : this.monitor.width - edgeDistance * 2 -
+                    paddingLeft - paddingRight - border * 2;
             const itemOverhead = vertical ? 25 : 4;
             const fittedSize = applications.length > 0
                 ? Math.floor(
                     (available - spacing * Math.max(0, applications.length - 1)) /
                     applications.length,
-                ) - itemOverhead
+                ) - itemOverhead - iconPadding
                 : configuredSize;
             const size = Math.min(configuredSize, Math.max(16, fittedSize));
 
