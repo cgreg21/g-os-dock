@@ -54,7 +54,7 @@ export class DockView {
     private appItemFactory: DockAppItemFactory;
     private keyboard: DockKeyboardNavigation;
 
-    constructor(index: number, monitor: Meta.Rectangle, settings: Gio.Settings) {
+    constructor(index: number, monitor: MonitorGeometry, settings: Gio.Settings) {
         this.monitor = monitor;
         this.monitorIndex = index;
         this.settings = settings;
