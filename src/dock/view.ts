@@ -352,14 +352,17 @@ export class DockView {
         }
         const rank = new Map(saved.map((id, index) => [id, index]));
         actors.sort((a, b) => {
-            const aFavorite = a.app
-                ? this.favorites.isFavorite(a.app.get_id())
-                : false;
-            const bFavorite = b.app
-                ? this.favorites.isFavorite(b.app.get_id())
-                : false;
-            if (a.app && b.app && aFavorite !== bFavorite)
-                return aFavorite ? -1 : 1;
+            // Keep favorites first, the system launcher in the middle, and
+            // non-favorite running apps last. Saved order is retained inside
+            // each section so the separator remains a reliable boundary.
+            const aSection = a.app
+                ? (this.favorites.isFavorite(a.app.get_id()) ? 0 : 2)
+                : 1;
+            const bSection = b.app
+                ? (this.favorites.isFavorite(b.app.get_id()) ? 0 : 2)
+                : 1;
+            if (aSection !== bSection)
+                return aSection - bSection;
             return (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
                 (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER);
         });
