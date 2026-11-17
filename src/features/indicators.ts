@@ -1,10 +1,12 @@
 import Shell from 'gi://Shell?version=51';
+import Gio from 'gi://Gio?version=2.0';
+import type { DockAppButton } from './app-item.js';
 
 /** Updates running dots, active state and per-app window-count badges. */
 export class DockIndicators {
-    constructor(private settings: any, private isDestroyed: () => boolean) {}
+    constructor(private settings: Gio.Settings, private isDestroyed: () => boolean) {}
 
-    update(items: any[]): void {
+    update(items: DockAppButton[]): void {
         if (this.isDestroyed())
             return;
 
