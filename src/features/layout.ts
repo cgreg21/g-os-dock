@@ -90,7 +90,7 @@ export class DockLayout {
         // Center the decorative background on the actual icon content.
         // This keeps it visually centered even when the four padding values
         // are different, rather than centering it on the padded outer actor.
-        this.syncBackgroundToContent(x, y, width, height, contentWidth, contentHeight, paddingLeft, paddingTop);
+        this.syncBackgroundToContent(x, y, width, height, contentWidth);
         this.positionSensor();
     }
 
@@ -100,17 +100,14 @@ export class DockLayout {
         backgroundWidth: number,
         backgroundHeight: number,
         contentWidth: number,
-        contentHeight: number,
-        paddingLeft: number,
-        paddingTop: number,
     ): void {
         if (this.isDestroyed())
             return;
 
-        // Derive the center from the measured content dimensions instead of
-        // its current allocation, which may not have been updated yet.
-        const x = actorX + paddingLeft + (contentWidth - backgroundWidth) / 2;
-        const y = actorY + paddingTop + (contentHeight - backgroundHeight) / 2;
+        // Keep the background horizontally centered under the content,
+        // but align its lower edge with the dock's lower edge.
+        const x = actorX + (contentWidth - backgroundWidth) / 2;
+        const y = actorY;
         this.background.set_size(backgroundWidth, backgroundHeight);
         this.background.set_position(Math.round(x), Math.round(y));
     }
