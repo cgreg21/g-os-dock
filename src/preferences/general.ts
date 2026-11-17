@@ -26,6 +26,7 @@ export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.S
     group.add(position);
 
     addSwitch(group, settings, 'show-system-icon', 'Show applications and system icon');
+    addSwitch(group, settings, 'show-trash-icon', 'Show Trash in the dock');
     const separator = new Adw.PreferencesGroup({ title: 'Favorites separator' });
     page.add(separator);
     addSwitch(separator, settings, 'show-favorites-separator', 'Show separator between favorites and running apps');
