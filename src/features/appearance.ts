@@ -5,6 +5,7 @@ import Gio from 'gi://Gio?version=2.0';
 export class DockAppearance {
     constructor(
         private actor: St.Widget,
+        private content: St.BoxLayout,
         private settings: Gio.Settings,
         private desktopSettings: Gio.Settings,
     ) {}
@@ -23,6 +24,10 @@ export class DockAppearance {
             ? `background-color: rgba(${background}, ${opacity}); border: 1px solid rgba(255,255,255,0.16); border-radius: 18px; padding: 8px;`
             : `background-color: rgba(${background},0.97); border-radius: 18px; padding: 8px;`;
 
-        this.actor.set_style(`spacing: ${spacing}px; color: rgb(${foreground}); ${surface}`);
+        // Spacing belongs to the BoxLayout child, not the ScrollView viewport.
+        // Keeping it on the viewport silently breaks icon spacing after wrapping
+        // the dock in St.ScrollView.
+        this.content.set_style(`spacing: ${spacing}px; color: rgb(${foreground});`);
+        this.actor.set_style(`color: rgb(${foreground}); ${surface}`);
     }
 }
