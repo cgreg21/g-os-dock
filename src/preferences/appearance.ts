@@ -10,7 +10,7 @@ export function addAppearancePreferences(page: any, settings: any): void {
 
     const iconSize = new Adw.SpinRow({
         title: 'Icon size',
-        adjustment: new Adw.Adjustment({
+        adjustment: new Gtk.Adjustment({
             lower: 24, upper: 96, step_increment: 4, page_increment: 8,
             value: settings.get_int('icon-size'),
         }),
@@ -20,7 +20,7 @@ export function addAppearancePreferences(page: any, settings: any): void {
 
     const spacing = new Adw.SpinRow({
         title: 'Icon spacing',
-        adjustment: new Adw.Adjustment({
+        adjustment: new Gtk.Adjustment({
             lower: 0, upper: 24, step_increment: 1, page_increment: 2,
             value: settings.get_int('dock-spacing'),
         }),
