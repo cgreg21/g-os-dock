@@ -14,11 +14,11 @@ install_extension() {
         return 1
     fi
 
-    echo "==> Reloading extension in the nested GNOME session..."
+    echo "==> Installing and reloading G-OS Dock..."
     gnome-extensions disable "$UUID" >/dev/null 2>&1 || true
     gnome-extensions install --force "$ARCHIVE"
     gnome-extensions enable "$UUID"
-    echo "==> G-OS Dock updated."
+    echo "==> G-OS Dock updated successfully."
 }
 
 if ! command -v inotifywait >/dev/null 2>&1; then
@@ -29,18 +29,24 @@ fi
 install_extension || exit 1
 
 echo
-echo "Watching src/, schemas/, metadata.json and stylesheet.css."
-echo "Edit a file to compile, package, install and reload automatically."
+echo "Watching project source files (src/, schemas/, metadata.json, stylesheet.css)."
+echo "Changes are debounced, compiled, packaged, installed and re-enabled automatically."
 echo "Press Ctrl+C to stop."
 
 while true; do
-    inotifywait -q -r -e close_write,create,delete,move \
-        "$ROOT/src" "$ROOT/schemas" "$ROOT/metadata.json" "$ROOT/stylesheet.css" >/dev/null
+    inotifywait -q -r \
+        --exclude '(^|/)(node_modules|dist|\.git)(/|$)' \
+        --include '(^|/)(src/.*|schemas/.*|metadata\.json|stylesheet\.css)$' \
+        -e close_write,create,delete,move \
+        "$ROOT" >/dev/null
 
-    # Coalesce bursts of editor save events into one build.
-    sleep 0.4
-    while inotifywait -q -t 0.2 -r -e close_write,create,delete,move \
-        "$ROOT/src" "$ROOT/schemas" "$ROOT/metadata.json" "$ROOT/stylesheet.css" >/dev/null 2>&1; do
+    # Coalesce editor atomic-save sequences and bursts of changes.
+    sleep 0.5
+    while inotifywait -q -t 0.2 -r \
+        --exclude '(^|/)(node_modules|dist|\.git)(/|$)' \
+        --include '(^|/)(src/.*|schemas/.*|metadata\.json|stylesheet\.css)$' \
+        -e close_write,create,delete,move \
+        "$ROOT" >/dev/null 2>&1; do
         sleep 0.2
     done
 
