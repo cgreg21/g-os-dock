@@ -34,9 +34,24 @@ if [[ -z "${WAYLAND_DISPLAY:-}" && -z "${DISPLAY:-}" ]]; then
     exit 1
 fi
 
+SHELL_MAJOR="${SHELL_VERSION#GNOME Shell }"
+SHELL_MAJOR="${SHELL_MAJOR%%.*}"
+if ((SHELL_MAJOR >= 49)); then
+    if [[ ! -x /usr/libexec/mutter-devkit && ! -x /usr/lib/mutter-devkit ]]; then
+        echo "GNOME ${SHELL_MAJOR} removed --nested and requires the Mutter Development Kit." >&2
+        echo "Install mutter-devkit (CachyOS/Fedora) or mutter-dev-bin (Ubuntu/Debian)." >&2
+        exit 1
+    fi
+fi
+
 echo "Development environment checks passed."
 echo "Node.js: $(node --version)"
 echo "$SHELL_VERSION"
+if ((SHELL_MAJOR >= 49)); then
+    echo "Nested backend: Mutter Development Kit (--devkit)"
+else
+    echo "Nested backend: legacy --nested"
+fi
 if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
     echo "Display backend: Wayland"
 else
