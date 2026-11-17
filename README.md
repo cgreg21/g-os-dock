@@ -53,9 +53,11 @@ src/
 ├── preferences/
 │   ├── appearance.ts
 │   └── general.ts
+├── types/
+│   ├── gnome-shell-dnd.d.ts
+│   └── gnome.d.ts
 ├── extension.ts
-├── prefs.ts
-└── gnome.d.ts
+└── prefs.ts
 ```
 
 Each feature owns its own behavior and cleanup. `dock/view.ts` wires the modules together; preferences are split by settings group. Keep new code close to the feature it implements, prefer small functions and explicit dependencies, and avoid introducing abstractions that do not simplify the code.
