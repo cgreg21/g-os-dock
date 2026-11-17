@@ -395,6 +395,10 @@ export class DockView {
             this.systemItem = new DockSystemItem(
                 this.content, this.settings, size,
                 () => this.settings.get_string('dock-position'),
+                {
+                    begin: actor => this.dragDrop.beginSystemPreview(actor),
+                    end: () => this.dragDrop.endSystemPreview(),
+                },
             );
             return true;
         }
