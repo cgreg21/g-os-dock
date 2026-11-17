@@ -18,10 +18,11 @@ export class WindowTracker {
 
         const signals: number[] = [];
         // Meta.Window's GIR declarations omit these runtime GObject signals.
-        const connectWindowSignal = window.connect.bind(window) as (
-            signal: string,
-            callback: () => void,
-        ) => number;
+        const connectWindowSignal = (
+            window as unknown as {
+                connect: (signal: string, callback: () => void) => number;
+            }
+        ).connect.bind(window);
         for (const signal of ['position-changed', 'size-changed', 'unmanaged']) {
             try {
                 signals.push(connectWindowSignal(signal, () => {
