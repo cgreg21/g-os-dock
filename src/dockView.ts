@@ -101,6 +101,15 @@ export class DockView {
     private refresh(): void {
         if (this.destroyed)
             return;
+        this.hideWindowPreviews();
+        if (this.previewSource) {
+            GLib.source_remove(this.previewSource);
+            this.previewSource = 0;
+        }
+        if (this.previewHideSource) {
+            GLib.source_remove(this.previewHideSource);
+            this.previewHideSource = 0;
+        }
         for (const child of this.actor.get_children())
             child.destroy();
         this.itemActors = [];
