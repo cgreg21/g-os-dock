@@ -14,6 +14,11 @@
   background-color: rgba(255, 255, 255, 0.13);
 }
 
+.g-os-dock-item:focus {
+  background-color: rgba(53, 132, 228, 0.24);
+  border: 2px solid rgba(120, 169, 255, 0.95);
+}
+
 .g-os-dock-edge-sensor {
   background-color: transparent;
 }
