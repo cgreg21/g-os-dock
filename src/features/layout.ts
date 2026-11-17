@@ -48,7 +48,7 @@ export class DockLayout {
             panelY <= this.monitor.y + 2 &&
             panelBottom > this.monitor.y;
         const usableTop = panelAtMonitorTop
-            ? Math.min(this.monitor.y + this.monitor.height, panelBottom + 8)
+            ? Math.min(this.monitor.y + this.monitor.height, panelBottom + DOCK_SCREEN_MARGIN)
             : this.monitor.y;
 
         this.actor.set_size(width, height);
