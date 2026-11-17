@@ -13,7 +13,9 @@
     "allowSyntheticDefaultImports": true,
     "types": [],
     "strictNullChecks": true,
-    "strictPropertyInitialization": true
+    "strictPropertyInitialization": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": [
     "src/**/*.ts"
