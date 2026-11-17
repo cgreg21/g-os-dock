@@ -13,7 +13,7 @@ interface DockKeyboardDependencies {
 export class DockKeyboardNavigation {
     constructor(private dependencies: DockKeyboardDependencies) {}
 
-    handle(item: any, event: any): number {
+    handle(item: any, event: any): boolean {
         const key = event.get_key_symbol();
         const items = this.dependencies.getItems();
         const vertical = ['left', 'right'].includes(
@@ -50,7 +50,7 @@ export class DockKeyboardNavigation {
         return Clutter.EVENT_PROPAGATE;
     }
 
-    private focusItem(index: number): number {
+    private focusItem(index: number): boolean {
         const items = this.dependencies.getItems();
         if (items.length === 0)
             return Clutter.EVENT_PROPAGATE;
