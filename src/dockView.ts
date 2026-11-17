@@ -10,6 +10,7 @@ import { DockAppearance } from './features/appearance.js';
 import { DockLayout } from './features/layout.js';
 import { DockIndicators } from './features/indicators.js';
 import { WindowTracker } from './features/window-tracker.js';
+import { DockAppItemFactory } from './features/app-item.js';
 import { WindowPreviews } from './windowPreviews.js';
 
 const MAGNIFICATION_RADIUS = 2;
@@ -44,6 +45,7 @@ export class DockView {
     private layout: DockLayout;
     private indicators: DockIndicators;
     private windowTracker: WindowTracker;
+    private appItemFactory: DockAppItemFactory;
 
     constructor(index: number, monitor: any, settings: any) {
         this.monitor = monitor;
@@ -96,6 +98,17 @@ export class DockView {
         );
         this.indicators = new DockIndicators(this.settings, () => this.destroyed);
         this.windowTracker = new WindowTracker(global.display, () => this.visibility.queueSmartHideCheck());
+        this.appItemFactory = new DockAppItemFactory({
+            favorites: this.favorites,
+            dragDrop: this.dragDrop,
+            previews: this.previews,
+            contextMenu: this.contextMenu,
+            getItems: () => this.itemActors,
+            isDockHovered: () => this.actor.hover,
+            activateApp: app => this.activateApp(app),
+            handleKeyPress: (item, event) => this.handleItemKeyPress(item, event),
+            magnify: (index, enabled) => this.applyMagnification(index, enabled),
+        });
 
         Main.layoutManager.addChrome(this.actor, { affectsStruts: false, trackFullscreen: false });
         Main.layoutManager.addChrome(this.edgeSensor, { affectsStruts: false, trackFullscreen: false });
@@ -218,77 +231,7 @@ export class DockView {
     }
 
     private createItem(app: any, size: number): any {
-        const item = new St.Button({
-            style_class: 'g-os-dock-item',
-            reactive: true,
-            can_focus: true,
-            track_hover: true,
-            child: app.create_icon_texture(size),
-            tooltip_text: app.get_name(),
-            accessible_name: app.get_name(),
-            x_expand: false,
-            y_expand: false,
-        });
-        const icon = item.get_child();
-        icon.set_size(size, size);
-        // Keep the application reference on its actor so focus/window changes
-        // can update badges without rebuilding the whole dock.
-        item._gOsDockApp = app;
-        if (this.favorites.isFavorite(app.get_id())) {
-            this.dragDrop.makeFavoriteDraggable(item, app, () => this.previews.hide());
-        }
-        item.connect('clicked', () => this.activateApp(app));
-        item.connect('key-press-event', (_actor: any, event: any) =>
-            this.handleItemKeyPress(item, event));
-        item.connect('notify::hover', () => {
-            if (item.hover) {
-                const index = this.itemActors.indexOf(item);
-                this.applyMagnification(index, true);
-                this.previews.scheduleShow(app, item);
-            } else {
-                if (!this.actor.hover)
-                    this.applyMagnification(-1, false);
-                this.previews.scheduleHide();
-            }
-        });
-        item.connect('scroll-event', (_actor: any, event: any) => {
-            const direction = event.get_scroll_direction();
-            if (direction !== Clutter.ScrollDirection.UP &&
-                direction !== Clutter.ScrollDirection.DOWN)
-                return Clutter.EVENT_PROPAGATE;
-
-            const windows = app.get_windows();
-            if (windows.length < 2)
-                return Clutter.EVENT_PROPAGATE;
-
-            const focused = global.display.focus_window;
-            const currentIndex = windows.indexOf(focused);
-            const step = direction === Clutter.ScrollDirection.UP ? -1 : 1;
-            const nextIndex = currentIndex < 0
-                ? (step > 0 ? 0 : windows.length - 1)
-                : (currentIndex + step + windows.length) % windows.length;
-            app.activate_window(windows[nextIndex], global.get_current_time());
-            return Clutter.EVENT_STOP;
-        });
-        item.connect('button-press-event', (_actor: any, event: any) => {
-            const button = event.get_button();
-            if (button === 2) {
-                app.open_new_window(global.get_current_time());
-                return Clutter.EVENT_STOP;
-            }
-            if (button === 3) {
-                this.contextMenu.show(item, app);
-                return Clutter.EVENT_STOP;
-            }
-            return Clutter.EVENT_PROPAGATE;
-        });
-        const indicator = new St.Widget({ style_class: 'g-os-dock-running-indicator' });
-        item.add_child(indicator);
-        const badge = new St.Label({ style_class: 'g-os-dock-window-count' });
-        item.add_child(badge);
-        item._gOsDockIndicator = indicator;
-        item._gOsDockBadge = badge;
-        return item;
+        return this.appItemFactory.create(app, size);
     }
 
     private updateIndicators(): void {
