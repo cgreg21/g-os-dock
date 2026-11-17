@@ -4,24 +4,7 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEV_HOME="${G_OS_DOCK_DEV_HOME:-$HOME/.local/share/g-os-dock-dev}"
 
-for command in dbus-run-session gnome-shell gnome-extensions npm inotifywait gdbus timeout; do
-    if ! command -v "$command" >/dev/null 2>&1; then
-        echo "Missing required command: $command" >&2
-        echo "See README.md, section 'Local development environment'." >&2
-        exit 1
-    fi
-done
-
-SHELL_VERSION="$(gnome-shell --version | grep -oE '[0-9]+' | head -n1 || true)"
-if [[ "$SHELL_VERSION" != "51" ]]; then
-    echo "G-OS Dock targets GNOME Shell 51; detected: $(gnome-shell --version)." >&2
-    exit 1
-fi
-
-if [[ -z "${WAYLAND_DISPLAY:-}" && -z "${DISPLAY:-}" ]]; then
-    echo "No graphical display detected. Start this script from your desktop session." >&2
-    exit 1
-fi
+bash "$ROOT/scripts/dev-check.sh"
 
 mkdir -p "$DEV_HOME"/{config,data,cache,state}
 export XDG_CONFIG_HOME="$DEV_HOME/config"
