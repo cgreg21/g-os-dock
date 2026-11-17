@@ -19,6 +19,7 @@ export class WindowPreviews {
     private hideSource = 0;
     private hoverSignal = 0;
     private keySignal = 0;
+    private destroyed = false;
 
     constructor(
         private settings: Gio.Settings,
@@ -39,7 +40,7 @@ export class WindowPreviews {
     }
 
     scheduleShow(app: Shell.App, item: DockAppButton): void {
-        if (!this.settings.get_boolean('show-window-previews'))
+        if (this.isInactive() || !this.settings.get_boolean('show-window-previews'))
             return;
         if (this.showSource)
             GLib.source_remove(this.showSource);
@@ -49,13 +50,15 @@ export class WindowPreviews {
         }
         this.showSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 320, () => {
             this.showSource = 0;
-            if (!this.isDestroyed() && item.hover)
+            if (!this.isInactive() && item.hover)
                 this.show(app, item);
             return GLib.SOURCE_REMOVE;
         });
     }
 
     scheduleHide(): void {
+        if (this.isInactive())
+            return;
         if (this.showSource) {
             GLib.source_remove(this.showSource);
             this.showSource = 0;
@@ -64,14 +67,14 @@ export class WindowPreviews {
             GLib.source_remove(this.hideSource);
         this.hideSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 260, () => {
             this.hideSource = 0;
-            if (!this.isDestroyed() && !this.dockActor.hover && !this.actor?.hover)
+            if (!this.isInactive() && !this.dockActor.hover && !this.actor?.hover)
                 this.hide();
             return GLib.SOURCE_REMOVE;
         });
     }
 
     show(app: Shell.App, item: DockAppButton, focusFirst = false): void {
-        if (!this.settings.get_boolean('show-window-previews'))
+        if (this.isInactive() || !this.settings.get_boolean('show-window-previews'))
             return;
         this.hide();
         const windows = app.get_windows();
@@ -157,9 +160,14 @@ export class WindowPreviews {
         }
     }
 
-
     destroy(): void {
-        this.cancelPending();
+        if (this.destroyed)
+            return;
+        this.destroyed = true;
         this.hide();
+    }
+
+    private isInactive(): boolean {
+        return this.destroyed || this.isDestroyed();
     }
 }
