@@ -150,7 +150,7 @@ export class DockView {
         if (this.itemActors.length === 0)
             return;
         const normalized = (index + this.itemActors.length) % this.itemActors.length;
-        this.show();
+        this.visibility.show();
         this.itemActors[normalized].grab_key_focus();
         this.applyMagnification(normalized, true);
     }
@@ -321,7 +321,7 @@ export class DockView {
                 ids.push(window.connect(signal, () => {
                     if (signal === 'unmanaged')
                         this.untrackWindow(window);
-                    this.queueSmartHideCheck();
+                    this.visibility.queueSmartHideCheck();
                 }));
             } catch (_error) {
                 // Some special window types do not expose every geometry signal.
