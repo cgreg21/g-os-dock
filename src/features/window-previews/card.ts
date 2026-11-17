@@ -63,7 +63,7 @@ export function createWindowPreviewCard(
     // GNOME separates left and right titlebar controls with a colon.
     const wmSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.wm.preferences' });
     const buttonLayout = wmSettings.get_string('button-layout');
-    const [leftButtons] = buttonLayout.split(':');
+    const leftButtons = buttonLayout.split(':')[0] ?? '';
     const closeOnLeft = leftButtons.split(',').includes('close');
     const closeButton = new St.Button({
         style_class: 'g-os-dock-preview-close',
