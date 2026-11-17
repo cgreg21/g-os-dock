@@ -38,9 +38,26 @@ export class DockAppItemFactory {
             x_expand: false,
             y_expand: false,
         });
+        const iconContainer = new St.Widget({
+            layout_manager: new Clutter.BinLayout(),
+            x_expand: false,
+            y_expand: false,
+        });
+        iconContainer.set_size(size, size);
         const icon = app.create_icon_texture(size);
         icon.set_size(size, size);
-        content.add_child(icon);
+        iconContainer.add_child(icon);
+        content.add_child(iconContainer);
+
+        // The running indicator is layered over the icon, centered along
+        // its bottom edge rather than taking up space in the dock layout.
+        const indicator = new St.BoxLayout({
+            style_class: 'g-os-dock-running-indicator',
+            orientation: Clutter.Orientation.HORIZONTAL,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.END,
+        });
+        iconContainer.add_child(indicator);
 
         const item = new St.Button({
             style_class: 'g-os-dock-item',
@@ -122,11 +139,6 @@ export class DockAppItemFactory {
                 return Clutter.EVENT_PROPAGATE;
             });
 
-            const indicator = new St.BoxLayout({
-                style_class: 'g-os-dock-running-indicator',
-                orientation: Clutter.Orientation.HORIZONTAL,
-            });
-            content.add_child(indicator);
             const badge = new St.Label({ style_class: 'g-os-dock-window-count' });
             content.add_child(badge);
             item._gOsDockIndicator = indicator;
