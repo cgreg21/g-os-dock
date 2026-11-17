@@ -38,7 +38,7 @@ export class DockIndicators {
 
             if (item._gOsDockIndicator) {
                 item._gOsDockIndicator.visible = shouldShow;
-                item._gOsDockIndicator.set_style('spacing: 2px;');
+                item._gOsDockIndicator.set_style('spacing: 2px; width: auto; height: auto; background-color: transparent;');
                 for (const child of item._gOsDockIndicator.get_children())
                     child.destroy();
                 const markerCount = multiple ? Math.max(1, windows.length) : 1;
