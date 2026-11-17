@@ -1,9 +1,12 @@
+import St from 'gi://St?version=51';
+import Gio from 'gi://Gio?version=2.0';
+
 /** Applies dock colors, spacing and translucent styling. */
 export class DockAppearance {
     constructor(
-        private actor: any,
-        private settings: any,
-        private desktopSettings: any,
+        private actor: St.Widget,
+        private settings: Gio.Settings,
+        private desktopSettings: Gio.Settings,
     ) {}
 
     apply(): void {
