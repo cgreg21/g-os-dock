@@ -18,20 +18,29 @@ export class DockAppItemFactory {
     constructor(private dependencies: DockAppItemDependencies) {}
 
     create(app: any, size: number): any {
+        // St.Button is a single-child container. Keep the icon and its
+        // indicator/badge inside one content box instead of adding siblings
+        // directly to the button (which throws and aborts extension startup).
+        const content = new St.BoxLayout({
+            vertical: true,
+            x_expand: false,
+            y_expand: false,
+        });
+        const icon = app.create_icon_texture(size);
+        icon.set_size(size, size);
+        content.add_child(icon);
+
         const item = new St.Button({
             style_class: 'g-os-dock-item',
             reactive: true,
             can_focus: true,
             track_hover: true,
-            child: app.create_icon_texture(size),
+            child: content,
             tooltip_text: app.get_name(),
             accessible_name: app.get_name(),
             x_expand: false,
             y_expand: false,
         });
-
-        const icon = item.get_child();
-        icon.set_size(size, size);
         item._gOsDockApp = app;
 
         if (this.dependencies.favorites.isFavorite(app.get_id())) {
@@ -92,9 +101,9 @@ export class DockAppItemFactory {
         });
 
         const indicator = new St.Widget({ style_class: 'g-os-dock-running-indicator' });
-        item.add_child(indicator);
+        content.add_child(indicator);
         const badge = new St.Label({ style_class: 'g-os-dock-window-count' });
-        item.add_child(badge);
+        content.add_child(badge);
         item._gOsDockIndicator = indicator;
         item._gOsDockBadge = badge;
         return item;
