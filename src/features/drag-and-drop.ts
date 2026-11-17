@@ -3,6 +3,7 @@ import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import Shell from 'gi://Shell?version=51';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
+import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import type { DockAppButton } from './app-item.js';
 
 type DragSource = { app?: Shell.App };
@@ -10,7 +11,6 @@ type DraggableDockItem = DockAppButton & {
     _delegate?: unknown;
     _gOsDockDraggable: ReturnType<typeof DND.makeDraggable>;
 };
-import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 
 /** Handles favorite-app drag sources and dock drop targets. */
 export class DockDragDrop {
@@ -35,11 +35,11 @@ export class DockDragDrop {
             onStart();
             item.add_style_class_name('dragging');
         });
-        item._gOsDockDraggable.connect('drag-end', () => {
+        (item as DraggableDockItem)._gOsDockDraggable.connect('drag-end', () => {
             item.remove_style_class_name('dragging');
             this.clearDropTarget();
         });
-        item._gOsDockDraggable.connect('drag-cancelled', () => {
+        (item as DraggableDockItem)._gOsDockDraggable.connect('drag-cancelled', () => {
             item.remove_style_class_name('dragging');
             this.clearDropTarget();
         });
