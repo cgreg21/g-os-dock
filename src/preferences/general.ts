@@ -27,6 +27,11 @@ export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.S
 
     addSwitch(group, settings, 'show-system-icon', 'Show applications and system icon');
     addSwitch(group, settings, 'show-trash-icon', 'Show Trash in the dock');
+    const drives = new Adw.PreferencesGroup({ title: 'Mounted drives' });
+    page.add(drives);
+    addSwitch(drives, settings, 'show-network-drives', 'Show network drives');
+    addSwitch(drives, settings, 'show-system-drives', 'Show internal system drives');
+    addSwitch(drives, settings, 'show-usb-drives', 'Show USB and removable drives');
     const separator = new Adw.PreferencesGroup({ title: 'Favorites separator' });
     page.add(separator);
     addSwitch(separator, settings, 'show-favorites-separator', 'Show separator between favorites and running apps');
