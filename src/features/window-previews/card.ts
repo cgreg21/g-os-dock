@@ -102,7 +102,8 @@ export function createWindowPreviewCard(
     });
     actions.add_child(minimize);
 
-    if (workspaceInfo.workspace && !workspaceInfo.onAllWorkspaces &&
+    const workspace = workspaceInfo.workspace;
+    if (workspace && !workspaceInfo.onAllWorkspaces &&
         workspaceInfo.index >= 0 &&
         workspaceInfo.index !== global.workspace_manager.get_active_workspace_index()) {
         const switchWorkspace = new St.Button({
@@ -115,7 +116,7 @@ export function createWindowPreviewCard(
         });
         switchWorkspace.connect('clicked', () => {
             const timestamp = global.get_current_time();
-            workspaceInfo.workspace.activate(timestamp);
+            workspace.activate(timestamp);
             activateWindow(app, window, timestamp);
             onClose();
         });
