@@ -38,7 +38,7 @@ export class DockAppItemFactory {
             x_expand: false,
             y_expand: false,
         });
-        const iconLayout = new Clutter.BinLayout();
+        const iconLayout = new Clutter.FixedLayout();
         const iconContainer = new St.Widget({
             layout_manager: iconLayout,
             x_expand: false,
@@ -47,6 +47,7 @@ export class DockAppItemFactory {
         iconContainer.set_size(size, size);
         const icon = app.create_icon_texture(size);
         icon.set_size(size, size);
+        icon.set_position(0, 0);
         iconContainer.add_child(icon);
         content.add_child(iconContainer);
 
@@ -54,9 +55,11 @@ export class DockAppItemFactory {
         const indicator = new St.BoxLayout({
             style_class: 'g-os-dock-running-indicator',
             orientation: Clutter.Orientation.HORIZONTAL,
-            x_align: Clutter.ActorAlign.CENTER,
-            y_align: Clutter.ActorAlign.END,
+            x_expand: false,
+            y_expand: false,
         });
+        indicator.set_size(10, 5);
+        indicator.set_position((size - 10) / 2, size - 5);
         iconContainer.add_child(indicator);
 
         const item = new St.Button({
