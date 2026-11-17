@@ -29,6 +29,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          target_commitish: main
+          target_commitish: ${{ github.sha }}
           generate_release_notes: true
           files: g-os-dock@cgreg21.github.io.zip
