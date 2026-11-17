@@ -7,7 +7,6 @@ import Gio from 'gi://Gio?version=2.0';
 const HIDE_DELAY_MS = 650;
 const SMART_HIDE_DELAY_MS = 80;
 const SLIDE_DURATION_MS = 240;
-const EDGE_REVEAL_SIZE = 4;
 
 /** Controls dock visibility, auto-hide and overlap-aware smart-hide. */
 export class DockVisibility {
@@ -34,6 +33,7 @@ export class DockVisibility {
         if (!autoHide && !smartHide) {
             this.cancelHide();
             this.actor.remove_all_transitions();
+            this.background.show();
             this.actor.show();
             this.actor.opacity = 255;
             this.background.opacity = 255;
@@ -134,15 +134,19 @@ export class DockVisibility {
         // Move almost completely beyond the selected screen edge, leaving a
         // narrow reveal strip. The independent edge sensor remains at the edge.
         const position = this.settings.get_string('dock-position');
+        // Account for the larger of the content and background containers so
+        // neither the dock nor its background/border remains visible onscreen.
+        const slideWidth = Math.max(this.actor.width, this.background.width);
+        const slideHeight = Math.max(this.actor.height, this.background.height);
         const distanceX = position === 'left'
-            ? -(this.actor.width - EDGE_REVEAL_SIZE)
+            ? -slideWidth
             : position === 'right'
-                ? this.actor.width - EDGE_REVEAL_SIZE
+                ? slideWidth
                 : 0;
         const distanceY = position === 'top'
-            ? -(this.actor.height - EDGE_REVEAL_SIZE)
+            ? -slideHeight
             : position === 'bottom'
-                ? this.actor.height - EDGE_REVEAL_SIZE
+                ? slideHeight
                 : 0;
 
         this.actor.remove_all_transitions();
@@ -161,8 +165,11 @@ export class DockVisibility {
             translationY: distanceY,
             ...transition,
             onComplete: () => {
-                if (!this.isInactive())
+                if (!this.isInactive()) {
                     this.actor.reactive = false;
+                    this.actor.hide();
+                    this.background.hide();
+                }
             },
         });
     }
