@@ -406,10 +406,21 @@ export class DockView {
                 : this.monitor.width - edgeDistance * 2 -
                     paddingLeft - paddingRight - border * 2;
             const itemOverhead = vertical ? 25 : 4;
+            const hasFavoriteSection = applications.some(app =>
+                this.favorites.isFavorite(app.get_id()),
+            );
+            const hasRunningSection = applications.some(app =>
+                !this.favorites.isFavorite(app.get_id()),
+            );
+            const showSeparator = this.settings.get_boolean('show-favorites-separator') &&
+                hasFavoriteSection && hasRunningSection;
+            const separatorSpace = showSeparator
+                ? this.settings.get_int('favorites-separator-size') + spacing
+                : 0;
             const itemCount = applications.length + (this.settings.get_boolean('show-system-icon') ? 1 : 0);
             const fittedSize = itemCount > 0
                 ? Math.floor(
-                    (available - spacing * Math.max(0, itemCount - 1)) /
+                    (available - separatorSpace - spacing * Math.max(0, itemCount - 1)) /
                     itemCount,
                 ) - itemOverhead - iconPadding
                 : configuredSize;
