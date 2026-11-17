@@ -149,3 +149,11 @@
 .g-os-dock-preview-close:focus {
   background-color: rgba(220, 65, 65, 0.9);
 }
+
+.g-os-dock-system-item {
+  border-radius: 12px;
+}
+
+.g-os-dock-system-icon {
+  icon-size: 48px;
+}
