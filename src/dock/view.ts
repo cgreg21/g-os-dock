@@ -288,17 +288,34 @@ export class DockView {
         const vertical = position === 'left' || position === 'right';
         const [itemX, itemY] = item.get_transformed_position();
         const [actorX, actorY] = this.actor.get_transformed_position();
+        const margin = 4;
 
         if (vertical) {
-            const adjustment = this.actor.get_vadjustment();
-            const center = itemY - actorY + item.height / 2;
-            const delta = center - this.actor.height / 2;
-            adjustment.set_value(adjustment.get_value() + delta);
+            const itemTop = itemY - actorY;
+            const itemBottom = itemTop + item.height;
+            let delta = 0;
+            if (itemTop < margin)
+                delta = itemTop - margin;
+            else if (itemBottom > this.actor.height - margin)
+                delta = itemBottom - (this.actor.height - margin);
+
+            if (delta !== 0) {
+                const adjustment = this.actor.get_vadjustment();
+                adjustment.set_value(adjustment.get_value() + delta);
+            }
         } else {
-            const adjustment = this.actor.get_hadjustment();
-            const center = itemX - actorX + item.width / 2;
-            const delta = center - this.actor.width / 2;
-            adjustment.set_value(adjustment.get_value() + delta);
+            const itemLeft = itemX - actorX;
+            const itemRight = itemLeft + item.width;
+            let delta = 0;
+            if (itemLeft < margin)
+                delta = itemLeft - margin;
+            else if (itemRight > this.actor.width - margin)
+                delta = itemRight - (this.actor.width - margin);
+
+            if (delta !== 0) {
+                const adjustment = this.actor.get_hadjustment();
+                adjustment.set_value(adjustment.get_value() + delta);
+            }
         }
     }
 
