@@ -321,7 +321,7 @@ export class DockView {
                 }
             }
 
-            for (const [index, app] of applications.entries()) {
+            for (const app of applications) {
                 const id = app.get_id();
                 let item = id ? previousById.get(id) : undefined;
                 if (item) {
@@ -331,12 +331,16 @@ export class DockView {
                 }
                 if (item.get_parent() !== this.content)
                     this.content.add_child(item);
-                this.content.set_child_at_index(item, index);
                 pendingItems.push(item);
             }
 
             // Remove actors for apps no longer present, and all old actors
             // when a genuine size change requires rebuilding the icon widgets.
+            const previousIds = this.itemActors.map(item => item._gOsDockApp.get_id());
+            const nextIds = pendingItems.map(item => item._gOsDockApp.get_id());
+            const structureChanged = sizeChanged ||
+                previousIds.length !== nextIds.length ||
+                previousIds.some((id, index) => id !== nextIds[index]);
             const retained = new Set(pendingItems);
             for (const item of this.itemActors) {
                 if (!retained.has(item)) {
@@ -349,6 +353,11 @@ export class DockView {
 
             this.itemActors = pendingItems;
             this.itemSize = size;
+            if (structureChanged) {
+                for (const [index, item] of pendingItems.entries())
+                    this.content.set_child_at_index(item, index);
+                this.layout.position();
+            }
         } catch (error) {
             for (const item of pendingItems) {
                 if (!this.itemActors.includes(item)) {
@@ -361,8 +370,6 @@ export class DockView {
             throw error;
         }
 
-        this.appearance.apply();
-        this.layout.position();
         this.updateIndicators();
         this.visibility.queueSmartHideCheck();
     }
@@ -400,6 +407,7 @@ export class DockView {
                 actor.remove_style_class_name('g-os-dock-dev');
         }
 
+        this.appearance.apply();
         this.refresh();
         this.layout.position();
         this.visibility.applySettings();
