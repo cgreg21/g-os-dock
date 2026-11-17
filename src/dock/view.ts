@@ -3,6 +3,7 @@ import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
 import Meta from 'gi://Meta?version=51';
 import Gio from 'gi://Gio?version=2.0';
+import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import { AppContextMenu } from '../features/context-menu/index.js';
