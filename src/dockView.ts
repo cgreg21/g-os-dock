@@ -38,6 +38,10 @@ export class DockView {
     private menuManager: any;
     private itemActors: any[] = [];
     private menus: any[] = [];
+    private previewActor: any = null;
+    private previewSource = 0;
+    private previewHideSource = 0;
+    private previewHoverSignal = 0;
 
     constructor(index: number, monitor: any, settings: any) {
         this.monitor = monitor;
@@ -134,8 +138,11 @@ export class DockView {
             if (item.hover) {
                 const index = this.itemActors.indexOf(item);
                 this.applyMagnification(index, true);
-            } else if (!this.actor.hover) {
-                this.applyMagnification(-1, false);
+                this.schedulePreview(app, item);
+            } else {
+                if (!this.actor.hover)
+                    this.applyMagnification(-1, false);
+                this.schedulePreviewHide();
             }
         });
         item.connect('button-press-event', (_actor: any, event: any) => {
@@ -152,6 +159,148 @@ export class DockView {
         item._gOsDockIndicator = indicator;
         item._gOsDockBadge = badge;
         return item;
+    }
+
+    private schedulePreview(app: any, item: any): void {
+        if (this.previewSource)
+            GLib.source_remove(this.previewSource);
+        if (this.previewHideSource) {
+            GLib.source_remove(this.previewHideSource);
+            this.previewHideSource = 0;
+        }
+        this.previewSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 320, () => {
+            this.previewSource = 0;
+            if (!this.destroyed && item.hover)
+                this.showWindowPreviews(app, item);
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    private schedulePreviewHide(): void {
+        if (this.previewSource) {
+            GLib.source_remove(this.previewSource);
+            this.previewSource = 0;
+        }
+        if (this.previewHideSource)
+            GLib.source_remove(this.previewHideSource);
+        this.previewHideSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 260, () => {
+            this.previewHideSource = 0;
+            if (!this.destroyed && !this.actor.hover && !this.previewActor?.hover)
+                this.hideWindowPreviews();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    private showWindowPreviews(app: any, item: any): void {
+        this.hideWindowPreviews();
+        const windows = app.get_windows();
+        if (windows.length === 0)
+            return;
+
+        const verticalDock = ['left', 'right'].includes(this.settings.get_string('dock-position'));
+        const previews = new St.BoxLayout({
+            style_class: 'g-os-dock-previews',
+            vertical: verticalDock,
+            reactive: true,
+            track_hover: true,
+            x_expand: false,
+            y_expand: false,
+        });
+        previews.set_style('spacing: 8px; padding: 8px; border-radius: 14px; background-color: rgba(24,26,33,0.96); border: 1px solid rgba(255,255,255,0.18);');
+        for (const [index, window] of windows.entries()) {
+            const card = new St.Button({
+                style_class: 'g-os-dock-preview-card',
+                reactive: true,
+                can_focus: true,
+                track_hover: true,
+                x_expand: false,
+                y_expand: false,
+            });
+            card.set_style('padding: 6px; border-radius: 9px; background-color: rgba(255,255,255,0.07);');
+            const content = new St.BoxLayout({ vertical: true, style: 'spacing: 5px;' });
+            let compositorActor: any = null;
+            try { compositorActor = window.get_compositor_private(); } catch (_error) { /* unavailable */ }
+            if (compositorActor && !window.minimized) {
+                const clone = new Clutter.Clone({ source: compositorActor });
+                clone.set_size(176, 104);
+                const thumbnail = new St.Bin({
+                    style_class: 'g-os-dock-preview-thumbnail',
+                    width: 176,
+                    height: 104,
+                    child: clone,
+                });
+                content.add_child(thumbnail);
+            } else {
+                const fallback = app.create_icon_texture(56);
+                const placeholder = new St.Bin({
+                    width: 176,
+                    height: 104,
+                    child: fallback,
+                });
+                content.add_child(placeholder);
+            }
+            let title = '';
+            try { title = window.get_title() || ''; } catch (_error) { /* title unavailable */ }
+            const label = new St.Label({
+                text: (title.trim() || `Window ${index + 1}`).slice(0, 42),
+                style: 'max-width: 176px;',
+                x_align: Clutter.ActorAlign.CENTER,
+            });
+            content.add_child(label);
+            card.set_child(content);
+            card.connect('clicked', () => {
+                try { app.activate_window(window, global.get_current_time()); }
+                catch (_error) { window.activate(global.get_current_time()); }
+                this.hideWindowPreviews();
+            });
+            previews.add_child(card);
+        }
+
+        Main.layoutManager.addChrome(previews, { affectsStruts: false, trackFullscreen: false });
+        this.previewActor = previews;
+        this.previewHoverSignal = previews.connect('notify::hover', () => {
+            if (!previews.hover)
+                this.schedulePreviewHide();
+            else if (this.previewHideSource) {
+                GLib.source_remove(this.previewHideSource);
+                this.previewHideSource = 0;
+            }
+        });
+        const [itemX, itemY] = item.get_transformed_position();
+        const itemWidth = item.width;
+        const itemHeight = item.height;
+        const [previewMinWidth, previewNaturalWidth] = previews.get_preferred_width(-1);
+        const [previewMinHeight, previewNaturalHeight] = previews.get_preferred_height(-1);
+        const previewWidth = Math.max(previewMinWidth, previewNaturalWidth);
+        const previewHeight = Math.max(previewMinHeight, previewNaturalHeight);
+        const position = this.settings.get_string('dock-position');
+        let x = itemX + itemWidth / 2 - previewWidth / 2;
+        let y = itemY - previewHeight - 12;
+        if (position === 'top')
+            y = itemY + itemHeight + 12;
+        else if (position === 'left') {
+            x = itemX + itemWidth + 12;
+            y = itemY + itemHeight / 2 - previewHeight / 2;
+        } else if (position === 'right') {
+            x = itemX - previewWidth - 12;
+            y = itemY + itemHeight / 2 - previewHeight / 2;
+        }
+        x = Math.max(this.monitor.x + 8, Math.min(x, this.monitor.x + this.monitor.width - previewWidth - 8));
+        y = Math.max(this.monitor.y + 8, Math.min(y, this.monitor.y + this.monitor.height - previewHeight - 8));
+        previews.set_position(Math.round(x), Math.round(y));
+        previews.show();
+    }
+
+    private hideWindowPreviews(): void {
+        if (this.previewActor) {
+            if (this.previewHoverSignal) {
+                try { this.previewActor.disconnect(this.previewHoverSignal); } catch (_error) { /* already destroyed */ }
+            }
+            Main.layoutManager.removeChrome(this.previewActor);
+            this.previewActor.destroy();
+            this.previewActor = null;
+            this.previewHoverSignal = 0;
+        }
     }
 
     private updateIndicators(): void {
@@ -482,6 +631,11 @@ export class DockView {
             return;
         this.destroyed = true;
         this.cancelHide();
+        if (this.previewSource) GLib.source_remove(this.previewSource);
+        if (this.previewHideSource) GLib.source_remove(this.previewHideSource);
+        this.previewSource = 0;
+        this.previewHideSource = 0;
+        this.hideWindowPreviews();
         if (this.hoverSignal) this.actor.disconnect(this.hoverSignal);
         if (this.sensorHoverSignal) this.edgeSensor.disconnect(this.sensorHoverSignal);
         if (this.settingsSignal) this.settings.disconnect(this.settingsSignal);
