@@ -27,6 +27,39 @@ G-OS Dock is a GNOME Shell extension written in TypeScript and compiled to JavaS
 - Node.js 20+ and npm.
 - `glib-compile-schemas` and `zip` for packaging.
 
+## Source architecture
+
+The extension source is organized by responsibility. The main dock view coordinates the feature modules rather than implementing every interaction itself.
+
+```text
+src/
+├── dock/
+│   ├── manager.ts
+│   └── view.ts
+├── features/
+│   ├── app-item.ts
+│   ├── appearance.ts
+│   ├── context-menu/
+│   │   └── index.ts
+│   ├── drag-and-drop.ts
+│   ├── indicators.ts
+│   ├── keyboard-navigation.ts
+│   ├── layout.ts
+│   ├── visibility.ts
+│   ├── window-previews/
+│   │   ├── card.ts
+│   │   └── index.ts
+│   └── window-tracker.ts
+├── preferences/
+│   ├── appearance.ts
+│   └── general.ts
+├── extension.ts
+├── prefs.ts
+└── gnome.d.ts
+```
+
+Each feature owns its own behavior and cleanup. `dock/view.ts` wires the modules together; preferences are split by settings group. Keep new code close to the feature it implements, prefer small functions and explicit dependencies, and avoid introducing abstractions that do not simplify the code.
+
 ## Build
 
 ```sh
