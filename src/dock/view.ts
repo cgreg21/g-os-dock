@@ -261,8 +261,36 @@ export class DockView {
 
         const pendingItems: DockAppButton[] = [];
         try {
-            const size = this.settings.get_int('icon-size');
-            for (const app of this.getApplications()) {
+            const applications = this.getApplications();
+            const configuredSize = this.settings.get_int('icon-size');
+            const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
+            const spacing = this.settings.get_int('dock-spacing');
+            const panel = Main.panel as St.Widget;
+            const [panelX, panelY] = panel.get_transformed_position();
+            const panelBottom = panelY + panel.height;
+            const panelAtMonitorTop =
+                panelX < this.monitor.x + this.monitor.width &&
+                panelX + panel.width > this.monitor.x &&
+                panelY <= this.monitor.y + 2 &&
+                panelBottom > this.monitor.y;
+            const usableTop = panelAtMonitorTop
+                ? Math.min(this.monitor.y + this.monitor.height, panelBottom + 12)
+                : this.monitor.y;
+            // Reduce icon size before the natural content can extend beyond its monitor.
+            // The outer content container contributes 16px of padding.
+            const available = vertical
+                ? this.monitor.y + this.monitor.height - usableTop - 24 - 16
+                : this.monitor.width - 24 - 16;
+            const itemOverhead = vertical ? 25 : 4;
+            const fittedSize = applications.length > 0
+                ? Math.floor(
+                    (available - spacing * Math.max(0, applications.length - 1)) /
+                    applications.length,
+                ) - itemOverhead
+                : configuredSize;
+            const size = Math.min(configuredSize, Math.max(16, fittedSize));
+
+            for (const app of applications) {
                 const item = this.createItem(app, size);
                 pendingItems.push(item);
                 this.content.add_child(item);
