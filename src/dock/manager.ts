@@ -13,7 +13,8 @@ export class DockManager {
 
     enable(): void {
         this.rebuild();
-        this.monitorSignal = Main.layoutManager.connect('monitors-changed', () => this.rebuild());
+        // GNOME Shell emits this JS-level signal; it is not exposed in the generated GIR type.
+        this.monitorSignal = (Main.layoutManager as any).connect('monitors-changed', () => this.rebuild());
         this.settingsSignal = this.settings.connect('changed::show-on-all-monitors', () => this.rebuild());
     }
 
