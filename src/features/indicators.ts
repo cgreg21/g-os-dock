@@ -2,7 +2,7 @@ import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import type { DockAppButton } from './app-item.js';
 
-/** Updates running dots, active state and per-app window-count badges. */
+/** Updates configurable open, focused and minimized application indicators. */
 export class DockIndicators {
     constructor(private settings: Gio.Settings, private isDestroyed: () => boolean) {}
 
@@ -11,8 +11,14 @@ export class DockIndicators {
             return;
 
         const focused = global.display.focus_window;
-        const showRunning = this.settings.get_boolean('show-running-indicator');
-        const showCount = this.settings.get_boolean('show-window-count');
+        const enabled = this.settings.get_boolean('show-running-indicator');
+        const showOpen = this.settings.get_boolean('indicator-show-open');
+        const showFocused = this.settings.get_boolean('indicator-show-focused');
+        const showMinimized = this.settings.get_boolean('indicator-show-minimized');
+        const multiple = this.settings.get_string('indicator-mode') === 'multiple';
+        const shape = this.settings.get_string('indicator-shape');
+        const color = this.validColor(this.settings.get_string('indicator-color'));
+        const opacity = Math.max(0, Math.min(1, this.settings.get_double('indicator-opacity')));
 
         for (const item of items) {
             const app = item._gOsDockApp;
@@ -22,9 +28,24 @@ export class DockIndicators {
             const windows = app.get_windows();
             const running = windows.length > 0 || app.get_state() === Shell.AppState.RUNNING;
             const active = !!focused && windows.includes(focused);
+            const minimized = windows.length > 0 && windows.every(window => window.minimized);
+            const shouldShow = enabled && (
+                (showOpen && running) ||
+                (showFocused && active) ||
+                (showMinimized && minimized)
+            );
 
             if (item._gOsDockIndicator) {
-                item._gOsDockIndicator.visible = showRunning && running;
+                const count = multiple ? Math.max(1, windows.length) : 1;
+                const length = shape === 'line' ? Math.min(28, 10 + (count - 1) * 5)
+                    : multiple ? Math.min(24, 5 + (count - 1) * 4) : 5;
+                const thickness = shape === 'line' ? 3 : 5;
+                const radius = shape === 'round' ? '999px' : '0px';
+                item._gOsDockIndicator.visible = shouldShow;
+                item._gOsDockIndicator.set_style(
+                    `width: ${length}px; height: ${thickness}px; ` +
+                    `border-radius: ${radius}; background-color: rgba(${color}, ${opacity});`,
+                );
                 item._gOsDockIndicator.remove_style_class_name('active');
                 if (active)
                     item._gOsDockIndicator.add_style_class_name('active');
@@ -32,6 +53,7 @@ export class DockIndicators {
 
             if (item._gOsDockBadge) {
                 const count = windows.length;
+                const showCount = this.settings.get_boolean('show-window-count');
                 item._gOsDockBadge.text = showCount && count > 1 ? String(count) : '';
                 item._gOsDockBadge.visible = showCount && count > 1;
             }
@@ -40,5 +62,12 @@ export class DockIndicators {
             if (active)
                 item.add_style_class_name('active');
         }
+    }
+
+    private validColor(value: string): string {
+        if (!/^#[0-9a-fA-F]{6}$/.test(value))
+            value = '#e6e6f0';
+        const hex = value.slice(1);
+        return `${parseInt(hex.slice(0, 2), 16)}, ${parseInt(hex.slice(2, 4), 16)}, ${parseInt(hex.slice(4, 6), 16)}`;
     }
 }
