@@ -370,18 +370,24 @@ export class DockView {
             return;
         this.refresh();
         this.position();
-        if (!this.settings.get_boolean('auto-hide')) {
+        const autoHide = this.settings.get_boolean('auto-hide');
+        const smartHide = this.settings.get_boolean('smart-hide');
+        if (!autoHide && !smartHide) {
             this.cancelHide();
             this.actor.show();
             this.actor.opacity = 255;
-            this.edgeSensor.hide();
-        } else {
+        } else if (autoHide) {
+            this.scheduleHide();
+        }
+
+        // Keep a reveal sensor available when either hiding mode is enabled.
+        if (autoHide || smartHide) {
             this.edgeSensor.show();
             this.positionSensor();
-            this.scheduleHide();
-            this.queueSmartHideCheck();
+        } else {
+            this.edgeSensor.hide();
         }
-        if (this.settings.get_boolean('smart-hide'))
+        if (smartHide)
             this.queueSmartHideCheck();
     }
 
@@ -389,6 +395,8 @@ export class DockView {
         if (this.destroyed)
             return;
         const position = this.settings.get_string('dock-position');
+        const vertical = position === 'left' || position === 'right';
+        this.actor.set_vertical(vertical);
         const [minWidth, naturalWidth] = this.actor.get_preferred_width(-1);
         const [minHeight, naturalHeight] = this.actor.get_preferred_height(-1);
         const width = Math.max(minWidth, naturalWidth);
@@ -404,8 +412,6 @@ export class DockView {
             x = this.monitor.x + this.monitor.width - width - 12;
             y = this.monitor.y + Math.round((this.monitor.height - height) / 2);
         }
-        const vertical = position === 'left' || position === 'right';
-        this.actor.set_vertical(vertical);
         this.actor.set_position(x, y);
         this.positionSensor();
     }
