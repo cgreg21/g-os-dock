@@ -1,10 +1,12 @@
 import Clutter from 'gi://Clutter?version=51';
+import Shell from 'gi://Shell?version=51';
+import type { DockAppButton } from './app-item.js';
 
 interface DockKeyboardDependencies {
     settings: any;
-    getItems: () => any[];
+    getItems: () => DockAppButton[];
     showDock: () => void;
-    showPreviews: (app: any, item: any, focusFirst: boolean) => void;
+    showPreviews: (app: Shell.App, item: DockAppButton, focusFirst: boolean) => void;
     hidePreviews: () => void;
     magnify: (index: number, enabled: boolean) => void;
 }
@@ -13,7 +15,7 @@ interface DockKeyboardDependencies {
 export class DockKeyboardNavigation {
     constructor(private dependencies: DockKeyboardDependencies) {}
 
-    handle(item: any, event: any): boolean {
+    handle(item: DockAppButton, event: Clutter.Event): boolean {
         const key = event.get_key_symbol();
         const items = this.dependencies.getItems();
         const vertical = ['left', 'right'].includes(
