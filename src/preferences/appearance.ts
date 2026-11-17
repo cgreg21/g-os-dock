@@ -20,7 +20,7 @@ export function addAppearancePreferences(page: Adw.PreferencesPage, settings: Gi
         ['background-padding-right', 'Right'],
         ['background-padding-bottom', 'Bottom'],
         ['background-padding-left', 'Left'],
-    ])
+    ] as const)
         addSpin(backgroundPadding, settings, key, title, 0, 48, 1);
 
     const corners = new Adw.PreferencesGroup({ title: 'Corner radius' });
@@ -30,7 +30,7 @@ export function addAppearancePreferences(page: Adw.PreferencesPage, settings: Gi
         ['radius-top-right', 'Top right'],
         ['radius-bottom-right', 'Bottom right'],
         ['radius-bottom-left', 'Bottom left'],
-    ])
+    ] as const)
         addSpin(corners, settings, key, title, 0, 64, 1);
 
     const icons = new Adw.PreferencesGroup({ title: 'Icons' });
@@ -42,7 +42,7 @@ export function addAppearancePreferences(page: Adw.PreferencesPage, settings: Gi
         ['icon-padding-right', 'Right padding'],
         ['icon-padding-bottom', 'Bottom padding'],
         ['icon-padding-left', 'Left padding'],
-    ])
+    ] as const)
         addSpin(icons, settings, key, title, 0, 24, 1);
 
     const indicators = new Adw.PreferencesGroup({ title: 'Running indicators' });
