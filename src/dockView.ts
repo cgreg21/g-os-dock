@@ -1,6 +1,5 @@
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
-import Shell from 'gi://Shell';
 import Meta from 'gi://Meta';
 import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -10,6 +9,7 @@ import { DockDragDrop } from './features/drag-and-drop.js';
 import { DockVisibility } from './features/visibility.js';
 import { DockAppearance } from './features/appearance.js';
 import { DockLayout } from './features/layout.js';
+import { DockIndicators } from './features/indicators.js';
 import { WindowPreviews } from './windowPreviews.js';
 
 const MAGNIFICATION_RADIUS = 2;
@@ -42,6 +42,7 @@ export class DockView {
     private visibility: DockVisibility;
     private appearance: DockAppearance;
     private layout: DockLayout;
+    private indicators: DockIndicators;
 
     constructor(index: number, monitor: any, settings: any) {
         this.monitor = monitor;
@@ -92,6 +93,7 @@ export class DockView {
             this.settings,
             () => this.destroyed,
         );
+        this.indicators = new DockIndicators(this.settings, () => this.destroyed);
 
         Main.layoutManager.addChrome(this.actor, { affectsStruts: false, trackFullscreen: false });
         Main.layoutManager.addChrome(this.edgeSensor, { affectsStruts: false, trackFullscreen: false });
@@ -288,33 +290,7 @@ export class DockView {
     }
 
     private updateIndicators(): void {
-        if (this.destroyed)
-            return;
-        const focused = global.display.focus_window;
-        const showRunning = this.settings.get_boolean('show-running-indicator');
-        const showCount = this.settings.get_boolean('show-window-count');
-        for (const item of this.itemActors) {
-            const app = item._gOsDockApp;
-            if (!app)
-                continue;
-            const windows = app.get_windows();
-            const running = windows.length > 0 || app.get_state() === Shell.AppState.RUNNING;
-            const active = !!focused && windows.includes(focused);
-            if (item._gOsDockIndicator) {
-                item._gOsDockIndicator.visible = showRunning && running;
-                item._gOsDockIndicator.remove_style_class_name('active');
-                if (active)
-                    item._gOsDockIndicator.add_style_class_name('active');
-            }
-            if (item._gOsDockBadge) {
-                const count = windows.length;
-                item._gOsDockBadge.text = showCount && count > 1 ? String(count) : '';
-                item._gOsDockBadge.visible = showCount && count > 1;
-            }
-            item.remove_style_class_name('active');
-            if (active)
-                item.add_style_class_name('active');
-        }
+        this.indicators.update(this.itemActors);
     }
 
     private trackExistingWindows(): void {
