@@ -10,7 +10,8 @@ const EDGE_THICKNESS = 3;
 /** Calculates dock and reveal-sensor geometry for its monitor. */
 export class DockLayout {
     constructor(
-        private actor: St.BoxLayout,
+        private actor: St.ScrollView,
+        private content: St.BoxLayout,
         private edgeSensor: St.Widget,
         private monitor: MonitorGeometry,
         private settings: Gio.Settings,
@@ -23,33 +24,42 @@ export class DockLayout {
 
         const position = this.settings.get_string('dock-position');
         const vertical = position === 'left' || position === 'right';
-        this.actor.orientation = vertical
+        this.content.orientation = vertical
             ? Clutter.Orientation.VERTICAL
             : Clutter.Orientation.HORIZONTAL;
 
-        const [minWidth, naturalWidth] = this.actor.get_preferred_width(-1);
-        const [minHeight, naturalHeight] = this.actor.get_preferred_height(-1);
+        const [minWidth, naturalWidth] = this.content.get_preferred_width(-1);
+        const [minHeight, naturalHeight] = this.content.get_preferred_height(-1);
         const width = Math.max(minWidth, naturalWidth);
         const height = Math.max(minHeight, naturalHeight);
+        const viewportHeight = vertical
+            ? Math.min(height, Math.max(1, this.monitor.height - 24))
+            : height;
+
+        this.actor.set_policy(
+            St.PolicyType.NEVER,
+            vertical ? St.PolicyType.AUTOMATIC : St.PolicyType.NEVER,
+        );
+        this.actor.set_size(width, viewportHeight);
 
         let x = this.monitor.x + Math.round((this.monitor.width - width) / 2);
-        let y = this.monitor.y + this.monitor.height - height - 12;
+        let y = this.monitor.y + this.monitor.height - viewportHeight - 12;
 
         if (position === 'top') {
             y = this.monitor.y + 12;
         } else if (position === 'left') {
             x = this.monitor.x;
-            y = this.monitor.y + Math.round((this.monitor.height - height) / 2);
+            y = this.monitor.y + Math.round((this.monitor.height - viewportHeight) / 2);
         } else if (position === 'right') {
             x = this.monitor.x + this.monitor.width - width;
-            y = this.monitor.y + Math.round((this.monitor.height - height) / 2);
+            y = this.monitor.y + Math.round((this.monitor.height - viewportHeight) / 2);
         }
 
         // Keep oversized docks anchored to the monitor instead of centering
         // them at a negative stage coordinate. This is especially important
         // for vertical docks with many running/favorite applications.
         const maxX = Math.max(this.monitor.x, this.monitor.x + this.monitor.width - width);
-        const maxY = Math.max(this.monitor.y, this.monitor.y + this.monitor.height - height);
+        const maxY = Math.max(this.monitor.y, this.monitor.y + this.monitor.height - viewportHeight);
         x = Math.max(this.monitor.x, Math.min(x, maxX));
         y = Math.max(this.monitor.y, Math.min(y, maxY));
 
