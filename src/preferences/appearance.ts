@@ -12,6 +12,15 @@ export function addAppearancePreferences(page: Adw.PreferencesPage, settings: Gi
     addSpin(base, settings, 'border-size', 'Border thickness', 0, 12, 1);
     addSpin(base, settings, 'edge-distance', 'Distance from screen edge', 0, 64, 1);
 
+    const shadow = new Adw.PreferencesGroup({ title: 'Background shadow' });
+    page.add(shadow);
+    addSwitch(shadow, settings, 'background-shadow-enabled', 'Enable background shadow');
+    addColorPicker(shadow, settings, 'background-shadow-color', 'background-shadow-opacity', 'Shadow color');
+    addSpin(shadow, settings, 'background-shadow-offset-x', 'Horizontal offset (px)', -32, 32, 1);
+    addSpin(shadow, settings, 'background-shadow-offset-y', 'Vertical offset (px)', -32, 32, 1);
+    addSpin(shadow, settings, 'background-shadow-blur', 'Blur radius (px)', 0, 64, 1);
+    addSpin(shadow, settings, 'background-shadow-spread', 'Spread radius (px)', -16, 32, 1);
+
     const backgroundPadding = new Adw.PreferencesGroup({ title: 'Background padding' });
     page.add(backgroundPadding);
     for (const [key, title] of [
