@@ -61,9 +61,13 @@ export class DockView {
         this.desktopSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
         this.appSystem = Shell.AppSystem.get_default();
         this.favorites = AppFavorites.getAppFavorites();
+        const dockPosition = this.settings.get_string('dock-position');
+        const vertical = dockPosition === 'left' || dockPosition === 'right';
         this.actor = new St.BoxLayout({
             style_class: 'g-os-dock',
-            orientation: Clutter.Orientation.HORIZONTAL,
+            orientation: vertical
+                ? Clutter.Orientation.VERTICAL
+                : Clutter.Orientation.HORIZONTAL,
             reactive: true,
             track_hover: true,
         });
