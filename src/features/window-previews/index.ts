@@ -18,6 +18,7 @@ export class WindowPreviews {
     private showSource = 0;
     private hideSource = 0;
     private hoverSignal = 0;
+    private keySignal = 0;
 
     constructor(
         private settings: Gio.Settings,
@@ -97,7 +98,7 @@ export class WindowPreviews {
 
         Main.layoutManager.addChrome(previews, { affectsStruts: false, trackFullscreen: false });
         this.actor = previews;
-        previews.connect('key-press-event', (_actor: St.Widget, event: Clutter.Event) => {
+        this.keySignal = previews.connect('key-press-event', (_actor: St.Widget, event: Clutter.Event) => {
             if (event.get_key_symbol() !== Clutter.KEY_Escape)
                 return Clutter.EVENT_PROPAGATE;
             this.hide();
@@ -140,14 +141,19 @@ export class WindowPreviews {
     }
 
     hide(): void {
+        this.cancelPending();
         if (this.actor) {
             if (this.hoverSignal) {
                 try { this.actor.disconnect(this.hoverSignal); } catch (_error) { /* already destroyed */ }
+            }
+            if (this.keySignal) {
+                try { this.actor.disconnect(this.keySignal); } catch (_error) { /* already destroyed */ }
             }
             Main.layoutManager.removeChrome(this.actor);
             this.actor.destroy();
             this.actor = null;
             this.hoverSignal = 0;
+            this.keySignal = 0;
         }
     }
 
