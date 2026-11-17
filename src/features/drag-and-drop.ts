@@ -10,6 +10,7 @@ export interface DockDndItem {
     actor: St.Widget;
     app?: Shell.App;
     canRemove?: () => boolean;
+    isFavorite?: () => boolean;
     onRemove?: () => void;
 }
 
@@ -153,9 +154,7 @@ export class DockDragDrop {
     }
 
     private isFavorite(item: DockDndItem): boolean {
-        return item.app?.get_id()
-            ? this.settings.get_strv('favorite-apps').includes(item.app.get_id()!)
-            : false;
+        return item.isFavorite?.() ?? false;
     }
 
     private beginPreview(item: DockDndItem): void {
