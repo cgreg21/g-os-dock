@@ -111,3 +111,13 @@
 .g-os-dock-edge-scroll-zone {
   background-color: transparent;
 }
+
+/* Keep St.ScrollView adjustments active, but remove the native scrollbar
+ * actors from the dock's visible and interactive area. */
+StScrollView.g-os-dock StScrollBar {
+  width: 0;
+  height: 0;
+  min-width: 0;
+  min-height: 0;
+  opacity: 0;
+}
