@@ -98,7 +98,6 @@ export class DockView {
             this.actor,
             this.content,
             this.settings,
-            this.favorites,
             () => this.getDndItems(),
             ids => this.persistItemOrder(ids),
             this.monitor,
