@@ -1,7 +1,7 @@
 name: Build G-OS Dock
 on:
   push:
-    branches: [main]
+    branches: [main, 'v*']
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -25,8 +25,10 @@ jobs:
           name: g-os-dock-gnome-extension
           path: g-os-dock@cgreg21.github.io.zip
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/v')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          target_commitish: main
           generate_release_notes: true
           files: g-os-dock@cgreg21.github.io.zip
