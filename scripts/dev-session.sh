@@ -40,6 +40,7 @@ echo "Starting an isolated nested GNOME Shell session ($SHELL_MODE)."
 echo "Private GNOME profile: $DEV_HOME"
 echo "Close the nested GNOME window or press Ctrl+C here to stop."
 
+# shellcheck disable=SC2016 # The nested script must expand variables in its own shell.
 dbus-run-session -- bash -Eeuo pipefail -c '
     ROOT="$1"
     SHELL_MODE="$2"
