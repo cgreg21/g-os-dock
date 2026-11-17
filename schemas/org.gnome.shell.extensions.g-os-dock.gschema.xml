@@ -36,6 +36,7 @@
     <key name="indicator-shape" type="s"><default>'round'</default><summary>Indicator shape: round, square or line</summary></key>
     <key name="indicator-color" type="s"><default>'#e6e6f0'</default><summary>Indicator color in hexadecimal</summary></key>
     <key name="indicator-opacity" type="d"><range min="0.0" max="1.0"/><default>0.72</default><summary>Indicator opacity</summary></key>
+    <key name="indicator-bottom-offset" type="i"><range min="-32" max="32"/><default>0</default><summary>Indicator offset from icon bottom in pixels; positive moves upward</summary></key>
     <key name="indicator-show-open" type="b"><default>true</default><summary>Show indicator for open applications</summary></key>
     <key name="indicator-show-focused" type="b"><default>true</default><summary>Show indicator for focused applications</summary></key>
     <key name="indicator-show-minimized" type="b"><default>false</default><summary>Show indicator for minimized applications</summary></key>
