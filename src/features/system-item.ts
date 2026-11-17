@@ -16,7 +16,7 @@ export class DockSystemItem {
 
     constructor(private content: St.BoxLayout, private settings: Gio.Settings,
         private iconSize: number, private dockPosition: () => string,
-        dragDrop: DockDragDrop) {
+        private dragDrop: DockDragDrop) {
         this.button = new St.Button({
             style_class: 'g-os-dock-item g-os-dock-system-item', reactive: true,
             can_focus: true, track_hover: true, x_expand: false, y_expand: false,
@@ -124,6 +124,7 @@ export class DockSystemItem {
         if (this.destroyed) return;
         this.destroyed = true;
         if (this.iconSignal) this.settings.disconnect(this.iconSignal);
+        this.dragDrop.unregisterItem(this.button);
         if (this.menu) {
             this.menu.close();
             this.menuManager.removeMenu(this.menu);
