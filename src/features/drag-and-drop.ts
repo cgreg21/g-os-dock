@@ -160,16 +160,13 @@ export class DockDragDrop {
         const items = this.getItems().filter(item => item.id !== this.draggedItem!.id);
         const target = Math.max(0, Math.min(index, items.length));
         this.previewIndex = target;
-        // Resolve the insertion point against the real children while
-        // excluding both the hidden source and the moving placeholder. This
-        // avoids off-by-one errors when the placeholder crosses its source.
+        // Resolve the slot from registered dock items only. Structural
+        // actors such as the favorites separator are intentionally ignored.
         const children = this.content.get_children();
-        const withoutPreview = children.filter(child => child !== this.previewSlot);
-        const siblings = withoutPreview.filter(child => child !== this.draggedItem!.actor);
-        const reference = siblings[target];
+        const reference = items[target]?.actor;
         const childIndex = reference
-            ? withoutPreview.indexOf(reference)
-            : withoutPreview.length;
+            ? children.indexOf(reference)
+            : children.length - 1;
         this.content.set_child_at_index(
             this.previewSlot,
             Math.max(0, Math.min(childIndex, children.length - 1)),
