@@ -8,7 +8,7 @@ import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import { AppContextMenu } from '../features/context-menu/index.js';
-import { DockDragDrop, type DockDragSource } from '../features/drag-and-drop.js';
+import { DockDragDrop, type DockDragSource, type DockDndItem } from '../features/drag-and-drop.js';
 import { DockVisibility } from '../features/visibility.js';
 import { DockAppearance } from '../features/appearance.js';
 import { DockLayout } from '../features/layout.js';
@@ -99,9 +99,8 @@ export class DockView {
             this.content,
             this.settings,
             this.favorites,
-            () => this.itemActors,
-            () => this.systemItem?.getActor() ?? null,
-            index => this.settings.set_int('system-icon-position', index),
+            () => this.getDndItems(),
+            ids => this.persistItemOrder(ids),
             this.monitor,
         );
         this.actor._delegate = this;
@@ -290,7 +289,57 @@ export class DockView {
             }
         }
 
+        const savedOrder = this.settings.get_strv('dock-item-order');
+        const order = new Map(savedOrder.map((id, index) => [id, index]));
+        result.sort((a, b) =>
+            (order.get(`app:${a.get_id()}`) ?? Number.MAX_SAFE_INTEGER) -
+            (order.get(`app:${b.get_id()}`) ?? Number.MAX_SAFE_INTEGER),
+        );
         return result;
+    }
+
+    private getDndItems(): DockDndItem[] {
+        const items: DockDndItem[] = this.itemActors.map(item => ({
+            id: `app:${item._gOsDockApp.get_id()}`,
+            actor: item,
+            app: item._gOsDockApp,
+        }));
+        if (this.systemItem)
+            items.push({ id: 'system:launcher', actor: this.systemItem.getActor() });
+        return items;
+    }
+
+    private persistItemOrder(ids: string[]): void {
+        this.settings.set_strv('dock-item-order', ids);
+        const favoriteIds = this.favorites.getFavorites().map(app => app.get_id());
+        const orderedFavorites = ids
+            .filter(id => id.startsWith('app:'))
+            .map(id => id.slice(4))
+            .filter(id => favoriteIds.includes(id));
+        for (const [index, id] of orderedFavorites.entries()) {
+            const current = this.favorites.getFavorites().findIndex(app => app.get_id() === id);
+            if (current >= 0 && current !== index)
+                this.favorites.moveFavoriteToPos(id, index);
+        }
+        const systemIndex = ids.indexOf('system:launcher');
+        if (systemIndex >= 0)
+            this.settings.set_int('system-icon-position', systemIndex);
+    }
+
+    private applySavedItemOrder(): void {
+        const children = this.content.get_children();
+        const actors = this.getDndItems();
+        const saved = this.settings.get_strv('dock-item-order');
+        const rank = new Map(saved.map((id, index) => [id, index]));
+        actors.sort((a, b) =>
+            (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+            (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+        );
+        for (const [index, item] of actors.entries()) {
+            const current = this.content.get_children().indexOf(item.actor);
+            if (current >= 0 && current !== index)
+                this.content.set_child_at_index(item.actor, index);
+        }
     }
 
     private refresh(): void {
@@ -383,11 +432,8 @@ export class DockView {
 
             this.itemActors = pendingItems;
             this.itemSize = size;
-            if (structureChanged) {
-                for (const [index, item] of pendingItems.entries())
-                    this.content.set_child_at_index(item, index);
-            }
             const systemItemChanged = this.syncSystemItem(size);
+            this.applySavedItemOrder();
             if (structureChanged || systemItemChanged)
                 this.layout.position();
         } catch (error) {
@@ -419,27 +465,11 @@ export class DockView {
             this.systemItem = new DockSystemItem(
                 this.content, this.settings, size,
                 () => this.settings.get_string('dock-position'),
-                {
-                    begin: actor => this.dragDrop.beginSystemPreview(actor),
-                    end: () => this.dragDrop.endSystemPreview(),
-                },
+                this.dragDrop,
             );
-            const children = this.content.get_children();
-            const targetIndex = Math.max(0, Math.min(
-                this.settings.get_int('system-icon-position'), children.length - 1,
-            ));
-            this.content.set_child_at_index(this.systemItem.getActor(), targetIndex);
             return true;
         }
         this.systemItem.setIconSize(size);
-        const children = this.content.get_children();
-        const targetIndex = Math.max(0, Math.min(
-            this.settings.get_int('system-icon-position'), children.length - 1,
-        ));
-        if (children[targetIndex] !== this.systemItem.getActor()) {
-            this.content.set_child_at_index(this.systemItem.getActor(), targetIndex);
-            return true;
-        }
         return false;
     }
 
