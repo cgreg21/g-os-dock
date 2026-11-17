@@ -327,14 +327,15 @@ export class DockView {
             .map(id => id.slice(4));
         const favoriteCount = this.favorites.getFavorites().length;
 
+        this.settings.set_strv('dock-item-order', ids);
+
         // Dropping a running, non-favorite app into the favorites section pins
-        // it in GNOME. This keeps the drag gesture and persisted order in sync.
+        // it in GNOME. Persist the order first because addFavorite emits
+        // favorites.changed and can synchronously trigger a dock refresh.
         for (const id of appIds.slice(0, favoriteCount)) {
             if (!this.favorites.isFavorite(id))
                 this.favorites.addFavorite(id);
         }
-
-        this.settings.set_strv('dock-item-order', ids);
         const currentFavorites = this.favorites.getFavorites().map(app => app.get_id());
         const orderedFavorites = appIds.filter(id => currentFavorites.includes(id));
         for (const [index, id] of orderedFavorites.entries()) {
@@ -497,11 +498,14 @@ export class DockView {
 
     private syncFavoritesSeparator(size: number, vertical: boolean): void {
         const enabled = this.settings.get_boolean('show-favorites-separator');
+        const hasFavorite = this.itemActors.some(item =>
+            this.favorites.isFavorite(item._gOsDockApp.get_id()),
+        );
         const firstNonFavorite = this.itemActors.find(item =>
             !this.favorites.isFavorite(item._gOsDockApp.get_id()),
         );
 
-        if (!enabled || !firstNonFavorite) {
+        if (!enabled || !hasFavorite || !firstNonFavorite) {
             if (this.favoritesSeparator) {
                 this.favoritesSeparator.get_parent()?.remove_child(this.favoritesSeparator);
                 this.favoritesSeparator.destroy();
