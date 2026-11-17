@@ -9,7 +9,7 @@ interface DockAppItemDependencies {
     getItems: () => any[];
     isDockHovered: () => boolean;
     activateApp: (app: any) => void;
-    handleKeyPress: (item: any, event: any) => number;
+    handleKeyPress: (item: any, event: any) => boolean;
     magnify: (index: number, enabled: boolean) => void;
 }
 
@@ -30,7 +30,7 @@ export class DockAppItemFactory {
         icon.set_size(size, size);
         content.add_child(icon);
 
-        const item = new St.Button({
+        const item: any = new St.Button({
             style_class: 'g-os-dock-item',
             reactive: true,
             can_focus: true,
