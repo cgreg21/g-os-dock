@@ -19,10 +19,6 @@ import { WindowPreviews } from '../features/window-previews/index.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
-const MAGNIFICATION_RADIUS = 2.4;
-const MAGNIFICATION_FACTOR = 1.55;
-const MAGNIFICATION_DURATION = 190;
-
 export class DockView {
     private actor: St.ScrollView & { _delegate?: unknown };
     private content: St.BoxLayout;
@@ -151,7 +147,6 @@ export class DockView {
             showDock: () => this.visibility.show(),
             showPreviews: (app, item, focusFirst) => this.previews.show(app, item, focusFirst),
             hidePreviews: () => this.previews.hide(),
-            magnify: (index, enabled) => this.applyMagnification(index, enabled),
             ensureVisible: item => this.ensureItemVisible(item),
         });
         this.appItemFactory = new DockAppItemFactory({
@@ -160,10 +155,8 @@ export class DockView {
             previews: this.previews,
             contextMenu: this.contextMenu,
             getItems: () => this.itemActors,
-            isDockHovered: () => this.actor.hover,
             activateApp: app => this.activateApp(app),
             handleKeyPress: (item, event) => this.keyboard.handle(item, event),
-            magnify: (index, enabled) => this.applyMagnification(index, enabled),
         });
 
         try {
@@ -368,7 +361,6 @@ export class DockView {
         this.appearance.apply();
         this.layout.position();
         this.updateScrollControls();
-        this.applyMagnification(-1, false);
         this.updateIndicators();
         this.visibility.queueSmartHideCheck();
     }
@@ -516,42 +508,6 @@ export class DockView {
         }
     }
 
-    private applyMagnification(index: number, enabled: boolean): void {
-        const base = this.settings.get_int('icon-size');
-        const vertical = this.isVerticalDock();
-        const lastIndex = this.itemActors.length - 1;
-
-        this.itemActors.forEach((item, i) => {
-            const distance = Math.abs(i - index);
-            // A smooth bell-shaped curve avoids abrupt size steps between
-            // the focused icon and its neighbours.
-            const influence = enabled && index >= 0
-                ? Math.exp(-0.5 * Math.pow(distance / MAGNIFICATION_RADIUS, 2))
-                : 0;
-            const scale = 1 + (MAGNIFICATION_FACTOR - 1) * influence;
-            const push = index >= 0 && enabled
-                ? Math.sign(i - index) * (scale - 1) * base * 0.42
-                : 0;
-
-            item.set_pivot_point(0.5, 0.5);
-            item.ease({
-                scaleX: scale,
-                scaleY: scale,
-                translationX: vertical ? 0 : push,
-                translationY: vertical ? push : 0,
-                duration: MAGNIFICATION_DURATION,
-                mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
-                ...(i === lastIndex ? {
-                    onComplete: () => {
-                        if (!this.destroyed) {
-                            this.layout.position();
-                            this.updateScrollControls();
-                        }
-                    },
-                } : {}),
-            });
-        });
-    }
 
     private applySettings(): void {
         if (this.destroyed)
