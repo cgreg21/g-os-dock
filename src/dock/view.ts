@@ -130,6 +130,17 @@ export class DockView {
             can_focus: false,
             track_hover: true,
         });
+        if (GLib.getenv('G_OS_DOCK_DEV_MODE') === '1') {
+            // Keep the debug shadow limited to this dock and all its descendants.
+            for (const actor of [
+                this.actor,
+                this.background,
+                this.edgeSensor,
+                this.scrollStartZone,
+                this.scrollEndZone,
+            ])
+                actor.add_style_class_name('g-os-dock-dev');
+        }
         this.visibility = new DockVisibility(
             this.actor,
             this.background,
