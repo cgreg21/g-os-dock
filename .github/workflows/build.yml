@@ -30,5 +30,6 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           target_commitish: ${{ github.sha }}
+          draft: false
           generate_release_notes: true
           files: g-os-dock@cgreg21.github.io.zip
