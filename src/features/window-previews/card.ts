@@ -130,7 +130,6 @@ function getWorkspaceInfo(window: Meta.Window): {
     workspace: Meta.Workspace | null;
     index: number;
     onAllWorkspaces: boolean;
-    label: string;
 } {
     let workspace: Meta.Workspace | null = null;
     let index = -1;
@@ -143,10 +142,7 @@ function getWorkspaceInfo(window: Meta.Window): {
         // Special windows may not expose normal workspace metadata.
     }
 
-    const label = onAllWorkspaces
-        ? 'All workspaces'
-        : index >= 0 ? `Workspace ${index + 1}` : 'Workspace unavailable';
-    return { workspace, index, onAllWorkspaces, label };
+    return { workspace, index, onAllWorkspaces };
 }
 
 function activateWindow(app: Shell.App, window: Meta.Window, timestamp = global.get_current_time()): void {
