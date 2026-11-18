@@ -2,6 +2,7 @@ import Gio from 'gi://Gio?version=2.0';
 import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
 import type { DockAppButton } from '../applications/app-item.js';
+import { resolveDockKeyboardAction, resolveWrappedDockIndex } from './keyboard-navigation-state.js';
 
 interface DockKeyboardDependencies {
     settings: Gio.Settings;
@@ -19,41 +20,48 @@ export class DockKeyboardNavigation {
         const key = event.get_key_symbol();
         const items = this.dependencies.getItems();
         const position = this.dependencies.settings.get_string('dock-position');
-        const vertical = position === 'left' || position === 'right';
-        const previousKey = vertical ? Clutter.KEY_Up : Clutter.KEY_Left;
-        const nextKey = vertical ? Clutter.KEY_Down : Clutter.KEY_Right;
         const index = items.indexOf(item);
 
         if (index < 0)
             return Clutter.EVENT_PROPAGATE;
 
-        if (key === previousKey)
+        const action = resolveDockKeyboardAction(key, position, {
+            left: Clutter.KEY_Left,
+            right: Clutter.KEY_Right,
+            up: Clutter.KEY_Up,
+            down: Clutter.KEY_Down,
+            home: Clutter.KEY_Home,
+            end: Clutter.KEY_End,
+            escape: Clutter.KEY_Escape,
+        });
+        switch (action) {
+        case 'previous':
             return this.focusItem(index - 1, items);
-        if (key === nextKey)
+        case 'next':
             return this.focusItem(index + 1, items);
-
-        if (key === this.getInwardKey(position)) {
+        case 'previews':
             this.dependencies.showPreviews(item._gOsDockApp, item, true);
             return Clutter.EVENT_STOP;
-        }
-        if (key === Clutter.KEY_Home)
+        case 'first':
             return this.focusItem(0, items);
-        if (key === Clutter.KEY_End)
+        case 'last':
             return this.focusItem(items.length - 1, items);
-        if (key === Clutter.KEY_Escape) {
+        case 'escape':
             this.dependencies.hidePreviews();
             item.grab_key_focus();
             return Clutter.EVENT_STOP;
+        default:
+            return Clutter.EVENT_PROPAGATE;
         }
-
-        return Clutter.EVENT_PROPAGATE;
     }
 
     private focusItem(index: number, items: DockAppButton[]): boolean {
         if (items.length === 0)
             return Clutter.EVENT_PROPAGATE;
 
-        const normalized = (index + items.length) % items.length;
+        const normalized = resolveWrappedDockIndex(index, items.length);
+        if (normalized === null)
+            return Clutter.EVENT_PROPAGATE;
         this.dependencies.showDock();
         const target = items[normalized];
         if (!target)
