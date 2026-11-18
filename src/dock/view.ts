@@ -20,6 +20,7 @@ import { WindowPreviews } from '../features/window-previews/index.js';
 import { DockSystemItem } from '../features/system-item.js';
 import { DockTrashItem } from '../features/trash-item.js';
 import { DockVolumeItems } from '../features/volume-items.js';
+import { getIconPaddingStyle } from '../features/icon-padding.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -767,13 +768,7 @@ export class DockView {
 
     /** Update per-side icon padding on retained actors when preferences change. */
     private updateItemPadding(item: DockAppButton, size: number): void {
-        const top = this.settings.get_int('icon-padding-top');
-        const right = this.settings.get_int('icon-padding-right');
-        const bottom = this.settings.get_int('icon-padding-bottom');
-        const left = this.settings.get_int('icon-padding-left');
-        const style = `padding: ${top}px ${right}px ${bottom}px ${left}px; ` +
-            `min-width: ${size + left + right}px; ` +
-            `min-height: ${size + top + bottom}px;`;
+        const style = getIconPaddingStyle(this.settings, size);
         if (item._gOsDockPaddingStyle === style)
             return;
         item.set_style(style);
