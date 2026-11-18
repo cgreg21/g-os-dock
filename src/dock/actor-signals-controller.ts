@@ -1,6 +1,5 @@
 import St from 'gi://St?version=51';
-import { ManagedSignalController } from '../features/managed-signal-controller.js';
-
+import { ManagedSignalController, type SignalEmitter } from '../features/managed-signal-controller.js';
 
 export interface DockActorSignalCallbacks {
     positionDock(): void;
@@ -43,9 +42,6 @@ export class DockActorSignalsController extends ManagedSignalController {
         this.connectSignal(this.content, 'notify::allocation', () => {
             this.run(() => this.callbacks.queueLayoutUpdate());
         });
-    }
-
-    destroy(): void {
     }
 
 }
