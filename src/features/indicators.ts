@@ -61,7 +61,10 @@ export class DockIndicators {
                 const signature = [markerCount, length, thickness, radius, color, opacity,
                     borderSize, borderColor, borderOpacity].join(':');
                 if (this.markerSignatures.get(item) !== signature) {
-                    item._gOsDockIndicator.set_style('spacing: 2px; width: auto; height: auto; background-color: transparent;');
+                    item._gOsDockIndicator.set_style(dockCache.getOrCreate(
+                        'indicator-marker-container-style',
+                        () => 'spacing: 2px; width: auto; height: auto; background-color: transparent;',
+                    ));
                     for (const child of item._gOsDockIndicator.get_children())
                         child.destroy();
                     for (let index = 0; index < markerCount; index++) {
