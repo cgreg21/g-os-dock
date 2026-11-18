@@ -10,6 +10,7 @@ const defaults = {
     spacing: 8,
     showFavoritesSeparator: true,
     separatorSize: 2,
+    separatorMargin: 4,
     additionalItemCount: 2,
     iconPadding: 0,
     vertical: false,
