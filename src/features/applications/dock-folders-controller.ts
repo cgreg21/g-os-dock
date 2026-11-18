@@ -89,7 +89,10 @@ export class DockFoldersController {
             } else {
                 const membersChanged = folder.appIds.join('\\0') !== validIds.join('\\0');
                 folder.name = record.name;
-                folder.viewMode = record.viewMode;
+                if (record.viewMode)
+                    folder.viewMode = record.viewMode;
+                else
+                    delete folder.viewMode;
                 folder.appIds = validIds;
                 if (folder.iconSize !== iconSize || membersChanged) {
                     folder.actor.set_child(this.createFolderPreview(folder, iconSize));
@@ -182,13 +185,12 @@ export class DockFoldersController {
             folder.id !== sourceId && folder.id !== target.id,
         );
         const targetId = targetFolder?.id ?? `folder:${GLib.uuid_string_random()}`;
+        const inheritedViewMode = targetFolder?.viewMode ?? sourceFolder?.viewMode;
         records.push({
             id: targetId,
             name: targetFolder?.name ?? sourceFolder?.name ?? 'Folder',
             appIds: members,
-            ...(targetFolder?.viewMode ?? sourceFolder?.viewMode
-                ? { viewMode: targetFolder?.viewMode ?? sourceFolder?.viewMode }
-                : {}),
+            ...(inheritedViewMode ? { viewMode: inheritedViewMode } : {}),
         });
         this.settings.set_strv('dock-folders', records.map(folder => JSON.stringify(folder)));
 
