@@ -7,11 +7,12 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { DockDragDrop } from './drag-and-drop.js';
 import { getDockMenuSide } from './menu-position.js';
 import { DockItemBase } from './dock-item-base.js';
+import { PopupMenuLifecycle } from './popup-menu-lifecycle.js';
 
 /** Configurable app-grid launcher and GNOME system actions. */
 export class DockSystemItem {
     private button: St.Button;
-    private menuManager: PopupMenu.PopupMenuManager;
+    private menuLifecycle: PopupMenuLifecycle;
     private menu: PopupMenu.PopupMenu | null = null;
     private item: DockItemBase;
     private destroyed = false;
@@ -42,7 +43,7 @@ export class DockSystemItem {
         });
         const iconSignal = settings.connect('changed::system-icon-name', () => this.updateIcon());
         this.item.cleanup.addSignal(settings, iconSignal);
-        this.menuManager = new PopupMenu.PopupMenuManager(this.button);
+        this.menuLifecycle = new PopupMenuLifecycle(new PopupMenu.PopupMenuManager(this.button));
     }
 
     private updateIcon(): void {
@@ -59,7 +60,7 @@ export class DockSystemItem {
         const menu = new PopupMenu.PopupMenu(this.button, 0.5, side);
         this.menu = menu;
         Main.uiGroup.add_child(menu.actor);
-        this.menuManager.addMenu(menu);
+        this.menuLifecycle.track(menu);
         this.addItem(menu, 'System settings', () => {
             try { Gio.Subprocess.new(['gnome-control-center'], Gio.SubprocessFlags.NONE); }
             catch (error) { logError(error as Error, 'Unable to open GNOME Settings'); }
@@ -72,13 +73,6 @@ export class DockSystemItem {
         ));
         this.addItem(menu, 'Restart…', () => this.requestSessionAction('Reboot'));
         this.addItem(menu, 'Shut down…', () => this.requestSessionAction('Shutdown'));
-        menu.connect('open-state-changed', (_menu, open) => {
-            if (!open && this.menu === menu) {
-                this.menu = null;
-                this.menuManager.removeMenu(menu);
-                menu.destroy();
-            }
-        });
         menu.open();
     }
 
@@ -115,9 +109,7 @@ export class DockSystemItem {
         // Clear the reference before close(): open-state-changed may fire
         // synchronously and must not dispose this menu a second time.
         this.menu = null;
-        menu.close();
-        this.menuManager.removeMenu(menu);
-        menu.destroy();
+        this.menuLifecycle.dispose(menu);
     }
 
     private addItem(menu: PopupMenu.PopupMenu, label: string, action: () => void): void {
