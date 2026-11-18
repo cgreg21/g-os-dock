@@ -23,6 +23,7 @@ import { DockFavoritesSeparatorController } from '../features/favorites-separato
 import { DockItemOrderController } from '../features/dock-item-order-controller.js';
 import { FavoriteOrderController } from '../features/favorite-order-controller.js';
 import { DockSettingsController } from './settings-controller.js';
+import { DockRuntimeSignalsController } from './runtime-signals-controller.js';
 import { LifecycleScope } from '../features/lifecycle-scope.js';
 import { resolveApplicationOrder } from '../features/application-order.js';
 
@@ -49,6 +50,7 @@ export class DockView {
 
     private destroyed = false;
     private settingsController: DockSettingsController;
+    private runtimeSignals: DockRuntimeSignalsController;
     private contextMenu: AppContextMenu;
     private applicationItems!: DockApplicationItemsController;
     private previews: WindowPreviews;
@@ -214,6 +216,18 @@ export class DockView {
                 updateIndicators: () => this.indicators.update(this.itemActors, false),
             },
         );
+        this.runtimeSignals = new DockRuntimeSignalsController(
+            this.appSystem,
+            this.favorites,
+            global.display,
+            global.workspace_manager,
+            {
+                refresh: () => this.refresh(),
+                updateIndicators: () => this.indicators.update(this.itemActors),
+                queueSmartHideCheck: () => this.visibility.queueSmartHideCheck(),
+                trackWindow: window => this.windowTracker.track(window),
+            },
+        );
 
         try {
             this.addToStage();
@@ -256,39 +270,6 @@ export class DockView {
         );
     }
 
-    private connectWindowSignals(): void {
-        this.lifecycle.addSignal(global.display, global.display.connect(
-            'notify::focus-window',
-            () => {
-                this.indicators.update(this.itemActors);
-                this.visibility.queueSmartHideCheck();
-            },
-        ));
-        this.lifecycle.addSignal(global.display, global.display.connect(
-            'restacked',
-            () => this.visibility.queueSmartHideCheck(),
-        ));
-        this.lifecycle.addSignal(global.workspace_manager, global.workspace_manager.connect(
-            'active-workspace-changed',
-            () => this.visibility.queueSmartHideCheck(),
-        ));
-        this.lifecycle.addSignal(global.display, global.display.connect(
-            'window-created',
-            (_display: Meta.Display, window: Meta.Window) => this.windowTracker.track(window),
-        ));
-    }
-
-    private connectApplicationSignals(): void {
-        this.lifecycle.addSignal(this.appSystem, this.appSystem.connect(
-            'app-state-changed',
-            () => this.refresh(),
-        ));
-        this.lifecycle.addSignal(this.favorites, this.favorites.connect(
-            'changed',
-            () => this.refresh(),
-        ));
-    }
-
     private connectPointerSignals(): void {
         this.lifecycle.addSignal(this.actor, this.actor.connect(
             'notify::hover',
@@ -305,8 +286,7 @@ export class DockView {
         this.connectPanelGeometrySignals();
         this.connectPointerSignals();
         this.settingsController.connectSettings();
-        this.connectApplicationSignals();
-        this.connectWindowSignals();
+        // Runtime signals are owned by DockRuntimeSignalsController.
         this.connectContentGeometrySignal();
     }
 
@@ -588,6 +568,7 @@ export class DockView {
         if (this.destroyed)
             return;
         this.destroyed = true;
+        this.runtimeSignals.destroy();
         this.settingsController.destroy();
         this.lifecycle.destroy();
         this.visibility.destroy();
