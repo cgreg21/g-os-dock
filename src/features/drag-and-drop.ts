@@ -93,8 +93,11 @@ export class DockDragDrop {
         if (draggableActor._delegate?.actor === actor)
             delete draggableActor._delegate;
 
-        if (this.draggedItem?.actor === actor)
+        if (this.draggedItem?.actor === actor) {
+            actor.remove_style_class_name('dragging');
+            this.hideRemovalZone();
             this.endPreview();
+        }
     }
 
     handleDragOver(source: DockDragSource, _dragActor: Clutter.Actor,
