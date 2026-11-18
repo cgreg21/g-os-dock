@@ -57,6 +57,46 @@ test('E2E: invalid wave parameters safely return the base scale', async () => {
     assert.equal(resolveMagnificationScale(10, Number.POSITIVE_INFINITY, 20, 4), 1);
 });
 
+async function loadItemScaleResolver() {
+    const source = read('../src/features/items/dock-magnification.ts');
+    const scaleMatch = source.match(/export function resolveMagnificationScale\([\s\S]*?\n}\n/);
+    const itemMatch = source.match(/export function resolveMagnificationItemScale\([\s\S]*?\n}\n/);
+    assert.ok(scaleMatch, 'the magnification-scale resolver must be present');
+    assert.ok(itemMatch, 'the per-item geometry resolver must be present');
+    const stripTypes = value => value
+        .replace('export function', 'function')
+        .replace(/:\s*(?:number|string)(?:\s*\|\s*null)?/g, '');
+    const moduleSource = stripTypes(scaleMatch[0]) + '\n' +
+        stripTypes(itemMatch[0]) +
+        '\nexport { resolveMagnificationItemScale };\n';
+    const encoded = Buffer.from(moduleSource).toString('base64');
+    return import('data:text/javascript;base64,' + encoded);
+}
+
+test('E2E: per-item magnification uses the real item center and extent', async () => {
+    const { resolveMagnificationItemScale } = await loadItemScaleResolver();
+    assert.equal(resolveMagnificationItemScale(50, 30, 40, 2.5, 4), 4);
+    assert.equal(resolveMagnificationItemScale(150, 30, 40, 2.5, 4), 1);
+    assert.ok(resolveMagnificationItemScale(80, 30, 40, 2.5, 4) > 1);
+});
+
+test('E2E: per-item influence adapts to different rendered dimensions', async () => {
+    const { resolveMagnificationItemScale } = await loadItemScaleResolver();
+    const small = resolveMagnificationItemScale(40, 20, 20, 2.5, 4);
+    const large = resolveMagnificationItemScale(40, 0, 80, 2.5, 4);
+    assert.equal(small, 4);
+    assert.ok(large > 1);
+    assert.ok(large < 4);
+});
+
+test('E2E: invalid item geometry returns the base scale', async () => {
+    const { resolveMagnificationItemScale } = await loadItemScaleResolver();
+    assert.equal(resolveMagnificationItemScale(10, 10, 0, 2.5, 4), 1);
+    assert.equal(resolveMagnificationItemScale(10, 10, -5, 2.5, 4), 1);
+    assert.equal(resolveMagnificationItemScale(10, 10, 20, 0, 4), 1);
+    assert.equal(resolveMagnificationItemScale(Number.NaN, 10, 20, 2.5, 4), 1);
+});
+
 test('E2E: the complete dock surface receives pointer motion and boundary events', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes("this.surface.connect('motion-event'"));
