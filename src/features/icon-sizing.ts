@@ -51,3 +51,34 @@ export function calculateDockIconSize(options: DockIconSizingOptions): number {
 
     return Math.min(configuredSize, Math.max(16, fittedSize));
 }
+
+export interface DockAvailableSpaceOptions {
+    monitorWidth: number;
+    monitorY: number;
+    monitorHeight: number;
+    usableTop: number;
+    edgeDistance: number;
+    padding: number;
+    border: number;
+    vertical: boolean;
+}
+
+/** Calculate the usable length for dock items after all outer insets. */
+export function calculateAvailableDockSpace(
+    options: DockAvailableSpaceOptions,
+): number {
+    const {
+        monitorWidth,
+        monitorY,
+        monitorHeight,
+        usableTop,
+        edgeDistance,
+        padding,
+        border,
+        vertical,
+    } = options;
+
+    return vertical
+        ? monitorY + monitorHeight - usableTop - edgeDistance - padding - border
+        : monitorWidth - edgeDistance * 2 - padding - border;
+}
