@@ -85,6 +85,25 @@ export class DockFoldersController {
         this.folders = next;
     }
 
+    removeFromFolder(folderId: string, appId: string): void {
+        const folder = this.folders.find(candidate => candidate.id === folderId);
+        if (!folder || !folder.appIds.includes(appId))
+            return;
+        const remaining = folder.appIds.filter(id => id !== appId);
+        const records = readFolders(this.settings).filter(candidate => candidate.id !== folderId);
+        if (remaining.length >= 2) {
+            records.push({ id: folderId, name: folder.name, appIds: remaining });
+        } else {
+            const order = this.settings.get_strv('dock-item-order');
+            const index = order.indexOf(folderId);
+            const nextOrder = order.filter(id => id !== folderId);
+            nextOrder.splice(index < 0 ? nextOrder.length : index, 0, ...remaining.map(id => `app:${id}`));
+            this.settings.set_strv('dock-item-order', nextOrder);
+        }
+        this.settings.set_strv('dock-folders', records.map(candidate => JSON.stringify(candidate)));
+        this.onChanged();
+    }
+
     getDndItems(): DockDndItem[] {
         return this.folders.map(folder => ({
             id: folder.id,
@@ -183,6 +202,9 @@ export class DockFoldersController {
             const item = new PopupMenu.PopupMenuItem(app.get_name());
             item.connect('activate', () => app.activate());
             menu.addMenuItem(item);
+            const remove = new PopupMenu.PopupMenuItem(`Remove ${app.get_name()} from folder`);
+            remove.connect('activate', () => this.removeFromFolder(id, appId));
+            menu.addMenuItem(remove);
         }
         menu.connect('open-state-changed', (_menu, open) => {
             if (!open) {
