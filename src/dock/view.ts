@@ -243,7 +243,7 @@ export class DockView {
         );
     }
 
-    private connectSignals(): void {
+    private connectThemeSignal(): void {
         this.desktopThemeSignal = this.desktopSettings.connect(
             'changed::color-scheme',
             () => {
@@ -251,7 +251,9 @@ export class DockView {
                 this.queueLayoutUpdate();
             },
         );
-        this.connectPanelGeometrySignals();
+    }
+
+    private connectPointerSignals(): void {
         this.hoverSignal = this.actor.connect(
             'notify::hover',
             () => this.onPointerChanged(),
@@ -260,10 +262,20 @@ export class DockView {
             if (this.edgeSensor.hover)
                 this.visibility.show();
         });
+    }
+
+    private connectSettingsSignal(): void {
         this.settingsSignal = this.settings.connect(
             'changed',
             () => this.applySettings(),
         );
+    }
+
+    private connectSignals(): void {
+        this.connectThemeSignal();
+        this.connectPanelGeometrySignals();
+        this.connectPointerSignals();
+        this.connectSettingsSignal();
         this.connectApplicationSignals();
         this.connectWindowSignals();
         this.connectContentGeometrySignal();
