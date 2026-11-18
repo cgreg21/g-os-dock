@@ -93,7 +93,7 @@ export class DockLayout {
         });
     }
 
-    position(): void {
+    position(immediate = false): void {
         if (this.isDestroyed())
             return;
 
@@ -152,6 +152,10 @@ export class DockLayout {
             this.actor.set_size(width, height);
             this.actor.set_position(Math.round(x), Math.round(y));
             this.background.set_size(width, height);
+        } else if (immediate) {
+            this.animations.cancel('dock-surface');
+            this.actor.set_size(width, height);
+            this.actor.set_position(Math.round(x), Math.round(y));
         } else {
             this.animations.animate(
                 'dock-surface',
@@ -164,7 +168,7 @@ export class DockLayout {
         // Center the decorative background on the actual icon content.
         // This keeps it visually centered even when the four padding values
         // are different, rather than centering it on the padded outer actor.
-        this.syncBackgroundToContent(x, y, width, height, contentWidth, paddingLeft);
+        this.syncBackgroundToContent(x, y, width, height, contentWidth, paddingLeft, immediate);
         this.hasPositioned = true;
         this.positionSensor(panelBottom);
     }
@@ -176,6 +180,7 @@ export class DockLayout {
         backgroundHeight: number,
         contentWidth: number,
         paddingLeft: number,
+        immediate = false,
     ): void {
         if (this.isDestroyed())
             return;
@@ -195,7 +200,11 @@ export class DockLayout {
             this.background.set_position(Math.round(x), Math.round(y));
             return;
         }
-        this.animations.animate(
+        if (immediate) {
+            this.animations.cancel('dock-background-surface');
+            this.background.set_size(backgroundWidth, backgroundHeight);
+            this.background.set_position(Math.round(x), Math.round(y));
+        } else this.animations.animate(
             'dock-background-surface',
             this.background as unknown as AnimationTarget,
             {
