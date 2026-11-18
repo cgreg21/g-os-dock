@@ -29,6 +29,7 @@ import { DockRefreshController } from './refresh-controller.js';
 import { DockApplicationActivationController } from '../features/application-activation-controller.js';
 import { resolveFavoritesSeparatorTarget } from '../features/favorites-separator.js';
 import { resolveDockDndOrder } from '../features/dock-dnd-order.js';
+import { isVerticalDockPosition } from '../features/dock-positioner.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -81,7 +82,7 @@ export class DockView {
         this.appSystem = Shell.AppSystem.get_default();
         this.favorites = AppFavorites.getAppFavorites();
         const dockPosition = this.settings.get_string('dock-position');
-        const vertical = dockPosition === 'left' || dockPosition === 'right';
+        const vertical = isVerticalDockPosition(dockPosition);
         this.content = new St.BoxLayout({
             orientation: vertical
                 ? Clutter.Orientation.VERTICAL
