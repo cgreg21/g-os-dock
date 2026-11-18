@@ -110,6 +110,7 @@ export class DockDragDrop {
             applicationsBefore > favoriteCount) {
             // Do not let acceptDrop reuse a previously valid preview position.
             this.previewIndex = null;
+            this.previewSlot?.hide();
             return DND.DragMotionResult.NO_DROP;
         }
 
@@ -185,6 +186,7 @@ export class DockDragDrop {
     private movePreview(index: number, items?: DockDndItem[]): void {
         if (!this.previewSlot || !this.draggedItem)
             return;
+        this.previewSlot.show();
         const targets = items ?? this.getItems().filter(item =>
             item.id !== this.draggedItem?.id,
         );
