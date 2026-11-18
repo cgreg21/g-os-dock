@@ -347,12 +347,7 @@ export class DockDragDrop {
                 item.actor.opacity = 255;
                 item.actor.scale_x = 1;
                 item.actor.scale_y = 1;
-                try {
-                    item.onRemove?.();
-                } finally {
-                    // The removal state is cleared before invoking caller code,
-                    // which may synchronously destroy this controller or item.
-                }
+                item.onRemove?.();
             },
         });
         return true;
