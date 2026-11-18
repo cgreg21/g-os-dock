@@ -64,6 +64,8 @@ export class DockDragDrop {
 
     registerItem(item: DockDndItem, onStart: () => void = () => {}): void {
         const actor = item.actor;
+        if (this.draggables.has(actor))
+            this.unregisterItem(actor);
         (actor as St.Widget & { _delegate?: unknown })._delegate = {
             dockItemId: item.id,
             app: item.app,
@@ -87,6 +89,8 @@ export class DockDragDrop {
     }
 
     unregisterItem(actor: St.Widget): void {
+        const itemId = this.draggedItem?.actor === actor ? this.draggedItem.id :
+            (actor as St.Widget & { _delegate?: DockDragSource })._delegate?.dockItemId;
         const registration = this.draggables.get(actor);
         if (registration) {
             const signalObject = registration.draggable as DND.Draggable & {
@@ -98,6 +102,9 @@ export class DockDragDrop {
         }
 
         this.clearDragDelegate(actor);
+
+        if (itemId && this.removingItemId === itemId)
+            this.removingItemId = null;
 
         if (this.draggedItem?.actor === actor) {
             actor.remove_style_class_name('dragging');
@@ -296,6 +303,8 @@ export class DockDragDrop {
     }
 
     private acceptRemovalDrop(source: DockDragSource): boolean {
+        if (this.removingItemId)
+            return false;
         const item = this.getItems().find(candidate => candidate.id === source?.dockItemId);
         if (!item?.canRemove?.() || !item.onRemove)
             return false;
@@ -307,6 +316,8 @@ export class DockDragDrop {
             duration: 240,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => {
+                if (this.removingItemId !== item.id)
+                    return;
                 item.actor.opacity = 255;
                 item.actor.scale_x = 1;
                 item.actor.scale_y = 1;
