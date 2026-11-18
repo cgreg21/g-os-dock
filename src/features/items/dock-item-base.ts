@@ -67,7 +67,10 @@ export class DockItemBase {
         if (this.content) {
             let controller = DockItemBase.magnificationControllers.get(this.content);
             if (!controller) {
-                controller = new DockMagnificationController(\n                    this.content, settings, this.dockPosition,\n                    DockItemBase.magnificationSurfaceHandlers.get(this.content),\n                );
+                controller = new DockMagnificationController(
+                    this.content, settings, this.dockPosition,
+                    DockItemBase.magnificationSurfaceHandlers.get(this.content),
+                );
                 DockItemBase.magnificationControllers.set(this.content, controller);
             }
             controller.register(this.button);
