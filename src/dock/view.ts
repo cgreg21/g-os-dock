@@ -297,6 +297,14 @@ export class DockView {
         return this.dragDrop.acceptDrop(source, dragActor, x, y, time);
     }
 
+    /** Reuse the rank lookup while the persisted dock order stays unchanged. */
+    private getItemOrderRanks(ids: string[]): ReadonlyMap<string, number> {
+        const key = `dock-item-order-ranks:${JSON.stringify(ids)}`;
+        return dockCache.getOrCreate(key, () =>
+            new Map(ids.map((id, index) => [id, index])),
+        );
+    }
+
     private getApplications(): Shell.App[] {
         // Keep the dock in two strict sections: favorites in their configured
         // order, followed by running applications that are not favorites.
@@ -326,10 +334,7 @@ export class DockView {
             }
         }
 
-        const order = new Map(
-            this.settings.get_strv('dock-item-order')
-                .map((id, index) => [id, index]),
-        );
+        const order = this.getItemOrderRanks(this.settings.get_strv('dock-item-order'));
         const ordered = result.map((app, index) => {
             const id = app.get_id();
             return {
@@ -435,7 +440,7 @@ export class DockView {
     private applySavedItemOrder(): void {
         const actors = this.getDndItems();
         const saved = this.getSavedItemOrder(actors);
-        const rank = new Map(saved.map((id, index) => [id, index]));
+        const rank = this.getItemOrderRanks(saved);
         actors.sort((a, b) =>
             (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
             (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER),
