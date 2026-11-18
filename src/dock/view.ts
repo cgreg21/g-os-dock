@@ -378,6 +378,67 @@ export class DockView {
         }
     }
 
+    private getAvailableSpace(vertical: boolean): number {
+        const edge = this.settings.get_int('edge-distance');
+        const border = this.settings.get_int('border-size') * 2;
+        const panel = Main.panel as St.Widget;
+        const [panelX, panelY] = panel.get_transformed_position();
+        const panelBottom = panelY + panel.height;
+        const panelOverlapsMonitorTop =
+            panelX < this.monitor.x + this.monitor.width &&
+            panelX + panel.width > this.monitor.x &&
+            panelY <= this.monitor.y + 2 &&
+            panelBottom > this.monitor.y;
+        const usableTop = panelOverlapsMonitorTop
+            ? Math.min(this.monitor.y + this.monitor.height, panelBottom + edge)
+            : this.monitor.y;
+
+        if (vertical) {
+            return this.monitor.y + this.monitor.height - usableTop - edge -
+                this.settings.get_int('background-padding-top') -
+                this.settings.get_int('background-padding-bottom') - border;
+        }
+
+        return this.monitor.width - edge * 2 -
+            this.settings.get_int('background-padding-left') -
+            this.settings.get_int('background-padding-right') - border;
+    }
+
+    private getIconSize(
+        applications: Shell.App[],
+        available: number,
+        vertical: boolean,
+        configuredSize: number,
+    ): number {
+        const spacing = this.settings.get_int('dock-spacing');
+        const hasFavorites = applications.some(app =>
+            this.favorites.isFavorite(app.get_id()),
+        );
+        const hasRunningApps = applications.some(app =>
+            !this.favorites.isFavorite(app.get_id()),
+        );
+        const separatorSpace = this.settings.get_boolean('show-favorites-separator') &&
+            hasFavorites && hasRunningApps
+            ? this.settings.get_int('favorites-separator-size') + spacing
+            : 0;
+        const itemCount = applications.length +
+            Number(this.settings.get_boolean('show-system-icon')) +
+            Number(this.settings.get_boolean('show-trash-icon')) +
+            (this.volumeItems?.getCount() ?? 0);
+        const iconPadding = vertical
+            ? this.settings.get_int('icon-padding-top') + this.settings.get_int('icon-padding-bottom')
+            : this.settings.get_int('icon-padding-left') + this.settings.get_int('icon-padding-right');
+        const overhead = vertical ? 25 : 4;
+        const fittedSize = itemCount > 0
+            ? Math.floor(
+                (available - separatorSpace - spacing * Math.max(0, itemCount - 1)) /
+                itemCount,
+            ) - overhead - iconPadding
+            : configuredSize;
+
+        return Math.min(configuredSize, Math.max(16, fittedSize));
+    }
+
     private refresh(): void {
         if (this.destroyed)
             return;
@@ -388,55 +449,8 @@ export class DockView {
             const configuredSize = this.settings.get_int('icon-size');
             const volumeItemsChanged = this.syncVolumeItems(configuredSize);
             const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
-            const spacing = this.settings.get_int('dock-spacing');
-            const edgeDistance = this.settings.get_int('edge-distance');
-            const paddingTop = this.settings.get_int('background-padding-top');
-            const paddingRight = this.settings.get_int('background-padding-right');
-            const paddingBottom = this.settings.get_int('background-padding-bottom');
-            const paddingLeft = this.settings.get_int('background-padding-left');
-            const border = this.settings.get_int('border-size');
-            const iconPadding = vertical
-                ? this.settings.get_int('icon-padding-top') + this.settings.get_int('icon-padding-bottom')
-                : this.settings.get_int('icon-padding-left') + this.settings.get_int('icon-padding-right');
-            const panel = Main.panel as St.Widget;
-            const [panelX, panelY] = panel.get_transformed_position();
-            const panelBottom = panelY + panel.height;
-            const panelAtMonitorTop =
-                panelX < this.monitor.x + this.monitor.width &&
-                panelX + panel.width > this.monitor.x &&
-                panelY <= this.monitor.y + 2 &&
-                panelBottom > this.monitor.y;
-            const usableTop = panelAtMonitorTop
-                ? Math.min(this.monitor.y + this.monitor.height, panelBottom + edgeDistance)
-                : this.monitor.y;
-            const available = vertical
-                ? this.monitor.y + this.monitor.height - usableTop - edgeDistance -
-                    paddingTop - paddingBottom - border * 2
-                : this.monitor.width - edgeDistance * 2 -
-                    paddingLeft - paddingRight - border * 2;
-            const itemOverhead = vertical ? 25 : 4;
-            const hasFavoriteSection = applications.some(app =>
-                this.favorites.isFavorite(app.get_id()),
-            );
-            const hasRunningSection = applications.some(app =>
-                !this.favorites.isFavorite(app.get_id()),
-            );
-            const showSeparator = this.settings.get_boolean('show-favorites-separator') &&
-                hasFavoriteSection && hasRunningSection;
-            const separatorSpace = showSeparator
-                ? this.settings.get_int('favorites-separator-size') + spacing
-                : 0;
-            const itemCount = applications.length +
-                (this.settings.get_boolean('show-system-icon') ? 1 : 0) +
-                (this.settings.get_boolean('show-trash-icon') ? 1 : 0) +
-                (this.volumeItems?.getCount() ?? 0);
-            const fittedSize = itemCount > 0
-                ? Math.floor(
-                    (available - separatorSpace - spacing * Math.max(0, itemCount - 1)) /
-                    itemCount,
-                ) - itemOverhead - iconPadding
-                : configuredSize;
-            const size = Math.min(configuredSize, Math.max(16, fittedSize));
+            const available = this.getAvailableSpace(vertical);
+            const size = this.getIconSize(applications, available, vertical, configuredSize);
 
             // Rebuild only when the effective icon size changes. Ordinary
             // app/window state changes keep the existing actors alive.
