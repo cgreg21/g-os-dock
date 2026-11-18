@@ -30,17 +30,17 @@ export class DockSystemItem {
             this.dragDrop, 'system:launcher',
         );
         this.updateIcon();
-        this.button.connect('clicked', () => {
+        this.item.cleanup.addSignal(this.button, this.button.connect('clicked', () => {
             if (Main.overview.visible)
                 Main.overview.hide();
             else
                 Main.overview.showApps();
-        });
-        this.button.connect('button-press-event', (_actor, event) => {
+        }));
+        this.item.cleanup.addSignal(this.button, this.button.connect('button-press-event', (_actor, event) => {
             if (event.get_button() !== 3) return Clutter.EVENT_PROPAGATE;
             this.showMenu();
             return Clutter.EVENT_STOP;
-        });
+        }));
         const iconSignal = settings.connect('changed::system-icon-name', () => this.updateIcon());
         this.item.cleanup.addSignal(settings, iconSignal);
         this.menuLifecycle = new PopupMenuLifecycle(new PopupMenu.PopupMenuManager(this.button));
