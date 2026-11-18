@@ -134,7 +134,12 @@ export class DockSystemItem {
 
     getActor(): St.Button { return this.button; }
 
-    setIconSize(size: number): void { this.iconSize = size; this.updateIcon(); }
+    setIconSize(size: number): void {
+        if (this.iconSize === size)
+            return;
+        this.iconSize = size;
+        this.updateIcon();
+    }
 
     destroy(): void {
         if (this.destroyed) return;
