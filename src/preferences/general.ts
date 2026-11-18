@@ -95,7 +95,13 @@ function addIconThemeSelector(group: Adw.PreferencesGroup, settings: Gio.Setting
         const value = names[row.selected];
         if (value) settings.set_string('system-icon-name', value);
     });
-    settings.connect('changed::system-icon-name', sync);
+    const settingsSignal = settings.connect('changed::system-icon-name', sync);
+    const rootSignal = row.connect('notify::root', () => {
+        if (row.get_root() !== null)
+            return;
+        settings.disconnect(settingsSignal);
+        row.disconnect(rootSignal);
+    });
     group.add(row);
     sync();
 }
