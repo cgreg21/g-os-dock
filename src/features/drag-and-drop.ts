@@ -31,6 +31,7 @@ export class DockDragDrop {
     private previewSlot: St.Widget | null = null;
     private draggables = new Map<St.Widget, { draggable: DND.Draggable; signals: number[] }>();
     private removingItemId: string | null = null;
+    private removingActor: St.Widget | null = null;
     private destroyed = false;
     private removalZone: St.Widget;
     private removalZoneDelegate: {
@@ -109,6 +110,7 @@ export class DockDragDrop {
 
         if (itemId && this.removingItemId === itemId) {
             this.removingItemId = null;
+            this.removingActor = null;
             actor.remove_all_transitions();
             actor.opacity = 255;
             actor.scale_x = 1;
@@ -329,6 +331,7 @@ export class DockDragDrop {
         if (!item?.canRemove?.() || !item.onRemove)
             return false;
         this.removingItemId = item.id;
+        this.removingActor = item.actor;
         item.actor.ease({
             opacity: 0,
             scaleX: 0.08,
@@ -336,16 +339,19 @@ export class DockDragDrop {
             duration: 240,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => {
-                if (this.removingItemId !== item.id)
+                if (this.destroyed || this.removingItemId !== item.id ||
+                    this.removingActor !== item.actor)
                     return;
+                this.removingItemId = null;
+                this.removingActor = null;
                 item.actor.opacity = 255;
                 item.actor.scale_x = 1;
                 item.actor.scale_y = 1;
                 try {
                     item.onRemove?.();
                 } finally {
-                    if (this.removingItemId === item.id)
-                        this.removingItemId = null;
+                    // The removal state is cleared before invoking caller code,
+                    // which may synchronously destroy this controller or item.
                 }
             },
         });
@@ -370,6 +376,11 @@ export class DockDragDrop {
         if (this.destroyed)
             return;
         this.destroyed = true;
+        if (this.removingActor) {
+            this.removingActor.remove_all_transitions();
+            this.removingActor = null;
+            this.removingItemId = null;
+        }
         this.hideRemovalZone();
         this.endPreview();
         for (const actor of [...this.draggables.keys()]) {
