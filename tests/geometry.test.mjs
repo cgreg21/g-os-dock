@@ -46,3 +46,38 @@ test('rejects rectangles whose calculated edges overflow', () => {
         x: 10, y: Number.MAX_VALUE, width: 20, height: Number.MAX_VALUE,
     }), false);
 });
+
+
+test('builds the smallest rectangle containing both inputs', async () => {
+    const { unionRectangles } = await import('../dist/features/geometry.js');
+    assert.deepEqual(
+        unionRectangles(
+            { x: 10, y: 20, width: 30, height: 40 },
+            { x: 0, y: 35, width: 60, height: 10 },
+        ),
+        { x: 0, y: 20, width: 60, height: 40 },
+    );
+});
+
+test('unions overlapping, contained, and negative-coordinate rectangles', async () => {
+    const { unionRectangles } = await import('../dist/features/geometry.js');
+    assert.deepEqual(
+        unionRectangles(
+            { x: -100, y: -50, width: 40, height: 30 },
+            { x: -90, y: -45, width: 10, height: 10 },
+        ),
+        { x: -100, y: -50, width: 40, height: 30 },
+    );
+});
+
+test('rejects invalid or overflowing rectangle unions', async () => {
+    const { unionRectangles } = await import('../dist/features/geometry.js');
+    assert.equal(unionRectangles(
+        { x: 0, y: 0, width: 10, height: 10 },
+        { x: 10, y: 10, width: 0, height: 10 },
+    ), null);
+    assert.equal(unionRectangles(
+        { x: 0, y: 0, width: 10, height: 10 },
+        { x: Number.MAX_VALUE, y: 0, width: Number.MAX_VALUE, height: 10 },
+    ), null);
+});
