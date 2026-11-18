@@ -6,6 +6,7 @@ import Gio from 'gi://Gio?version=2.0';
 import { rectanglesOverlap, unionRectangles } from '../../core/geometry.js';
 import { resolveHiddenTranslation, type DockEdge } from './dock-positioner.js';
 import { TaskScheduler } from '../../core/task-scheduler.js';
+import { AnimationManager, type AnimationTarget } from '../../core/animation-manager.js';
 
 const HIDE_DELAY_MS = 650;
 const SMART_HIDE_DELAY_MS = 80;
@@ -20,6 +21,7 @@ export class DockVisibility {
     });
     private destroyed = false;
     private initialized = false;
+    private animations = new AnimationManager();
 
     constructor(
         private actor: St.Widget,
@@ -59,8 +61,8 @@ export class DockVisibility {
         if (!autoHide && !smartHide) {
             this.cancelHide();
             if (!firstInitialization) {
-                this.actor.remove_all_transitions();
-                this.background.remove_all_transitions();
+                this.animations.cancel('dock-content');
+                this.animations.cancel('dock-background');
                 this.background.show();
                 this.actor.show();
                 this.actor.opacity = 255;
@@ -150,27 +152,23 @@ export class DockVisibility {
             return;
 
         this.cancelHide();
-        // Cancel an in-flight slide before returning the dock to its layout position.
-        this.actor.remove_all_transitions();
-        this.background.remove_all_transitions();
+        // The animation manager replaces any in-flight slide on each layer.
         this.background.show();
         this.actor.show();
         this.actor.reactive = true;
 
         const transition = {
-            duration: SLIDE_DURATION_MS,
+            durationMs: SLIDE_DURATION_MS,
             mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
         };
-        this.background.ease({
+        this.animations.animate('dock-background', this.background as unknown as AnimationTarget, {
             translationX: 0,
             translationY: 0,
-            ...transition,
-        });
-        this.actor.ease({
+        }, transition);
+        this.animations.animate('dock-content', this.actor as unknown as AnimationTarget, {
             translationX: 0,
             translationY: 0,
-            ...transition,
-        });
+        }, transition);
     }
 
     hide(): void {
@@ -183,20 +181,18 @@ export class DockVisibility {
         // Use the same measured offset as initialization and resize handling.
         const { x: distanceX, y: distanceY } = this.getHiddenOffset();
 
-        this.actor.remove_all_transitions();
-        this.background.remove_all_transitions();
         const transition = {
-            duration: SLIDE_DURATION_MS,
+            durationMs: SLIDE_DURATION_MS,
             mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
         };
-        this.background.ease({
+        this.animations.animate('dock-background', this.background as unknown as AnimationTarget, {
             translationX: distanceX,
             translationY: distanceY,
-            ...transition,
-        });
-        this.actor.ease({
+        }, transition);
+        this.animations.animate('dock-content', this.actor as unknown as AnimationTarget, {
             translationX: distanceX,
             translationY: distanceY,
+        }, {
             ...transition,
             onComplete: () => {
                 if (!this.isInactive()) {
@@ -217,8 +213,7 @@ export class DockVisibility {
 
         this.destroyed = true;
         this.scheduler.destroy();
-        this.actor.remove_all_transitions();
-        this.background.remove_all_transitions();
+        this.animations.destroy();
     }
 
     private isInactive(): boolean {
