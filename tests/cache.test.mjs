@@ -58,3 +58,26 @@ test('clear resets entries and statistics', () => {
     cache.clear();
     assert.deepEqual(cache.statistics, { size: 0, hits: 0, misses: 0 });
 });
+
+
+test('normalizes invalid cache capacities to a safe bounded value', () => {
+    const zeroCapacity = new DockCache(0);
+    zeroCapacity.set('key', 'value');
+    assert.equal(zeroCapacity.size, 0);
+
+    const invalidCapacity = new DockCache(Number.NaN);
+    for (let index = 0; index < 513; index++)
+        invalidCapacity.set(String(index), index);
+    assert.equal(invalidCapacity.size, 512);
+
+    const fractionalCapacity = new DockCache(1.9);
+    fractionalCapacity.set('first', 1);
+    fractionalCapacity.set('second', 2);
+    assert.equal(fractionalCapacity.size, 1);
+});
+
+test('treats an invalid default TTL as immediate expiration', () => {
+    const cache = new DockCache(4, Number.NaN);
+    cache.set('default-expiry', 'value');
+    assert.equal(cache.has('default-expiry'), false);
+});
