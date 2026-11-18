@@ -344,7 +344,7 @@ export class DockView {
             if (this.itemSize === 0)
                 return;
             const position = this.settings.get_string('dock-position');
-            this.syncFavoritesSeparator(this.itemSize, position === 'left' || position === 'right');
+            this.syncFavoritesSeparator(position === 'left' || position === 'right');
             this.positionDock();
         });
 
