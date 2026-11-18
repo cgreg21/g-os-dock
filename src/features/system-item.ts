@@ -24,7 +24,7 @@ export class DockSystemItem {
             accessible_name: 'Applications and system actions',
         });
         this.updateIcon();
-        new DockTooltip(this.button, 'Applications', this.dockPosition());
+        new DockTooltip(this.button, 'Applications', this.dockPosition);
         this.button.connect('clicked', () => {
             if (Main.overview.visible)
                 Main.overview.hide();
