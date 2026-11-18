@@ -9,6 +9,7 @@
     <key name="system-icon-position" type="i"><range min="0" max="128"/><default>128</default><summary>Legacy launcher position (migrated to dock item order)</summary></key>
     <key name="dock-item-order" type="as"><default>[]</default><summary>Persistent order of all dock items by stable identifier</summary></key>
     <key name="dock-folders" type="as"><default>[]</default><summary>Persistent application folders stored as JSON records</summary></key>
+    <key name="folder-view-mode" type="s"><default>'grid'</default><summary>Application folder presentation: grid or stack</summary></key>
     <key name="show-favorites-separator" type="b"><default>true</default><summary>Show a separator between favorite and non-favorite applications</summary></key>
     <key name="favorites-separator-color" type="s"><default>'#ffffff'</default><summary>Favorites separator color</summary></key>
     <key name="favorites-separator-opacity" type="d"><range min="0.0" max="1.0"/><default>0.55</default><summary>Favorites separator opacity</summary></key>
