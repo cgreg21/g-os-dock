@@ -13,11 +13,19 @@ export class DockCache {
     private entries = new Map<string, CacheEntry<unknown>>();
     private hits = 0;
     private misses = 0;
+    private readonly maxEntries: number;
+    private readonly defaultTtlMs: number;
 
-    constructor(
-        private readonly maxEntries = 512,
-        private readonly defaultTtlMs = 5 * 60 * 1000,
-    ) {}
+    constructor(maxEntries = 512, defaultTtlMs = 5 * 60 * 1000) {
+        // A non-finite capacity such as NaN would disable eviction and allow
+        // unbounded growth. Normalize it to the standard bounded capacity.
+        this.maxEntries = Number.isFinite(maxEntries)
+            ? Math.max(0, Math.floor(maxEntries))
+            : 512;
+        this.defaultTtlMs = Number.isNaN(defaultTtlMs)
+            ? 0
+            : Math.max(0, defaultTtlMs);
+    }
 
     get<T>(key: string): T | undefined {
         const entry = this.entries.get(key) as CacheEntry<T> | undefined;
