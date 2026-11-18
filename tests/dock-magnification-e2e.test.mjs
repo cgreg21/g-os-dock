@@ -203,6 +203,43 @@ async function loadButtonLayoutResolvers() {
     return import('data:text/javascript;base64,' + encoded);
 }
 
+async function loadMainAxisSlotsResolver() {
+    const source = read('../src/features/items/dock-magnification.ts');
+    const match = source.match(/export function resolveMagnificationMainAxisSlots\([\s\S]*?\n}\n/);
+    assert.ok(match, 'the immutable reference-slot resolver must be present');
+    const javascript = match[0]
+        .replace('export function', 'function')
+        .replace(/:\s*(?:number\[\]|\[number, number\]\[\])/g, '');
+    const moduleSource = javascript + '\nexport { resolveMagnificationMainAxisSlots };\n';
+    const encoded = Buffer.from(moduleSource).toString('base64');
+    return import('data:text/javascript;base64,' + encoded);
+}
+
+test('E2E: immutable reference slots preserve gaps and center total growth', async () => {
+    const { resolveMagnificationMainAxisSlots } = await loadMainAxisSlotsResolver();
+    const slots = resolveMagnificationMainAxisSlots(
+        [10, 56, 102], [40, 40, 40], [2, 1.5, 1],
+    );
+    assert.deepEqual(slots, [[-20, 80], [66, 60], [112, 40]]);
+    assert.equal(slots[1][0] - (slots[0][0] + slots[0][1]), 6);
+    assert.equal(slots[2][0] - (slots[1][0] + slots[1][1]), 6);
+    const originalCenter = (10 + 142) / 2;
+    const targetCenter = (slots[0][0] + slots[2][0] + slots[2][1]) / 2;
+    assert.equal(targetCenter, originalCenter);
+});
+
+test('E2E: invalid reference-slot arrays preserve original geometry', async () => {
+    const { resolveMagnificationMainAxisSlots } = await loadMainAxisSlotsResolver();
+    assert.deepEqual(
+        resolveMagnificationMainAxisSlots([10, 56], [40], [2, 1]),
+        [[10, 40], [56, 0]],
+    );
+    assert.deepEqual(
+        resolveMagnificationMainAxisSlots([10, 56], [40, 40], [2, Number.NaN]),
+        [[10, 40], [56, 40]],
+    );
+});
+
 test('E2E: magnified main-axis slots preserve gaps and keep the group centered', async () => {
     const { resolveMagnificationMainAxisLayout } = await loadButtonLayoutResolvers();
     const first = resolveMagnificationMainAxisLayout(10, 40, 2, 0, 60);
