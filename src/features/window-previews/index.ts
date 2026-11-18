@@ -10,6 +10,7 @@ type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 import { createWindowPreviewCard } from './card.js';
 import { dockCache } from '../cache.js';
 import { SettingsObserver } from '../settings-observer.js';
+import { TaskScheduler } from '../task-scheduler.js';
 
 /**
  * Owns the lifecycle and rendering of application window previews.
@@ -17,8 +18,11 @@ import { SettingsObserver } from '../settings-observer.js';
  */
 export class WindowPreviews {
     private actor: St.BoxLayout | null = null;
-    private showSource = 0;
-    private hideSource = 0;
+    private scheduler = new TaskScheduler({
+        timeout: (delay, callback) => GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, callback),
+        idle: callback => GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, callback),
+        remove: sourceId => GLib.Source.remove(sourceId),
+    });
     private hoverSignal = 0;
     private keySignal = 0;
     private destroyed = false;
@@ -40,47 +44,27 @@ export class WindowPreviews {
     }
 
     cancelPending(): void {
-        if (this.showSource) {
-            GLib.source_remove(this.showSource);
-            this.showSource = 0;
-        }
-        if (this.hideSource) {
-            GLib.source_remove(this.hideSource);
-            this.hideSource = 0;
-        }
+        this.scheduler.cancel('show');
+        this.scheduler.cancel('hide');
     }
 
     scheduleShow(app: Shell.App, item: DockAppButton): void {
         if (this.isInactive() || !this.settings.get_boolean('show-window-previews'))
             return;
-        if (this.showSource)
-            GLib.source_remove(this.showSource);
-        if (this.hideSource) {
-            GLib.source_remove(this.hideSource);
-            this.hideSource = 0;
-        }
-        this.showSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 320, () => {
-            this.showSource = 0;
+        this.scheduler.cancel('hide');
+        this.scheduler.timeout('show', 320, () => {
             if (!this.isInactive() && item.hover)
                 this.show(app, item);
-            return GLib.SOURCE_REMOVE;
         });
     }
 
     scheduleHide(): void {
         if (this.isInactive())
             return;
-        if (this.showSource) {
-            GLib.source_remove(this.showSource);
-            this.showSource = 0;
-        }
-        if (this.hideSource)
-            GLib.source_remove(this.hideSource);
-        this.hideSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 260, () => {
-            this.hideSource = 0;
+        this.scheduler.cancel('show');
+        this.scheduler.timeout('hide', 260, () => {
             if (!this.isInactive() && !this.dockActor.hover && !this.actor?.hover)
                 this.hide();
-            return GLib.SOURCE_REMOVE;
         });
     }
 
@@ -140,10 +124,8 @@ export class WindowPreviews {
         this.hoverSignal = previews.connect('notify::hover', () => {
             if (!previews.hover)
                 this.scheduleHide();
-            else if (this.hideSource) {
-                GLib.source_remove(this.hideSource);
-                this.hideSource = 0;
-            }
+            else
+                this.scheduler.cancel('hide');
         });
         const [itemX, itemY] = item.get_transformed_position();
         const itemWidth = item.width;
@@ -194,6 +176,7 @@ export class WindowPreviews {
             return;
         this.destroyed = true;
         this.settingsObserver.destroy();
+        this.scheduler.destroy();
         this.hide();
     }
 
