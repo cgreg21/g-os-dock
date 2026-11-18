@@ -23,6 +23,7 @@ export class DockItemBase {
         onDragStart?: () => void,
     ) {
         this.tooltip = new DockTooltip(button, tooltipText, dockPosition);
+        this.cleanup.add(() => this.tooltip.destroy());
         this.content?.add_child(button);
         this.dragDrop.registerItem({ id, actor: button, ...registration }, onDragStart);
     }
