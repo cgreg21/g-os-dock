@@ -256,7 +256,7 @@ test('E2E: button allocation and backdrop insets are recalculated from pointer s
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes('private readonly baseStyles = new Map<St.Button, string>()'));
     assert.ok(controller.includes('this.content.queue_relayout()'));
-    assert.ok(controller.includes('this.onSurfaceExtentChanged(leading, trailing, this.pointerAxis !== null)'));
+    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, this.pointerAxis !== null)'));
     assert.ok(controller.includes('this.resetButtonAllocations()'));
     assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, false)'));
 });
