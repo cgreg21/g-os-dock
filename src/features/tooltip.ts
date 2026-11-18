@@ -13,7 +13,7 @@ export class DockTooltip {
     constructor(
         private parent: St.Widget,
         text: string,
-        private position: string,
+        private position: () => string,
     ) {
         this.actor = new St.Label({
             text,
@@ -62,7 +62,7 @@ export class DockTooltip {
         let left = x + (width - tooltipWidth) / 2;
         let top = y + (height - tooltipHeight) / 2;
 
-        switch (this.position) {
+        switch (this.position()) {
             case 'top':
                 top = y + height + 8;
                 break;
