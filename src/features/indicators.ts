@@ -6,6 +6,7 @@ import type { DockAppButton } from './app-item.js';
 /** Updates configurable open, focused and minimized application indicators. */
 export class DockIndicators {
     private markerSignatures = new WeakMap<DockAppButton, string>();
+    private activeStates = new WeakMap<DockAppButton, boolean>();
 
     constructor(private settings: Gio.Settings, private isDestroyed: () => boolean) {}
 
@@ -85,9 +86,17 @@ export class DockIndicators {
                         iconContainer.height - thickness - bottomOffset,
                     );
                 }
-                item._gOsDockIndicator.remove_style_class_name('active');
-                if (active)
-                    item._gOsDockIndicator.add_style_class_name('active');
+            }
+
+            if (this.activeStates.get(item) !== active) {
+                if (active) {
+                    item._gOsDockIndicator?.add_style_class_name('active');
+                    item.add_style_class_name('active');
+                } else {
+                    item._gOsDockIndicator?.remove_style_class_name('active');
+                    item.remove_style_class_name('active');
+                }
+                this.activeStates.set(item, active);
             }
 
             if (item._gOsDockBadge) {
@@ -96,9 +105,6 @@ export class DockIndicators {
                 item._gOsDockBadge.visible = showCount && count > 1;
             }
 
-            item.remove_style_class_name('active');
-            if (active)
-                item.add_style_class_name('active');
         }
     }
 
