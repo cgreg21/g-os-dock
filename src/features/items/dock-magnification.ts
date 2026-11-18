@@ -192,7 +192,7 @@ export class DockMagnificationController {
             this.envelope = 0;
             this.envelopeVelocity = 0;
             this.resetAllVisuals();
-            this.onSurfaceExtentChanged?.(0, 0);
+            this.onSurfaceExtentChanged?.(0, 0, false);
             this.stopTimeline();
             return;
         }
@@ -281,7 +281,7 @@ export class DockMagnificationController {
         // Padding and BoxLayout spacing are untouched; only button size requests change.
         if (layoutChanged) {
             this.content.queue_relayout();
-            this.onSurfaceExtentChanged?.(0, 0);
+            this.onSurfaceExtentChanged?.(0, 0, true);
         }
     }
 
@@ -316,7 +316,7 @@ export class DockMagnificationController {
         this.rawPointer = null;
         this.cursor = null;
         this.resetAllVisuals();
-        this.onSurfaceExtentChanged?.(0, 0);
+        this.onSurfaceExtentChanged?.(0, 0, false);
         this.items.clear();
     }
 
