@@ -9,14 +9,20 @@ import { dockStyles } from './style-manager.js';
 export class DockIndicators {
     private markerSignatures = new WeakMap<DockAppButton, string>();
     private activeStates = new WeakMap<DockAppButton, boolean>();
+    private windowStates = new WeakMap<DockAppButton, {
+        count: number;
+        running: boolean;
+        active: boolean;
+        minimized: boolean;
+    }>();
 
     constructor(private settings: Gio.Settings, private isDestroyed: () => boolean) {}
 
-    update(items: DockAppButton[]): void {
+    update(items: DockAppButton[], refreshWindowState = true): void {
         if (this.isDestroyed())
             return;
 
-        const focused = global.display.focus_window;
+        const focused = refreshWindowState ? global.display.focus_window : null;
         const enabled = this.settings.get_boolean('show-running-indicator');
         const showOpen = this.settings.get_boolean('indicator-show-open');
         const showFocused = this.settings.get_boolean('indicator-show-focused');
@@ -37,10 +43,18 @@ export class DockIndicators {
             if (!app)
                 continue;
 
-            const windows = app.get_windows();
-            const running = windows.length > 0 || app.get_state() === Shell.AppState.RUNNING;
-            const active = !!focused && windows.includes(focused);
-            const minimized = windows.length > 0 && windows.every(window => window.minimized);
+            let state = this.windowStates.get(item);
+            if (refreshWindowState || !state) {
+                const windows = app.get_windows();
+                state = {
+                    count: windows.length,
+                    running: windows.length > 0 || app.get_state() === Shell.AppState.RUNNING,
+                    active: !!focused && windows.includes(focused),
+                    minimized: windows.length > 0 && windows.every(window => window.minimized),
+                };
+                this.windowStates.set(item, state);
+            }
+            const { count, running, active, minimized } = state;
             if (item._gOsDockIcon) {
                 const iconOpacity = minimized ? 128 : 255;
                 if (item._gOsDockIcon.opacity !== iconOpacity)
@@ -55,7 +69,7 @@ export class DockIndicators {
             if (item._gOsDockIndicator) {
                 if (item._gOsDockIndicator.visible !== shouldShow)
                     item._gOsDockIndicator.visible = shouldShow;
-                const markerCount = multiple ? Math.max(1, windows.length) : 1;
+                const markerCount = multiple ? Math.max(1, count) : 1;
                 const length = shape === 'line' ? indicatorSize * 2 : indicatorSize;
                 const thickness = indicatorSize;
                 const radius = shape === 'round' ? '999px' : '0px';
@@ -110,7 +124,6 @@ export class DockIndicators {
             }
 
             if (item._gOsDockBadge) {
-                const count = windows.length;
                 const badgeText = showCount && count > 1 ? String(count) : '';
                 if (item._gOsDockBadge.text !== badgeText)
                     item._gOsDockBadge.text = badgeText;
