@@ -8,7 +8,9 @@ async function loadAxisResolver() {
     const source = read('../src/features/items/dock-magnification.ts');
     const match = source.match(/export function resolveMagnificationPointerAxis\([\s\S]*?\n}\n/);
     assert.ok(match, 'the pure pointer-axis resolver must be present');
-    const javascript = match[0].replace('export function', 'function');
+    const javascript = match[0]
+        .replace('export function', 'function')
+        .replace(/: (?:string|number)(?: \\| null)?/g, '');
     const moduleSource = javascript + '\nexport { resolveMagnificationPointerAxis };\n';
     const encoded = Buffer.from(moduleSource).toString('base64');
     return import('data:text/javascript;base64,' + encoded);
