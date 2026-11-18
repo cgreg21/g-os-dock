@@ -3,10 +3,6 @@ import Clutter from 'gi://Clutter?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { CleanupManager } from '../../core/cleanup-manager.js';
 
-type ButtonWithSizeRequest = St.Button & {
-    set_size_request(width: number, height: number): void;
-};
-
 interface MagnifiedItem {
     button: St.Button;
     visual: Clutter.Actor;
@@ -18,6 +14,7 @@ interface MagnifiedItem {
     baseButtonHeight: number | null;
     baseVisualWidth: number | null;
     baseVisualHeight: number | null;
+    baseStyle: string;
 }
 
 /**
@@ -87,11 +84,12 @@ export class DockMagnificationController {
         }));
     }
 
-    register(button: St.Button, visual: Clutter.Actor): void {
+    register(button: St.Button, visual: Clutter.Actor, baseStyle: string): void {
         if (this.destroyed)
             return;
         const existing = this.items.get(button);
         if (existing) {
+            existing.baseStyle = baseStyle;
             if (existing.visual !== visual) {
                 this.resetVisual(existing.visual);
                 existing.visual = visual;
@@ -103,7 +101,7 @@ export class DockMagnificationController {
         this.items.set(button, {
             button, visual, start: 0, end: 0, center: 0, scale: 1,
             baseButtonWidth: null, baseButtonHeight: null,
-            baseVisualWidth: null, baseVisualHeight: null,
+            baseVisualWidth: null, baseVisualHeight: null, baseStyle,
         });
         if (this.envelope > 0)
             this.startTimeline();
@@ -136,7 +134,7 @@ export class DockMagnificationController {
             return;
         this.items.delete(button);
         this.resetVisual(item.visual);
-        (item.button as unknown as ButtonWithSizeRequest).set_size_request(-1, -1);
+        item.button.set_style(item.baseStyle);
         if (this.items.size === 0)
             this.destroy();
         else if (this.envelope > 0)
@@ -239,7 +237,7 @@ export class DockMagnificationController {
             item.visual.set_scale(item.scale, item.scale);
             const requestedWidth = item.baseButtonWidth + item.baseVisualWidth * (item.scale - 1);
             const requestedHeight = item.baseButtonHeight + item.baseVisualHeight * (item.scale - 1);
-            (item.button as unknown as ButtonWithSizeRequest).set_size_request(Math.ceil(requestedWidth), Math.ceil(requestedHeight));
+            item.button.set_style(`${item.baseStyle} min-width: ${Math.ceil(requestedWidth)}px; min-height: ${Math.ceil(requestedHeight)}px;`);
 
             // StButton centers its child in the enlarged slot. Counter that
             // centering shift so the icon stays pinned to the screen-facing edge.
@@ -279,7 +277,7 @@ export class DockMagnificationController {
     private resetAllVisuals(): void {
         for (const item of this.items.values()) {
             this.resetVisual(item.visual);
-            (item.button as unknown as ButtonWithSizeRequest).set_size_request(-1, -1);
+            item.button.set_style(item.baseStyle);
             item.baseButtonWidth = null;
             item.baseButtonHeight = null;
             item.baseVisualWidth = null;
