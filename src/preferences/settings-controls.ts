@@ -38,3 +38,30 @@ export function addSpin(
     group.add(row);
     settings.bind(key, row, 'value', Gio.SettingsBindFlags.DEFAULT);
 }
+
+/** Add a string choice row synchronized with a GSettings key. */
+export function addCombo(
+    group: Adw.PreferencesGroup,
+    settings: Gio.Settings,
+    key: string,
+    title: string,
+    labels: string[],
+    values: string[],
+): void {
+    const row = new Adw.ComboRow({
+        title,
+        model: new Gtk.StringList({ strings: labels }),
+    });
+    const sync = () => {
+        const index = values.indexOf(settings.get_string(key));
+        row.selected = index >= 0 ? index : 0;
+    };
+    row.connect('notify::selected', () => {
+        const value = values[row.selected];
+        if (value)
+            settings.set_string(key, value);
+    });
+    settings.connect(`changed::${key}`, sync);
+    group.add(row);
+    sync();
+}
