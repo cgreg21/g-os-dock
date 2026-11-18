@@ -406,10 +406,10 @@ export class DockView {
             this.favorites.moveFavoriteToPos(id, index);
             currentFavorites.splice(current, 1);
             currentFavorites.splice(index, 0, id);
-            currentPositions.clear();
-            currentFavorites.forEach((favoriteId, position) =>
-                currentPositions.set(favoriteId, position),
-            );
+            const firstChanged = Math.min(current, index);
+            const lastChanged = Math.max(current, index);
+            for (let position = firstChanged; position <= lastChanged; position++)
+                currentPositions.set(currentFavorites[position], position);
         }
     }
 
