@@ -231,3 +231,26 @@
   padding: 0;
 }
 
+
+/* Folder grid tiles reuse the translucent card treatment from window previews. */
+.g-os-dock-folder-app-card {
+  spacing: 5px;
+  padding: 6px;
+  border-radius: 9px;
+  background-color: rgba(255, 255, 255, 0.07);
+  transition-duration: 130ms;
+}
+
+.g-os-dock-folder-app-card:hover,
+.g-os-dock-folder-app-card:focus-within {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.g-os-dock-folder-grid {
+  spacing: 8px;
+  padding: 4px;
+}
+
+.g-os-dock-folder-grid-row {
+  spacing: 8px;
+}
