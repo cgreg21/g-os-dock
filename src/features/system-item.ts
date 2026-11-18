@@ -41,7 +41,7 @@ export class DockSystemItem {
             return Clutter.EVENT_STOP;
         });
         const iconSignal = settings.connect('changed::system-icon-name', () => this.updateIcon());
-        this.cleanup.add(() => settings.disconnect(iconSignal));
+        this.cleanup.addSignal(settings, iconSignal);
         this.menuManager = new PopupMenu.PopupMenuManager(this.button);
         // Register only after parenting: GNOME's draggable setup expects the
         // source actor to belong to the live dock hierarchy.
