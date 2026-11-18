@@ -102,10 +102,14 @@ test('E2E: dock background expands with the live magnification wave on all orien
     assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0)'));
     assert.ok(base.includes('setMagnificationSurfaceHandler'));
     assert.ok(base.includes('magnificationSurfaceHandlers.get(this.content)'));
-    assert.ok(view.includes('this.layout.setMagnificationInsets(leading, trailing)'));
+    assert.ok(view.includes('this.layout.setMagnificationInsets(leading, trailing, active)'));
+    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, true)'));
+    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, false)'));
     assert.ok(layout.includes('setMagnificationInsets(leading: number, trailing: number)'));
     assert.ok(layout.includes('this.backgroundBaseWidth + leading + trailing'));
-    assert.ok(layout.includes('this.backgroundBaseHeight + leading + trailing'));
+    assert.ok(layout.includes('const stableHeight = this.magnificationActive ? this.backgroundBaseHeight : backgroundHeight'));
+    assert.ok(layout.includes('const height = this.backgroundBaseHeight'));
+    assert.ok(layout.includes('this.magnificationActive = active'));
     assert.ok(layout.includes('this.backgroundBaseX - leading'));
     assert.ok(layout.includes('this.backgroundBaseY - leading'));
     assert.ok(layout.includes('this.background.remove_transition(property)'));
@@ -181,4 +185,16 @@ test('E2E: magnification resizes button slots and the dock surface without chang
     assert.ok(controller.includes('this.surface = content.get_parent() ?? content'));
     assert.ok(controller.includes("this.surface.connect('motion-event'"));
     assert.ok(controller.includes("this.surface.connect('leave-event'"));
+});
+
+
+test('E2E: dock background width follows magnification while its height and vertical position stay fixed', () => {
+    const layout = read('../src/features/layout/layout.ts');
+    const controller = read('../src/features/items/dock-magnification.ts');
+    assert.ok(layout.includes('const stableHeight = this.magnificationActive ? this.backgroundBaseHeight : backgroundHeight'));
+    assert.ok(layout.includes('const y = this.magnificationActive ? this.backgroundBaseY : actorY'));
+    assert.ok(layout.includes('const width = this.backgroundBaseWidth + leading + trailing'));
+    assert.ok(layout.includes('const height = this.backgroundBaseHeight'));
+    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, true)'));
+    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, false)'));
 });
