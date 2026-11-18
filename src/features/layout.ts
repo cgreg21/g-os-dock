@@ -25,16 +25,19 @@ export class DockLayout {
 
         const position = this.settings.get_string('dock-position');
         const vertical = position === 'left' || position === 'right';
-        this.content.orientation = vertical
+        const orientation = vertical
             ? Clutter.Orientation.VERTICAL
             : Clutter.Orientation.HORIZONTAL;
-        (this.actor as St.BoxLayout).orientation = this.content.orientation;
+        if (this.content.orientation !== orientation) {
+            this.content.orientation = orientation;
+            (this.actor as St.BoxLayout).orientation = orientation;
+        }
 
         // Measure the content, not the outer actor: set_size() on the actor is
         // an explicit Clutter size request and would otherwise become the next
         // preferred size, preventing the dock from growing or shrinking later.
-        this.content.queue_relayout();
-        this.actor.queue_relayout();
+        // Child changes and orientation updates already invalidate layout;
+        // avoid forcing another relayout on every position-only update.
         const [contentMinWidth, contentNaturalWidth] = this.content.get_preferred_width(-1);
         const contentWidth = Math.max(contentMinWidth, contentNaturalWidth);
         const [contentMinHeight, contentNaturalHeight] =
