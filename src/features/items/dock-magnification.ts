@@ -71,6 +71,12 @@ export class DockMagnificationController {
             if (this.envelope > 0)
                 this.startTimeline();
         }));
+        this.cleanup.addSignal(settings, settings.connect('changed::dock-position', () => {
+            for (const { actor } of this.items.values())
+                this.setBaselinePivot(actor);
+            if (this.envelope > 0)
+                this.startTimeline();
+        }));
     }
 
     register(actor: St.Button): void {
