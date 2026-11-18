@@ -66,6 +66,8 @@ export class DockView {
     private trashItem: DockTrashItem | null = null;
     private volumeItems: DockVolumeItems | null = null;
     private favoritesSeparator: St.Widget | null = null;
+    private favoritesSeparatorStyle = '';
+    private favoritesSeparatorSize = '';
 
     constructor(index: number, monitor: MonitorGeometry, settings: Gio.Settings) {
         this.monitor = monitor;
@@ -673,14 +675,21 @@ export class DockView {
         // in a horizontal dock it is vertical (length = height).
         const separatorWidth = vertical ? length : thickness;
         const separatorHeight = vertical ? thickness : length;
-        this.favoritesSeparator.set_size(separatorWidth, separatorHeight);
-        this.favoritesSeparator.set_style(
+        const style =
             `background-color: ${color}; opacity: ${opacity}; ` +
             `border-radius: ${Math.ceil(thickness / 2)}px; ` +
             `width: ${separatorWidth}px; min-width: ${separatorWidth}px; max-width: ${separatorWidth}px; ` +
             `height: ${separatorHeight}px; min-height: ${separatorHeight}px; max-height: ${separatorHeight}px; ` +
-            (vertical ? 'margin: 4px 0;' : 'margin: 0 4px;'),
-        );
+            (vertical ? 'margin: 4px 0;' : 'margin: 0 4px;');
+        const size = `${separatorWidth}x${separatorHeight}`;
+        if (this.favoritesSeparatorSize !== size) {
+            this.favoritesSeparator.set_size(separatorWidth, separatorHeight);
+            this.favoritesSeparatorSize = size;
+        }
+        if (this.favoritesSeparatorStyle !== style) {
+            this.favoritesSeparator.set_style(style);
+            this.favoritesSeparatorStyle = style;
+        }
 
         const children = this.content.get_children();
         const targetIndex = children.indexOf(firstNonFavorite);
@@ -694,6 +703,8 @@ export class DockView {
         this.favoritesSeparator.get_parent()?.remove_child(this.favoritesSeparator);
         this.favoritesSeparator.destroy();
         this.favoritesSeparator = null;
+        this.favoritesSeparatorStyle = '';
+        this.favoritesSeparatorSize = '';
     }
 
     private syncSystemItem(size: number): boolean {
