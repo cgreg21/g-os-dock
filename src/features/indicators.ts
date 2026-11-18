@@ -12,7 +12,10 @@ import {
     resolveIndicatorColor,
 } from './indicator-style.js';
 import { resolveIndicatorMarkerLayout } from './indicator-layout.js';
-import { resolveIndicatorMarkerConfiguration } from './indicator-configuration.js';
+import {
+    normalizeIndicatorOpacity,
+    resolveIndicatorMarkerConfiguration,
+} from './indicator-configuration.js';
 import { resolveIndicatorPresentation } from './indicator-presentation.js';
 import { resolveActiveIndicatorTransition } from './active-indicator-state.js';
 
@@ -42,12 +45,12 @@ export class DockIndicators {
         const multiple = this.settings.get_string('indicator-mode') === 'multiple';
         const shape = this.settings.get_string('indicator-shape');
         const color = resolveIndicatorColor(this.settings.get_string('indicator-color'));
-        const opacity = Math.max(0, Math.min(1, this.settings.get_double('indicator-opacity')));
+        const opacity = normalizeIndicatorOpacity(this.settings.get_double('indicator-opacity'));
         const bottomOffset = this.settings.get_int('indicator-bottom-offset');
         const indicatorSize = this.settings.get_int('indicator-size');
         const borderSize = this.settings.get_int('indicator-border-size');
         const borderColor = resolveIndicatorColor(this.settings.get_string('indicator-border-color'));
-        const borderOpacity = Math.max(0, Math.min(1, this.settings.get_double('indicator-border-opacity')));
+        const borderOpacity = normalizeIndicatorOpacity(this.settings.get_double('indicator-border-opacity'));
 
         for (const item of items) {
             const app = item._gOsDockApp;
