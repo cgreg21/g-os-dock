@@ -124,6 +124,8 @@ export class DockDragDrop {
 
     handleDragOver(source: DockDragSource, _dragActor: Clutter.Actor,
         x: number, y: number, _time: number): number {
+        if (this.destroyed)
+            return DND.DragMotionResult.NO_DROP;
         const sourceId = source?.dockItemId;
         if (!sourceId) {
             this.previewSlot?.hide();
@@ -156,6 +158,8 @@ export class DockDragDrop {
 
     acceptDrop(source: DockDragSource, _dragActor: Clutter.Actor,
         x: number, y: number, _time: number): boolean {
+        if (this.destroyed)
+            return false;
         const sourceId = source?.dockItemId;
         if (!sourceId)
             return false;
@@ -310,6 +314,8 @@ export class DockDragDrop {
     }
 
     private handleRemovalDragOver(source: DockDragSource): number {
+        if (this.destroyed)
+            return DND.DragMotionResult.NO_DROP;
         const item = this.getItems().find(candidate => candidate.id === source?.dockItemId);
         return item?.canRemove?.()
             ? DND.DragMotionResult.MOVE_DROP
@@ -317,7 +323,7 @@ export class DockDragDrop {
     }
 
     private acceptRemovalDrop(source: DockDragSource): boolean {
-        if (this.removingItemId)
+        if (this.destroyed || this.removingItemId)
             return false;
         const item = this.getItems().find(candidate => candidate.id === source?.dockItemId);
         if (!item?.canRemove?.() || !item.onRemove)
