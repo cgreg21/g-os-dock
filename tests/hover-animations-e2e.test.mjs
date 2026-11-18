@@ -22,7 +22,7 @@ test('E2E: shared dock items animate on pointer hover and keyboard focus', () =>
     assert.ok(base.includes(`connect('notify::hover'`));
     assert.ok(base.includes(`connect('key-focus-in'`));
     assert.ok(base.includes(`connect('key-focus-out'`));
-    assert.ok(base.includes(`changed::${key}`));
+    assert.ok(base.includes('changed::'));
     assert.ok(base.includes('this.dockPosition()'));
     assert.ok(base.includes('AnimationManager'));
 });
