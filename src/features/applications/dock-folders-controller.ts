@@ -454,10 +454,24 @@ export class DockFoldersController {
                 style_class: 'g-os-dock-folder-grid-row',
             });
             for (const entry of applications.slice(index, index + columns))
-                row.add_child(this.createFolderAppButton(entry.app));
+                row.add_child(this.createFolderAppCard(entry.app));
             grid.add_child(row);
         }
         return grid;
+    }
+
+    /** Give grid entries the same translucent card treatment as window previews. */
+    private createFolderAppCard(app: Shell.App): St.BoxLayout {
+        const card = new St.BoxLayout({
+            orientation: Clutter.Orientation.VERTICAL,
+            style_class: 'g-os-dock-folder-app-card',
+            reactive: true,
+            track_hover: true,
+            x_expand: false,
+            y_expand: false,
+        });
+        card.add_child(this.createFolderAppButton(app));
+        return card;
     }
 
     private createStackView(
@@ -502,7 +516,9 @@ export class DockFoldersController {
             reactive: true,
             can_focus: true,
             track_hover: true,
-            style_class: 'g-os-dock-folder-app',
+            style_class: compact
+                ? 'g-os-dock-folder-app'
+                : 'g-os-dock-folder-app g-os-dock-preview-open',
             accessible_name: app.get_name(),
             width: compact ? 60 : 76,
             height: compact ? 64 : 82,
