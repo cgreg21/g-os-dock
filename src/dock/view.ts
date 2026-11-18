@@ -18,9 +18,7 @@ import { DockAppItemFactory, type DockAppButton } from '../features/app-item.js'
 import { DockApplicationItemsController } from '../features/application-items-controller.js';
 import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
-import { DockSystemItem } from '../features/system-item.js';
-import { DockTrashItem } from '../features/trash-item.js';
-import { DockVolumeItems } from '../features/volume-items.js';
+import { DockItemsController } from '../features/dock-items-controller.js';
 import { dockCache } from '../features/cache.js';
 import { SettingsObserver } from '../features/settings-observer.js';
 import { LifecycleScope } from '../features/lifecycle-scope.js';
@@ -60,9 +58,7 @@ export class DockView {
     private windowTracker: WindowTracker;
     private appItemFactory: DockAppItemFactory;
     private keyboard: DockKeyboardNavigation;
-    private systemItem: DockSystemItem | null = null;
-    private trashItem: DockTrashItem | null = null;
-    private volumeItems: DockVolumeItems | null = null;
+    private dockItems: DockItemsController;
     private favoritesSeparator: St.Widget | null = null;
     private favoritesSeparatorStyle = '';
     private favoritesSeparatorSize = '';
@@ -176,6 +172,13 @@ export class DockView {
             this.content,
             this.appItemFactory,
             this.settings,
+        );
+        this.dockItems = new DockItemsController(
+            this.content,
+            this.settings,
+            this.dragDrop,
+            () => this.settings.get_string('dock-position'),
+            () => this.refresh(),
         );
 
         try {
@@ -419,12 +422,7 @@ export class DockView {
         const items: DockDndItem[] = this.itemActors.map(item =>
             this.createAppDndItem(item),
         );
-        if (this.systemItem)
-            items.push({ id: 'system:launcher', actor: this.systemItem.getActor() });
-        if (this.trashItem)
-            items.push({ id: 'system:trash', actor: this.trashItem.getActor() });
-        if (this.volumeItems)
-            items.push(...this.volumeItems.getDndItems());
+        items.push(...this.dockItems.getDndItems());
         const positions = new Map(
             this.content.get_children().map((child, index) => [child, index]),
         );
@@ -597,7 +595,7 @@ export class DockView {
         const itemCount = applications.length +
             Number(this.settings.get_boolean('show-system-icon')) +
             Number(this.settings.get_boolean('show-trash-icon')) +
-            (this.volumeItems?.getCount() ?? 0);
+            this.dockItems.volumeCount;
         const iconPadding = vertical
             ? this.settings.get_int('icon-padding-top') + this.settings.get_int('icon-padding-bottom')
             : this.settings.get_int('icon-padding-left') + this.settings.get_int('icon-padding-right');
@@ -622,19 +620,17 @@ export class DockView {
 
         const applications = this.getApplications();
         const configuredSize = this.settings.get_int('icon-size');
-        const volumeItemsChanged = syncVolumes ? this.syncVolumeItems(configuredSize) : false;
+        const volumeItemsChanged = syncVolumes ? this.dockItems.syncVolumes(configuredSize) : false;
         const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
         const available = this.getAvailableSpace(vertical);
         const size = this.getIconSize(applications, available, vertical, configuredSize);
 
         const structureChanged = this.syncApplicationItems(applications, size);
-        const systemItemChanged = this.syncSystemItem(size);
-        const trashItemChanged = this.syncTrashItem(size);
-        this.volumeItems?.setIconSize(size);
+        const dockItemsChanged = this.dockItems.sync(size);
         this.applySavedItemOrder();
         this.syncFavoritesSeparator(size, vertical);
 
-        if (structureChanged || systemItemChanged || trashItemChanged || volumeItemsChanged)
+        if (structureChanged || dockItemsChanged || volumeItemsChanged)
             this.positionDock();
 
         this.indicators.update(this.itemActors);
@@ -718,76 +714,6 @@ export class DockView {
         this.favoritesSeparator = null;
         this.favoritesSeparatorStyle = '';
         this.favoritesSeparatorSize = '';
-    }
-
-    private syncSystemItem(size: number): boolean {
-        const result = this.syncOptionalItem(
-            this.systemItem,
-            this.settings.get_boolean('show-system-icon'),
-            () => new DockSystemItem(
-                this.content, this.settings, size,
-                () => this.settings.get_string('dock-position'),
-                this.dragDrop,
-            ),
-            size,
-        );
-        this.systemItem = result.item;
-        return result.changed;
-    }
-
-    private syncOptionalItem<T extends {
-        setIconSize(size: number): void;
-        destroy(): void;
-    }>(
-        current: T | null,
-        enabled: boolean,
-        create: () => T,
-        size: number,
-    ): { item: T | null; changed: boolean } {
-        if (!enabled) {
-            if (!current)
-                return { item: null, changed: false };
-            current.destroy();
-            return { item: null, changed: true };
-        }
-
-        if (!current)
-            return { item: create(), changed: true };
-
-        current.setIconSize(size);
-        return { item: current, changed: false };
-    }
-
-    private syncVolumeItems(size: number): boolean {
-        if (!this.volumeItems) {
-            this.volumeItems = new DockVolumeItems(
-                this.content,
-                this.settings,
-                this.dragDrop,
-                size,
-                () => this.refresh(),
-                () => this.settings.get_string('dock-position'),
-            );
-            return true;
-        }
-        return this.volumeItems.sync();
-    }
-
-    private syncTrashItem(size: number): boolean {
-        const result = this.syncOptionalItem(
-            this.trashItem,
-            this.settings.get_boolean('show-trash-icon'),
-            () => new DockTrashItem(
-                this.content,
-                this.settings,
-                size,
-                this.dragDrop,
-                () => this.settings.get_string('dock-position'),
-            ),
-            size,
-        );
-        this.trashItem = result.item;
-        return result.changed;
     }
 
     private activateApp(app: Shell.App): void {
@@ -902,12 +828,7 @@ export class DockView {
         this.contextMenu.destroy();
         this.applicationItems.destroy();
         this.removeFavoritesSeparator();
-        this.systemItem?.destroy();
-        this.systemItem = null;
-        this.trashItem?.destroy();
-        this.trashItem = null;
-        this.volumeItems?.destroy();
-        this.volumeItems = null;
+        this.dockItems.destroy();
         this.dragDrop.destroy();
         this.actor.destroy();
         this.background.destroy();
