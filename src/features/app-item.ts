@@ -13,7 +13,6 @@ export type DockAppButton = St.Button & {
     _gOsDockIndicator: St.Widget;
     _gOsDockIcon: Clutter.Actor;
     _gOsDockBadge: St.Label;
-    _gOsDockPaddingStyle?: string;
     _gOsDockBase: DockItemBase;
 };
 
