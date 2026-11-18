@@ -358,13 +358,17 @@ export class DockView {
 
         this.settings.set_strv('dock-item-order', ids);
 
-        // Dropping a running, non-favorite app into the favorites section pins
-        // it in GNOME. Persist the order first because addFavorite emits
-        // favorites.changed and can synchronously trigger a dock refresh.
+        this.syncFavoriteOrder(appIds, pinningBoundary);
+    }
+
+    private syncFavoriteOrder(appIds: string[], pinningBoundary: number): void {
+        // Persist the dock order before pinning: addFavorite emits favorites.changed
+        // and can synchronously trigger a dock refresh.
         for (const id of appIds.slice(0, pinningBoundary)) {
             if (!this.favorites.isFavorite(id))
                 this.favorites.addFavorite(id);
         }
+
         const currentFavorites = this.favorites.getFavorites().map(app => app.get_id());
         const currentPositions = new Map(
             currentFavorites.map((id, index) => [id, index]),
@@ -373,15 +377,16 @@ export class DockView {
 
         for (const [index, id] of orderedFavorites.entries()) {
             const current = currentPositions.get(id);
-            if (current !== undefined && current !== index) {
-                this.favorites.moveFavoriteToPos(id, index);
-                currentFavorites.splice(current, 1);
-                currentFavorites.splice(index, 0, id);
-                currentPositions.clear();
-                currentFavorites.forEach((favoriteId, position) =>
-                    currentPositions.set(favoriteId, position),
-                );
-            }
+            if (current === undefined || current === index)
+                continue;
+
+            this.favorites.moveFavoriteToPos(id, index);
+            currentFavorites.splice(current, 1);
+            currentFavorites.splice(index, 0, id);
+            currentPositions.clear();
+            currentFavorites.forEach((favoriteId, position) =>
+                currentPositions.set(favoriteId, position),
+            );
         }
     }
 
