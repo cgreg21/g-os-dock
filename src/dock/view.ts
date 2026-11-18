@@ -266,12 +266,15 @@ export class DockView {
         const favorites = this.favorites.getFavorites();
         const running = this.appSystem.get_running();
         const favoriteIds = new Set<string>();
+        const seenIds = new Set<string>();
         const result: Shell.App[] = [];
+
         for (const app of favorites) {
             const id = app.get_id();
-            if (!id || favoriteIds.has(id))
+            if (!id || seenIds.has(id))
                 continue;
             favoriteIds.add(id);
+            seenIds.add(id);
             result.push(app);
         }
 
@@ -279,21 +282,27 @@ export class DockView {
         // Only non-favorites are appended, in the order reported by GNOME.
         for (const app of running) {
             const id = app.get_id();
-            if (id && !favoriteIds.has(id)) {
-                favoriteIds.add(id);
+            if (id && !seenIds.has(id)) {
+                seenIds.add(id);
                 result.push(app);
             }
         }
 
-        const savedOrder = this.settings.get_strv('dock-item-order');
-        const order = new Map(savedOrder.map((id, index) => [id, index]));
+        const order = new Map(
+            this.settings.get_strv('dock-item-order')
+                .map((id, index) => [id, index]),
+        );
         result.sort((a, b) => {
-            const aFavorite = this.favorites.isFavorite(a.get_id());
-            const bFavorite = this.favorites.isFavorite(b.get_id());
+            const aId = a.get_id();
+            const bId = b.get_id();
+            const aFavorite = favoriteIds.has(aId);
+            const bFavorite = favoriteIds.has(bId);
+
             if (aFavorite !== bFavorite)
                 return aFavorite ? -1 : 1;
-            return (order.get(`app:${a.get_id()}`) ?? Number.MAX_SAFE_INTEGER) -
-                (order.get(`app:${b.get_id()}`) ?? Number.MAX_SAFE_INTEGER);
+
+            return (order.get(`app:${aId}`) ?? Number.MAX_SAFE_INTEGER) -
+                (order.get(`app:${bId}`) ?? Number.MAX_SAFE_INTEGER);
         });
         return result;
     }
