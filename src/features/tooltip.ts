@@ -1,22 +1,19 @@
 import GLib from 'gi://GLib?version=2.0';
 import St from 'gi://St?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import { TaskScheduler } from './task-scheduler.js';
-import { ChromeActorManager } from './chrome-actor-manager.js';
+import { LifecycleScope } from './lifecycle-scope.js';
 import { DockPositioner } from './dock-positioner.js';
 
 /** Displays an application name after the pointer has rested on its dock item. */
 export class DockTooltip {
     private actor: St.Label;
-    private chromeActors = new ChromeActorManager<St.Widget>(
-        (actor, options) => Main.layoutManager.addTopChrome(actor, options),
-        actor => Main.layoutManager.removeChrome(actor),
-    );
-    private scheduler = new TaskScheduler({
+    private lifecycle = new LifecycleScope<St.Widget>({
         timeout: (delay, callback) => GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, callback),
         idle: callback => GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, callback),
         remove: sourceId => GLib.Source.remove(sourceId),
-    });
+    },
+    (actor, options) => Main.layoutManager.addTopChrome(actor, options),
+    actor => Main.layoutManager.removeChrome(actor));
     private hoverSignal: number;
     private destroySignal: number;
     private destroyed = false;
@@ -41,7 +38,9 @@ export class DockTooltip {
                 this.hide();
         });
         this.destroySignal = parent.connect('destroy', () => this.destroy());
-        this.chromeActors.add(this.actor, {
+        this.lifecycle.addSignal(parent, this.hoverSignal);
+        this.lifecycle.addSignal(parent, this.destroySignal);
+        this.lifecycle.chrome.add(this.actor, {
             affectsStruts: false,
             trackFullscreen: false,
         });
@@ -53,7 +52,7 @@ export class DockTooltip {
     }
 
     private scheduleShow(): void {
-        this.scheduler.timeout('show', 700, () => {
+        this.lifecycle.tasks.timeout('show', 700, () => {
             if (!this.destroyed && this.parent.hover)
                 this.show();
         });
@@ -79,7 +78,7 @@ export class DockTooltip {
     }
 
     private hide(): void {
-        this.scheduler.cancel('show');
+        this.lifecycle.tasks.cancel('show');
         this.actor.hide();
     }
 
@@ -87,12 +86,7 @@ export class DockTooltip {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        this.scheduler.destroy();
-        if (this.hoverSignal)
-            this.parent.disconnect(this.hoverSignal);
-        if (this.destroySignal)
-            this.parent.disconnect(this.destroySignal);
-        this.chromeActors.destroy();
+        this.lifecycle.destroy();
         this.actor.destroy();
     }
 }
