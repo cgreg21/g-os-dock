@@ -1,4 +1,5 @@
 import type { WindowIndicatorState } from './window-indicator-state.js';
+import { shouldShowWindowCountBadge } from './window-count-badge.js';
 
 export interface IndicatorPresentationOptions {
     enabled: boolean;
@@ -26,7 +27,9 @@ export function resolveIndicatorPresentation(
         (options.showFocused && state.active) ||
         (options.showMinimized && state.minimized)
     );
-    const badgeText = options.showCount && state.count > 1 ? String(state.count) : '';
+    const badgeText = shouldShowWindowCountBadge(state.count, options.showCount)
+        ? String(state.count)
+        : '';
 
     return {
         visible,
