@@ -214,7 +214,7 @@ export class DockView {
         this.focusSignal = global.display.connect(
             'notify::focus-window',
             () => {
-                this.updateIndicators();
+                this.indicators.update(this.itemActors);
                 this.visibility.queueSmartHideCheck();
             },
         );
@@ -256,7 +256,7 @@ export class DockView {
     private connectPointerSignals(): void {
         this.hoverSignal = this.actor.connect(
             'notify::hover',
-            () => this.onPointerChanged(),
+            () => this.visibility.onPointerChanged(),
         );
         this.sensorHoverSignal = this.edgeSensor.connect('notify::hover', () => {
             if (this.edgeSensor.hover)
@@ -593,7 +593,7 @@ export class DockView {
         if (structureChanged || systemItemChanged || trashItemChanged || volumeItemsChanged)
             this.layout.position();
 
-        this.updateIndicators();
+        this.indicators.update(this.itemActors);
         this.visibility.queueSmartHideCheck();
     }
 
@@ -746,10 +746,6 @@ export class DockView {
         item._gOsDockPaddingStyle = style;
     }
 
-    private updateIndicators(): void {
-        this.indicators.update(this.itemActors);
-    }
-
     private activateApp(app: Shell.App): void {
         const windows = app.get_windows();
         this.updateWindowIconGeometry(app, windows);
@@ -847,10 +843,6 @@ export class DockView {
             }
             return GLib.SOURCE_REMOVE;
         });
-    }
-
-    private onPointerChanged(): void {
-        this.visibility.onPointerChanged();
     }
 
     private disconnectGeometrySignals(): void {
