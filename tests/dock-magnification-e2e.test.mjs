@@ -235,7 +235,7 @@ async function loadButtonStyleResolver() {
     assert.ok(match, 'the button style resolver must be present');
     const javascript = match[0]
         .replace('export function', 'function')
-        .replace(/:\\s*(?:string|number)/g, '');
+        .replace(/:\s*(?:string|number)/g, '');
     const moduleSource = javascript + '\nexport { resolveMagnificationButtonStyle };\n';
     const encoded = Buffer.from(moduleSource).toString('base64');
     return import('data:text/javascript;base64,' + encoded);
