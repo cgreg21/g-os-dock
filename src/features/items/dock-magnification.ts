@@ -4,7 +4,8 @@ import Gio from 'gi://Gio?version=2.0';
 import { CleanupManager } from '../../core/cleanup-manager.js';
 
 interface MagnifiedItem {
-    actor: St.Button;
+    button: St.Button;
+    visual: Clutter.Actor;
     start: number;
     end: number;
     center: number;
@@ -12,11 +13,10 @@ interface MagnifiedItem {
 }
 
 /**
- * Frame-driven dock magnifier.
+ * Frame-driven icon-only dock magnifier.
  *
- * A raised-cosine window creates the wave; a cumulative slot walk moves
- * neighboring icons aside while keeping the icon under the pointer anchored.
- * The scale pivot remains on the screen-facing edge for all four dock sides.
+ * The button remains the fixed layout slot: its padding, margins and spacing
+ * never scale or reflow. Only the visual icon actor is magnified.
  */
 export class DockMagnificationController {
     private readonly items = new Map<St.Button, MagnifiedItem>();
@@ -32,7 +32,6 @@ export class DockMagnificationController {
     private static readonly CURSOR_TAU = 0.045;
     private static readonly SPRING_OMEGA = 20;
     private static readonly MAX_FRAME_DT = 1 / 30;
-    private static readonly GAP_COMPRESSION = 0.35;
 
     constructor(
         private readonly content: St.BoxLayout,
@@ -64,9 +63,7 @@ export class DockMagnificationController {
         }));
         this.cleanup.addSignal(settings, settings.connect('changed::dock-magnification-enabled', () => {
             this.targetEnvelope = settings.get_boolean('dock-magnification-enabled') && this.rawPointer !== null ? 1 : 0;
-            if (this.targetEnvelope > 0)
-                this.startTimeline();
-            else if (this.envelope > 0)
+            if (this.targetEnvelope > 0 || this.envelope > 0)
                 this.startTimeline();
         }));
         this.cleanup.addSignal(settings, settings.connect('changed::dock-magnification-scale', () => {
@@ -74,18 +71,29 @@ export class DockMagnificationController {
                 this.startTimeline();
         }));
         this.cleanup.addSignal(settings, settings.connect('changed::dock-position', () => {
-            for (const { actor } of this.items.values())
-                this.setBaselinePivot(actor);
+            for (const item of this.items.values())
+                this.setVisualPivot(item.visual);
             if (this.envelope > 0)
                 this.startTimeline();
         }));
     }
 
-    register(actor: St.Button): void {
-        if (this.destroyed || this.items.has(actor))
+    register(button: St.Button, visual: Clutter.Actor): void {
+        if (this.destroyed)
             return;
-        this.setBaselinePivot(actor);
-        this.items.set(actor, { actor, start: 0, end: 0, center: 0, scale: 1 });
+        const existing = this.items.get(button);
+        if (existing) {
+            if (existing.visual !== visual) {
+                this.resetVisual(existing.visual);
+                existing.visual = visual;
+                this.setVisualPivot(visual);
+            }
+            return;
+        }
+        this.setVisualPivot(visual);
+        this.items.set(button, {
+            button, visual, start: 0, end: 0, center: 0, scale: 1,
+        });
         if (this.envelope > 0)
             this.startTimeline();
     }
@@ -94,8 +102,7 @@ export class DockMagnificationController {
         return ['left', 'right'].includes(this.dockPosition());
     }
 
-    private setBaselinePivot(actor: St.Button): void {
-        // The perpendicular pivot sits exactly on the screen-facing edge.
+    private setVisualPivot(actor: Clutter.Actor): void {
         switch (this.dockPosition()) {
         case 'top':
             actor.set_pivot_point(0.5, 0);
@@ -112,11 +119,12 @@ export class DockMagnificationController {
         }
     }
 
-    unregister(actor: St.Button): void {
-        if (!this.items.has(actor))
+    unregister(button: St.Button): void {
+        const item = this.items.get(button);
+        if (!item)
             return;
-        this.items.delete(actor);
-        this.resetActor(actor);
+        this.items.delete(button);
+        this.resetVisual(item.visual);
         if (this.items.size === 0)
             this.destroy();
         else if (this.envelope > 0)
@@ -144,10 +152,8 @@ export class DockMagnificationController {
             this.stopTimeline();
             return;
         }
-
         const delta = this.timeline?.get_delta() ?? 0;
         const dt = Math.min(Math.max(delta / 1000, 0), DockMagnificationController.MAX_FRAME_DT);
-
         if (this.rawPointer !== null) {
             if (this.cursor === null)
                 this.cursor = this.rawPointer;
@@ -156,55 +162,46 @@ export class DockMagnificationController {
                     (1 - Math.exp(-dt / DockMagnificationController.CURSOR_TAU));
         }
 
-        // Critically damped envelope avoids snapping when entering/leaving.
         const omega = DockMagnificationController.SPRING_OMEGA;
         this.envelopeVelocity += (-2 * omega * this.envelopeVelocity -
             omega * omega * (this.envelope - this.targetEnvelope)) * dt;
         this.envelope += this.envelopeVelocity * dt;
         this.envelope = Math.max(0, Math.min(1, this.envelope));
 
-        if (this.targetEnvelope === 0 &&
-            this.envelope < 0.002 &&
+        if (this.targetEnvelope === 0 && this.envelope < 0.002 &&
             Math.abs(this.envelopeVelocity) < 0.02) {
             this.envelope = 0;
             this.envelopeVelocity = 0;
-            this.resetAllActors();
+            this.resetAllVisuals();
             this.onSurfaceExtentChanged?.(0, 0);
             this.stopTimeline();
             return;
         }
-
         if (this.envelope > 0 && this.cursor !== null)
             this.applyWave();
         else
-            this.resetAllActors();
+            this.resetAllVisuals();
     }
 
-    /**
-     * Read untransformed child allocations, calculate a Hann wave, then
-     * accumulate each enlarged slot to reflow the row/column as one strip.
-     */
+    /** Scale only the icon actors; button allocations and inter-item gaps stay fixed. */
     private applyWave(): void {
         if (this.destroyed || this.cursor === null || !this.content.has_allocation())
             return;
-
         const vertical = this.isVertical();
         const contentPosition = this.content.get_transformed_position();
-        const contentAxis = vertical ? contentPosition[1] : contentPosition[0];
-        const contentOrigin = contentAxis;
+        const contentOrigin = vertical ? contentPosition[1] : contentPosition[0];
         const entries: MagnifiedItem[] = [];
-
-        for (const entry of this.items.values()) {
-            const actor = entry.actor;
-            if (!actor.visible || !actor.has_allocation())
+        for (const item of this.items.values()) {
+            if (!item.button.visible || !item.button.has_allocation() ||
+                !item.visual.visible || !item.visual.has_allocation())
                 continue;
-            const box = actor.get_allocation_box();
+            const box = item.button.get_allocation_box();
             const start = contentOrigin + (vertical ? box.y1 : box.x1);
             const extent = vertical ? box.get_height() : box.get_width();
-            entry.start = start;
-            entry.end = start + extent;
-            entry.center = start + extent / 2;
-            entries.push(entry);
+            item.start = start;
+            item.end = start + extent;
+            item.center = start + extent / 2;
+            entries.push(item);
         }
         entries.sort((a, b) => a.start - b.start);
         if (entries.length === 0)
@@ -212,77 +209,29 @@ export class DockMagnificationController {
 
         const maximum = Math.max(1, Math.min(4,
             this.settings.get_int('dock-magnification-scale') / 100));
-        const averageSize = entries.reduce((sum, entry) => sum + entry.end - entry.start, 0) / entries.length;
-        const effectWidth = Math.max(averageSize * 2, averageSize * 6);
+        const averageSize = entries.reduce((sum, item) => sum + item.end - item.start, 0) / entries.length;
+        const effectWidth = averageSize * 6;
         const min = this.cursor - effectWidth / 2;
-
-        for (const entry of entries) {
+        for (const item of entries) {
             const theta = Math.max(0, Math.min(2 * Math.PI,
-                ((entry.center - min) / effectWidth) * 2 * Math.PI));
+                ((item.center - min) / effectWidth) * 2 * Math.PI));
             const hann = (1 - Math.cos(theta)) / 2;
-            entry.scale = 1 + this.envelope * (maximum - 1) * hann;
+            item.scale = 1 + this.envelope * (maximum - 1) * hann;
+            item.visual.set_scale(item.scale, item.scale);
         }
 
-        // Slot boundaries sit midway through the gaps between icons.
-        const count = entries.length;
-        const bounds = new Array<number>(count + 1);
-        const expanded = new Array<number>(count + 1);
-        bounds[0] = entries[0]!.start;
-        for (let i = 1; i < count; i++)
-            bounds[i] = (entries[i - 1]!.end + entries[i]!.start) / 2;
-        bounds[count] = entries[count - 1]!.end;
-
-        expanded[0] = bounds[0]!;
-        for (let i = 0; i < count; i++) {
-            const entry = entries[i]!;
-            const slotSize = bounds[i + 1]! - bounds[i]!;
-            const iconSize = entry.end - entry.start;
-            const flexibleGap = Math.max(0, slotSize - iconSize);
-            const magnification = maximum > 1
-                ? Math.max(0, Math.min(1, (entry.scale - 1) / (maximum - 1)))
-                : 0;
-            // Enlarge the icon while compressing part of the surrounding
-            // flexible gap, instead of magnifying the gap along with the icon.
-            const compressedSlot = slotSize * entry.scale -
-                flexibleGap * DockMagnificationController.GAP_COMPRESSION *
-                magnification * this.envelope;
-            expanded[i + 1] = expanded[i]! + Math.max(iconSize * entry.scale, compressedSlot);
-        }
-
-        // Keep the pointer's location stable while the neighboring slots expand.
-        let shift = 0;
-        if (this.cursor > bounds[0]! && this.cursor < bounds[count]!) {
-            let index = 0;
-            while (index < count - 1 && bounds[index + 1]! < this.cursor)
-                index++;
-            const mapped = expanded[index]! +
-                (this.cursor - bounds[index]!) * entries[index]!.scale;
-            shift = this.cursor - mapped;
-        } else if (this.cursor >= bounds[count]!) {
-            shift = bounds[count]! - expanded[count]!;
-        }
-
-        const expandedStart = expanded[0]! + shift;
-        const expandedEnd = expanded[count]! + shift;
+        // The surface may grow around the first/last icon, without changing slots.
+        const first = entries[0]!;
+        const last = entries[entries.length - 1]!;
+        const firstExtent = vertical ? first.visual.get_height() : first.visual.get_width();
+        const lastExtent = vertical ? last.visual.get_height() : last.visual.get_width();
         this.onSurfaceExtentChanged?.(
-            Math.max(0, bounds[0]! - expandedStart),
-            Math.max(0, expandedEnd - bounds[count]!),
+            Math.max(0, firstExtent * (first.scale - 1) / 2),
+            Math.max(0, lastExtent * (last.scale - 1) / 2),
         );
-
-        for (let i = 0; i < count; i++) {
-            const entry = entries[i]!;
-            const mappedCenter = expanded[i]! +
-                (entry.center - bounds[i]!) * entry.scale + shift;
-            const translation = mappedCenter - entry.center;
-            entry.actor.set_scale(entry.scale, entry.scale);
-            if (vertical)
-                entry.actor.translation_y = translation;
-            else
-                entry.actor.translation_x = translation;
-        }
     }
 
-    private resetActor(actor: St.Button): void {
+    private resetVisual(actor: Clutter.Actor): void {
         for (const property of ['scale-x', 'scale-y', 'translation-x', 'translation-y'])
             actor.remove_transition(property);
         actor.set_scale(1, 1);
@@ -290,9 +239,9 @@ export class DockMagnificationController {
         actor.translation_y = 0;
     }
 
-    private resetAllActors(): void {
-        for (const { actor } of this.items.values())
-            this.resetActor(actor);
+    private resetAllVisuals(): void {
+        for (const item of this.items.values())
+            this.resetVisual(item.visual);
     }
 
     destroy(): void {
@@ -303,7 +252,7 @@ export class DockMagnificationController {
         this.cleanup.clear();
         this.rawPointer = null;
         this.cursor = null;
-        this.resetAllActors();
+        this.resetAllVisuals();
         this.onSurfaceExtentChanged?.(0, 0);
         this.items.clear();
     }
