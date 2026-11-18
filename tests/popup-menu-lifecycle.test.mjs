@@ -98,3 +98,39 @@ test('immediately destroys menus tracked after lifecycle shutdown', () => {
     assert.deepEqual(menu.calls, ['destroy']);
     assert.deepEqual(manager.calls, []);
 });
+
+
+test('continues disposing a menu when manager removal or close fails', () => {
+    const originalLogError = globalThis.logError;
+    globalThis.logError = () => {};
+    try {
+        const manager = createManager();
+        manager.removeMenu = () => { throw new Error('remove failed'); };
+        const lifecycle = new PopupMenuLifecycle(manager);
+        const menu = createMenu();
+        menu.close = () => { throw new Error('close failed'); };
+        lifecycle.track(menu);
+        lifecycle.dispose(menu);
+        assert.equal(lifecycle.size, 0);
+        assert.deepEqual(menu.calls, ['destroy']);
+    } finally {
+        globalThis.logError = originalLogError;
+    }
+});
+
+test('rolls back registration when connecting the close signal fails', () => {
+    const originalLogError = globalThis.logError;
+    globalThis.logError = () => {};
+    try {
+        const manager = createManager();
+        const lifecycle = new PopupMenuLifecycle(manager);
+        const menu = createMenu();
+        menu.connect = () => { throw new Error('connect failed'); };
+        assert.throws(() => lifecycle.track(menu), /connect failed/);
+        assert.equal(lifecycle.size, 0);
+        assert.deepEqual(manager.calls, [['add', menu], ['remove', menu]]);
+        assert.deepEqual(menu.calls, ['destroy']);
+    } finally {
+        globalThis.logError = originalLogError;
+    }
+});
