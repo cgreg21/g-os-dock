@@ -5,6 +5,7 @@ import { DockItemsController } from '../features/dock-items-controller.js';
 import { calculateDockIconSize } from '../features/icon-sizing.js';
 import { FAVORITES_SEPARATOR_MARGIN } from '../features/favorites-separator.js';
 import { getIconPaddingExtent } from '../features/icon-padding.js';
+import { countVisibleWindowBadges } from '../features/window-count-badge.js';
 
 /** Coordinates item reconciliation, sizing and post-refresh layout updates. */
 export interface DockRefreshCallbacks {
@@ -55,9 +56,10 @@ export class DockRefreshController {
                 Number(this.settings.get_boolean('show-system-icon')) +
                 Number(this.settings.get_boolean('show-trash-icon')) +
                 this.dockItems.volumeCount,
-            windowCountBadgeCount: this.settings.get_boolean('show-window-count')
-                ? applications.filter(app => app.get_windows().length > 1).length
-                : 0,
+            windowCountBadgeCount: countVisibleWindowBadges(
+                applications.map(app => app.get_windows().length),
+                this.settings.get_boolean('show-window-count'),
+            ),
             iconPadding,
             vertical,
         });
