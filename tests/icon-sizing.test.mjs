@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateAvailableDockSpace, calculateDockIconSize, resolveDockSizingMetrics } from '../dist/features/icon-sizing.js';
+import { calculateAvailableDockSpace, calculateDockIconSize, calculateUniformItemSize, resolveDockSizingMetrics } from '../dist/features/icon-sizing.js';
 
 const defaults = {
     applicationIds: ['favorite', 'running'],
@@ -137,4 +137,48 @@ test('does not reserve separator cost when the separator is disabled', () => {
         ),
         { itemCount: 3, separatorSpace: 0 },
     );
+});
+
+test('calculates uniform item size after subtracting spacing and overhead', () => {
+    assert.equal(calculateUniformItemSize({
+        availableSpace: 150,
+        itemCount: 4,
+        spacing: 8,
+        additionalSpace: 10,
+        overhead: 4,
+        itemPadding: 2,
+        configuredSize: 64,
+        minimumSize: 16,
+    }), 21);
+});
+
+test('uses configured size when there are no items', () => {
+    assert.equal(calculateUniformItemSize({
+        availableSpace: 0,
+        itemCount: 0,
+        spacing: 8,
+        additionalSpace: 10,
+        overhead: 4,
+        itemPadding: 2,
+        configuredSize: 48,
+        minimumSize: 16,
+    }), 48);
+});
+
+test('clamps uniform item size between minimum and configured size', () => {
+    const options = {
+        availableSpace: 1,
+        itemCount: 5,
+        spacing: 8,
+        additionalSpace: 10,
+        overhead: 4,
+        itemPadding: 2,
+        configuredSize: 64,
+        minimumSize: 16,
+    };
+    assert.equal(calculateUniformItemSize(options), 16);
+    assert.equal(calculateUniformItemSize({
+        ...options,
+        availableSpace: 1000,
+    }), 64);
 });
