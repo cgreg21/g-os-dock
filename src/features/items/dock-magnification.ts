@@ -218,32 +218,32 @@ export class DockMagnificationController {
         const count = entries.length;
         const bounds = new Array<number>(count + 1);
         const expanded = new Array<number>(count + 1);
-        bounds[0] = entries[0].start;
+        bounds[0] = entries[0]!.start;
         for (let i = 1; i < count; i++)
-            bounds[i] = (entries[i - 1].end + entries[i].start) / 2;
-        bounds[count] = entries[count - 1].end;
+            bounds[i] = (entries[i - 1]!.end + entries[i]!.start) / 2;
+        bounds[count] = entries[count - 1]!.end;
 
-        expanded[0] = bounds[0];
+        expanded[0] = bounds[0]!;
         for (let i = 0; i < count; i++)
-            expanded[i + 1] = expanded[i] + (bounds[i + 1] - bounds[i]) * entries[i].scale;
+            expanded[i + 1] = expanded[i]! + (bounds[i + 1]! - bounds[i]!) * entries[i]!.scale;
 
         // Keep the pointer's location stable while the neighboring slots expand.
         let shift = 0;
-        if (this.cursor > bounds[0] && this.cursor < bounds[count]) {
+        if (this.cursor > bounds[0]! && this.cursor < bounds[count]!) {
             let index = 0;
-            while (index < count - 1 && bounds[index + 1] < this.cursor)
+            while (index < count - 1 && bounds[index + 1]! < this.cursor)
                 index++;
-            const mapped = expanded[index] +
-                (this.cursor - bounds[index]) * entries[index].scale;
+            const mapped = expanded[index]! +
+                (this.cursor - bounds[index]!) * entries[index]!.scale;
             shift = this.cursor - mapped;
-        } else if (this.cursor >= bounds[count]) {
-            shift = bounds[count] - expanded[count];
+        } else if (this.cursor >= bounds[count]!) {
+            shift = bounds[count]! - expanded[count]!;
         }
 
         for (let i = 0; i < count; i++) {
-            const entry = entries[i];
-            const mappedCenter = expanded[i] +
-                (entry.center - bounds[i]) * entry.scale + shift;
+            const entry = entries[i]!;
+            const mappedCenter = expanded[i]! +
+                (entry.center - bounds[i]!) * entry.scale + shift;
             const translation = mappedCenter - entry.center;
             entry.actor.set_scale(entry.scale, entry.scale);
             if (vertical)
