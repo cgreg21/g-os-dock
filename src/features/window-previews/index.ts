@@ -20,6 +20,7 @@ export class WindowPreviews {
     private hoverSignal = 0;
     private keySignal = 0;
     private destroyed = false;
+    private settingsSignal = 0;
     private windowManagerSettings = new Gio.Settings({
         schema_id: 'org.gnome.desktop.wm.preferences',
     });
@@ -29,7 +30,15 @@ export class WindowPreviews {
         private monitor: MonitorGeometry,
         private dockActor: St.Widget,
         private isDestroyed: () => boolean,
-    ) {}
+    ) {
+        this.settingsSignal = this.settings.connect(
+            'changed::show-window-previews',
+            () => {
+                if (!this.settings.get_boolean('show-window-previews'))
+                    this.hide();
+            },
+        );
+    }
 
     cancelPending(): void {
         if (this.showSource) {
@@ -175,6 +184,8 @@ export class WindowPreviews {
         if (this.destroyed)
             return;
         this.destroyed = true;
+        this.settings.disconnect(this.settingsSignal);
+        this.settingsSignal = 0;
         this.hide();
     }
 
