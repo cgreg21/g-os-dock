@@ -51,18 +51,10 @@ export class DockLayout {
         const height = Math.ceil(contentHeight + paddingTop + paddingBottom);
         const edgeDistance = this.settings.get_int('edge-distance');
 
-        const panel = Main.panel as unknown as St.Widget;
-        const [panelX, panelY] = panel.get_transformed_position();
-        const panelBottom = panelY + panel.height;
-        const panelIntersectsMonitor =
-            panelX < this.monitor.x + this.monitor.width &&
-            panelX + panel.width > this.monitor.x;
-        const panelAtMonitorTop = panelIntersectsMonitor &&
-            panelY <= this.monitor.y + 2 &&
-            panelBottom > this.monitor.y;
-        const usableTop = panelAtMonitorTop
-            ? Math.min(this.monitor.y + this.monitor.height, panelBottom + edgeDistance)
-            : this.monitor.y;
+        const panelBottom = this.getPanelBottom();
+        const usableTop = panelBottom === null
+            ? this.monitor.y
+            : Math.min(this.monitor.y + this.monitor.height, panelBottom + edgeDistance);
 
         this.actor.set_size(width, height);
         this.background.set_size(width, height);
@@ -117,23 +109,28 @@ export class DockLayout {
         this.background.set_position(Math.round(x), Math.round(y));
     }
 
+    private getPanelBottom(): number | null {
+        const panel = Main.panel as unknown as St.Widget;
+        const [panelX, panelY] = panel.get_transformed_position();
+        const panelBottom = panelY + panel.height;
+        const intersectsMonitor =
+            panelX < this.monitor.x + this.monitor.width &&
+            panelX + panel.width > this.monitor.x;
+        return intersectsMonitor && panelY <= this.monitor.y + 2 &&
+            panelBottom > this.monitor.y
+            ? panelBottom
+            : null;
+    }
+
     positionSensor(): void {
         if (this.isDestroyed())
             return;
 
         const position = this.settings.get_string('dock-position');
-        const panel = Main.panel as unknown as St.Widget;
-        const [panelX, panelY] = panel.get_transformed_position();
-        const panelBottom = panelY + panel.height;
-        const panelIntersectsMonitor =
-            panelX < this.monitor.x + this.monitor.width &&
-            panelX + panel.width > this.monitor.x;
-        const panelAtMonitorTop = panelIntersectsMonitor &&
-            panelY <= this.monitor.y + 2 &&
-            panelBottom > this.monitor.y;
-        const sensorTop = panelAtMonitorTop
-            ? Math.min(this.monitor.y + this.monitor.height, panelBottom + 8)
-            : this.monitor.y;
+        const panelBottom = this.getPanelBottom();
+        const sensorTop = panelBottom === null
+            ? this.monitor.y
+            : Math.min(this.monitor.y + this.monitor.height, panelBottom + 8);
         const sensorHeight = Math.max(EDGE_THICKNESS, this.monitor.y + this.monitor.height - sensorTop);
 
         if (position === 'top') {
