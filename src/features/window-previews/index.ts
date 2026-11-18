@@ -34,8 +34,8 @@ export class WindowPreviews {
         private isDestroyed: () => boolean,
     ) {
         this.settingsObserver.watch(this.settings, 'show-window-previews', () => {
-                if (!this.settings.get_boolean('show-window-previews'))
-                    this.hide();
+            if (!this.settings.get_boolean('show-window-previews'))
+                this.hide();
         });
     }
 
