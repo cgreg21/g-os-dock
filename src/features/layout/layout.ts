@@ -26,6 +26,7 @@ export class DockLayout {
     private backgroundBaseHeight = 0;
     private magnificationLeading = 0;
     private magnificationTrailing = 0;
+    private magnificationActive = false;
     constructor(
         private actor: St.Widget,
         private background: St.Widget,
@@ -44,24 +45,24 @@ export class DockLayout {
      * Expands the decorative surface to follow the live magnification wave.
      * Insets are measured along the dock's main axis and do not alter icon layout.
      */
-    setMagnificationInsets(leading: number, trailing: number): void {
+    setMagnificationInsets(leading: number, trailing: number, active = leading > 0 || trailing > 0): void {
         if (this.isDestroyed())
             return;
         this.magnificationLeading = Number.isFinite(leading) ? Math.max(0, leading) : 0;
         this.magnificationTrailing = Number.isFinite(trailing) ? Math.max(0, trailing) : 0;
+        this.magnificationActive = active;
         this.applyMagnificationInsets();
     }
 
     private applyMagnificationInsets(): void {
         if (this.isDestroyed())
             return;
-        const vertical = isVerticalDockPosition(this.settings.get_string('dock-position'));
         const leading = this.magnificationLeading;
         const trailing = this.magnificationTrailing;
-        const x = vertical ? this.backgroundBaseX : this.backgroundBaseX - leading;
-        const y = vertical ? this.backgroundBaseY - leading : this.backgroundBaseY;
-        const width = vertical ? this.backgroundBaseWidth : this.backgroundBaseWidth + leading + trailing;
-        const height = vertical ? this.backgroundBaseHeight + leading + trailing : this.backgroundBaseHeight;
+        const x = this.backgroundBaseX - leading;
+        const y = this.backgroundBaseY;
+        const width = this.backgroundBaseWidth + leading + trailing;
+        const height = this.backgroundBaseHeight;
         for (const property of ['width', 'height', 'x', 'y'])
             this.background.remove_transition(property);
         this.background.set_size(Math.ceil(width), Math.ceil(height));
@@ -190,13 +191,16 @@ export class DockLayout {
         // centering from actorX alone incorrectly shifts it when horizontal
         // background margins are added (or are asymmetric).
         const x = actorX + paddingLeft + (contentWidth - backgroundWidth) / 2;
-        const y = actorY;
+        const y = this.magnificationActive ? this.backgroundBaseY : actorY;
         this.backgroundBaseX = x;
-        this.backgroundBaseY = y;
+        if (!this.magnificationActive) {
+            this.backgroundBaseY = y;
+            this.backgroundBaseHeight = backgroundHeight;
+        }
         this.backgroundBaseWidth = backgroundWidth;
-        this.backgroundBaseHeight = backgroundHeight;
+        const stableHeight = this.magnificationActive ? this.backgroundBaseHeight : backgroundHeight;
         if (!this.hasPositioned) {
-            this.background.set_size(backgroundWidth, backgroundHeight);
+            this.background.set_size(backgroundWidth, stableHeight);
             this.background.set_position(Math.round(x), Math.round(y));
             return;
         }
@@ -209,7 +213,7 @@ export class DockLayout {
             this.background as unknown as AnimationTarget,
             {
                 width: backgroundWidth,
-                height: backgroundHeight,
+                height: stableHeight,
                 x: Math.round(x),
                 y: Math.round(y),
             },
