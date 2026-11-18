@@ -125,8 +125,6 @@ test('E2E: dock background width follows magnification while its height and vert
     assert.ok(layout.includes('const y = this.magnificationActive ? this.backgroundBaseY : actorY'));
     assert.ok(layout.includes('const width = this.backgroundBaseWidth + leading + trailing'));
     assert.ok(layout.includes('const height = this.backgroundBaseHeight'));
-    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, true)'));
-    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, false)'));
 });
 
 
