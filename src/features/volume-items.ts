@@ -3,6 +3,7 @@ import Gio from 'gi://Gio?version=2.0';
 import { DockDragDrop } from './drag-and-drop.js';
 import { DockTooltip } from './tooltip.js';
 import { getIconPaddingStyle } from './icon-padding.js';
+import { CleanupManager } from './cleanup-manager.js';
 
 type DriveCategory = 'network' | 'usb' | 'system';
 
@@ -19,7 +20,7 @@ interface MountedDrive {
 /** Keeps mounted network, internal and removable volumes represented in the dock. */
 export class DockVolumeItems {
     private monitor: Gio.VolumeMonitor;
-    private signals: number[] = [];
+    private cleanup = new CleanupManager();
     private items = new Map<string, {
         button: St.Button;
         icon: St.Icon;
@@ -40,11 +41,10 @@ export class DockVolumeItems {
         private dockPosition: () => string,
     ) {
         this.monitor = Gio.VolumeMonitor.get();
-        this.signals.push(
-            this.monitor.connect('mount-added', () => this.handleMonitorChange()),
-            this.monitor.connect('mount-removed', () => this.handleMonitorChange()),
-            this.monitor.connect('mount-changed', () => this.handleMonitorChange()),
-        );
+        for (const signal of ['mount-added', 'mount-removed', 'mount-changed']) {
+            const id = this.monitor.connect(signal, () => this.handleMonitorChange());
+            this.cleanup.add(() => this.monitor.disconnect(id));
+        }
         this.sync();
     }
 
@@ -197,9 +197,7 @@ export class DockVolumeItems {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        for (const signal of this.signals)
-            this.monitor.disconnect(signal);
-        this.signals = [];
+        this.cleanup.clear();
         for (const item of this.items.values()) {
             this.dragDrop.unregisterItem(item.button);
             item.button.destroy();
