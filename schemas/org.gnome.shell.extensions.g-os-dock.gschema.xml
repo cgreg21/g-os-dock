@@ -12,7 +12,7 @@
     <key name="favorites-separator-color" type="s"><default>'#ffffff'</default><summary>Favorites separator color</summary></key>
     <key name="favorites-separator-opacity" type="d"><range min="0.0" max="1.0"/><default>0.55</default><summary>Favorites separator opacity</summary></key>
     <key name="favorites-separator-size" type="i"><range min="1" max="8"/><default>2</default><summary>Favorites separator thickness in pixels</summary></key>
-    <key name="favorites-separator-length" type="i"><range min="4" max="128"/><default>26</default><summary>Favorites separator length in pixels</summary></key>
+    <key name="favorites-separator-length" type="i"><range min="1" max="512"/><default>26</default><summary>Favorites separator length in pixels</summary></key>
     <key name="system-icon-name" type="s"><default>'view-app-grid-symbolic'</default><summary>Icon theme name for the system dock item</summary></key>
     <key name="dev-mode" type="b"><default>false</default><summary>Show development borders around dock elements</summary></key>
     <key name="dock-position" type="s"><default>'bottom'</default><summary>Dock position: top, bottom, left or right</summary></key>
