@@ -16,6 +16,7 @@ export class DockMagnificationController {
     private readonly cleanup = new CleanupManager();
     private nextKey = 0;
     private destroyed = false;
+    private lastPointer: [number, number] | null = null;
 
     constructor(
         private readonly content: St.BoxLayout,
@@ -35,6 +36,12 @@ export class DockMagnificationController {
         this.cleanup.addSignal(settings, settings.connect('changed::dock-magnification-enabled', () => {
             if (!settings.get_boolean('dock-magnification-enabled'))
                 this.reset();
+            else if (this.lastPointer)
+                this.update(...this.lastPointer);
+        }));
+        this.cleanup.addSignal(settings, settings.connect('changed::dock-magnification-scale', () => {
+            if (this.lastPointer && settings.get_boolean('dock-magnification-enabled'))
+                this.update(...this.lastPointer);
         }));
     }
 
@@ -56,10 +63,11 @@ export class DockMagnificationController {
     }
 
     private update(pointerX: number, pointerY: number): void {
-        if (this.destroyed || !this.settings.get_boolean('dock-magnification-enabled')) {
-            this.reset();
+        if (this.destroyed)
             return;
-        }
+        this.lastPointer = [pointerX, pointerY];
+        if (!this.settings.get_boolean('dock-magnification-enabled'))
+            return;
 
         const vertical = ['left', 'right'].includes(this.dockPosition());
         const pointer = vertical ? pointerY : pointerX;
@@ -111,6 +119,7 @@ export class DockMagnificationController {
             return;
         this.destroyed = true;
         this.cleanup.clear();
+        this.lastPointer = null;
         this.animations.destroy();
         for (const { actor } of this.items.values()) {
             actor.scale_x = 1;
