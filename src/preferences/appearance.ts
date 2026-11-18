@@ -51,6 +51,11 @@ export function addIconPreferences(page: Adw.PreferencesPage, settings: Gio.Sett
         ['none', 'scale', 'lift', 'bounce', 'glow']);
     addSpin(hover, settings, 'hover-animation-intensity', 'Animation intensity', 1, 8, 1);
     addSpin(hover, settings, 'hover-animation-duration', 'Animation duration (ms)', 80, 300, 10);
+
+    const magnification = new Adw.PreferencesGroup({ title: 'Dock magnification' });
+    page.add(magnification);
+    addSwitch(magnification, settings, 'dock-magnification-enabled', 'Enable smooth magnification');
+    addSpin(magnification, settings, 'dock-magnification-scale', 'Maximum icon size (%)', 100, 400, 10);
 }
 
 export function addIndicatorPreferences(page: Adw.PreferencesPage, settings: Gio.Settings): void {
