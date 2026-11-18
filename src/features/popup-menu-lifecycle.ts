@@ -1,4 +1,4 @@
-import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 /** Owns popup menu registration and guarantees each menu is disposed once. */
 export class PopupMenuLifecycle {
