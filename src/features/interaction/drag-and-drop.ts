@@ -384,7 +384,6 @@ export class DockDragDrop {
             return;
         if (!this.removalZone) {
             const zone = new St.Widget({
-                style_class: 'g-os-dock-removal-zone',
                 reactive: true,
                 can_focus: false,
             });
@@ -401,18 +400,9 @@ export class DockDragDrop {
         }
         const zone = this.removalZone;
         zone.reactive = true;
-        zone.opacity = 0;
-        zone.scale_x = 0.97;
-        zone.scale_y = 0.97;
+        // The removal target is deliberately invisible: it only receives drops.
+        zone.opacity = 255;
         zone.show();
-        this.animations.animate('removal-zone', zone as unknown as AnimationTarget, {
-            opacity: 255,
-            scaleX: 1,
-            scaleY: 1,
-        }, {
-            durationMs: 150,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        });
     }
 
     private hideRemovalZone(): void {
