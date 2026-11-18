@@ -159,16 +159,6 @@
 }
 
 .g-os-dock-removal-zone {
-  spacing: 8px;
-  padding: 10px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 12px;
-  background-color: rgba(190, 45, 55, 0.94);
-  color: white;
-}
-
-.g-os-dock-removal-zone StIcon,
-.g-os-dock-removal-zone StLabel {
-  color: white;
-  font-weight: bold;
+  background-color: rgba(190, 45, 55, 0.16);
+  border: 2px dashed rgba(255, 105, 115, 0.82);
 }
