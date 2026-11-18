@@ -78,7 +78,6 @@ export class DockVolumeItems {
         for (const [id, entry] of visible) {
             const existing = this.items.get(id);
             if (existing) {
-                existing.icon.icon_size = this.iconSize;
                 const paddingStyle = getIconPaddingStyle(this.settings, this.iconSize);
                 if (existing.paddingStyle !== paddingStyle) {
                     existing.button.set_style(paddingStyle);
