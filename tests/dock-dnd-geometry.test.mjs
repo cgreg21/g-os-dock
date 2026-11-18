@@ -94,3 +94,11 @@ test('keeps the removal target within small non-origin monitors', () => {
     );
     assert.deepEqual(zone, { x: 32, y: 42, width: 76, height: 46 });
 });
+
+test('keeps a removal target below the top panel when the dock is at the bottom', () => {
+    const monitor = { x: 100, y: 50, width: 1200, height: 800 };
+    assert.deepEqual(
+        resolveDockRemovalZoneGeometry(monitor, 'bottom', 148, 52, 12, 32),
+        { x: 626, y: 94, width: 148, height: 52 },
+    );
+});

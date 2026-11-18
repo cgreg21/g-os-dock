@@ -371,6 +371,10 @@ export class DockDragDrop {
         const geometry = resolveDockRemovalZoneGeometry(
             this.monitor,
             this.settings.get_string('dock-position'),
+            148,
+            52,
+            12,
+            Main.panel.height,
         );
         this.removalZone.set_position(geometry.x, geometry.y);
         this.removalZone.set_size(geometry.width, geometry.height);

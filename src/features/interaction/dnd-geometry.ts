@@ -76,12 +76,17 @@ export function resolveDockRemovalZoneGeometry(
     zoneWidth = 148,
     zoneHeight = 52,
     inset = 12,
+    topInset = 0,
 ): DockDndZoneGeometry {
     const safeInset = Math.max(0, inset);
     const width = Math.max(1, Math.min(zoneWidth, monitor.width - safeInset * 2));
     const height = Math.max(1, Math.min(zoneHeight, monitor.height - safeInset * 2));
     const centeredX = monitor.x + (monitor.width - width) / 2;
     const centeredY = monitor.y + (monitor.height - height) / 2;
+    const topY = Math.min(
+        monitor.y + monitor.height - height - safeInset,
+        Math.max(monitor.y + safeInset, monitor.y + Math.max(0, topInset) + safeInset),
+    );
 
     switch (dockPosition) {
     case 'top':
@@ -109,7 +114,7 @@ export function resolveDockRemovalZoneGeometry(
     default:
         return {
             x: centeredX,
-            y: monitor.y + safeInset,
+            y: topY,
             width,
             height,
         };
