@@ -8,11 +8,11 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 import { createWindowPreviewCard } from './card.js';
-import { dockCache } from '../cache.js';
-import { SettingsObserver } from '../settings-observer.js';
-import { TaskScheduler } from '../task-scheduler.js';
-import { ChromeActorManager } from '../chrome-actor-manager.js';
-import { DockPositioner, isVerticalDockPosition } from '../dock-positioner.js';
+import { dockCache } from '../../../core/cache.js';
+import { SettingsObserver } from '../../../core/settings-observer.js';
+import { TaskScheduler } from '../../../core/task-scheduler.js';
+import { ChromeActorManager } from '../../../core/chrome-actor-manager.js';
+import { DockPositioner, isVerticalDockPosition } from '../../layout/dock-positioner.js';
 
 /**
  * Owns the lifecycle and rendering of application window previews.

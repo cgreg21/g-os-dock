@@ -2,7 +2,7 @@ import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import Meta from 'gi://Meta?version=51';
 import Shell from 'gi://Shell?version=51';
-import { dockCache } from '../cache.js';
+import { dockCache } from '../../../core/cache.js';
 
 /** Builds a single window preview card and its window actions. */
 export function createWindowPreviewCard(

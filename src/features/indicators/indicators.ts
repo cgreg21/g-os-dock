@@ -2,8 +2,8 @@ import St from 'gi://St?version=51';
 import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import type { DockAppButton } from '../applications/app-item.js';
-import { dockCache } from './cache.js';
-import { dockStyles } from './style-manager.js';
+import { dockCache } from '../../core/cache.js';
+import { dockStyles } from '../../core/style-manager.js';
 import {
     resolveWindowIndicatorState,
     type WindowIndicatorState,

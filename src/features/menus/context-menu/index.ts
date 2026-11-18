@@ -4,8 +4,8 @@ import Meta from 'gi://Meta?version=51';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-import { getDockMenuSide } from '../menu-position.js';
-import { PopupMenuLifecycle } from '../popup-menu-lifecycle.js';
+import { getDockMenuSide } from '../../layout/menu-position.js';
+import { PopupMenuLifecycle } from '../../interaction/popup-menu-lifecycle.js';
 
 /** Keeps application context-menu construction and cleanup out of DockView. */
 export class AppContextMenu {
