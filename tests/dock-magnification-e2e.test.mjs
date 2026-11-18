@@ -30,7 +30,7 @@ test('E2E: magnification reflows neighboring slots and keeps the pointer anchore
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes('const bounds = new Array<number>(count + 1)'));
     assert.ok(controller.includes('const expanded = new Array<number>(count + 1)'));
-    assert.ok(controller.includes('(bounds[i + 1] - bounds[i]) * entries[i].scale'));
+    assert.ok(controller.includes('(bounds[i + 1]! - bounds[i]!) * entries[i]!.scale'));
     assert.ok(controller.includes('shift = this.cursor - mapped'));
     assert.ok(controller.includes('mappedCenter - entry.center'));
     assert.ok(controller.includes('entry.actor.translation_x = translation'));
