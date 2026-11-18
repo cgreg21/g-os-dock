@@ -4,6 +4,7 @@ import {
     createRgbaColor,
     hexColorToRgb,
     normalizeHexColor,
+    normalizeUnitInterval,
 } from '../dist/features/color-utils.js';
 
 test('preserves valid hexadecimal colors', () => {
@@ -28,4 +29,11 @@ test('formats rgba colors and clamps alpha', () => {
 
 test('uses a safe black fallback when formatting invalid colors', () => {
     assert.equal(createRgbaColor('invalid', 0.25), 'rgba(0, 0, 0, 0.25)');
+});
+
+test('normalizes generic unit-interval values', () => {
+    assert.equal(normalizeUnitInterval(-1), 0);
+    assert.equal(normalizeUnitInterval(0.35), 0.35);
+    assert.equal(normalizeUnitInterval(1), 1);
+    assert.equal(normalizeUnitInterval(2), 1);
 });
