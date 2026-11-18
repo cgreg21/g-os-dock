@@ -347,9 +347,11 @@ export class DockView {
             items.push({ id: 'system:trash', actor: this.trashItem.getActor() });
         if (this.volumeItems)
             items.push(...this.volumeItems.getDndItems());
-        const children = this.content.get_children();
+        const positions = new Map(
+            this.content.get_children().map((child, index) => [child, index]),
+        );
         items.sort((a, b) =>
-            children.indexOf(a.actor) - children.indexOf(b.actor),
+            (positions.get(a.actor) ?? -1) - (positions.get(b.actor) ?? -1),
         );
         return items;
     }
