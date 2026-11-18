@@ -261,15 +261,98 @@ export class DockView {
         }));
     }
 
-    private connectSettingsSignal(): void {
-        this.settingsObserver.watchAll(this.settings, () => this.applySettings());
+    private connectSettingsSignals(): void {
+        this.settingsObserver.watchMany(this.settings, [
+            'theme',
+            'acrylic-enabled',
+            'background-color',
+            'background-opacity',
+            'border-color',
+            'border-opacity',
+            'border-size',
+            'radius-top-left',
+            'radius-top-right',
+            'radius-bottom-right',
+            'radius-bottom-left',
+            'background-padding-top',
+            'background-padding-right',
+            'background-padding-bottom',
+            'background-padding-left',
+            'dock-spacing',
+            'background-shadow-enabled',
+            'background-shadow-color',
+            'background-shadow-opacity',
+            'background-shadow-offset-x',
+            'background-shadow-offset-y',
+            'background-shadow-blur',
+            'background-shadow-spread',
+        ], () => this.appearance.apply());
+
+        this.settingsObserver.watchMany(this.settings, [
+            'show-system-icon',
+            'show-trash-icon',
+            'show-network-drives',
+            'show-system-drives',
+            'show-usb-drives',
+            'dock-position',
+            'icon-size',
+            'dock-spacing',
+            'border-size',
+            'background-padding-top',
+            'background-padding-right',
+            'background-padding-bottom',
+            'background-padding-left',
+            'edge-distance',
+            'icon-padding-top',
+            'icon-padding-right',
+            'icon-padding-bottom',
+            'icon-padding-left',
+            'dock-item-order',
+            'show-favorites-separator',
+            'favorites-separator-color',
+            'favorites-separator-opacity',
+            'favorites-separator-size',
+            'favorites-separator-length',
+        ], () => {
+            this.refresh();
+            this.positionDock();
+        });
+
+        this.settingsObserver.watchMany(this.settings, [
+            'auto-hide',
+            'smart-hide',
+        ], () => {
+            this.visibility.applySettings();
+            this.syncEdgeSensor();
+        });
+
+        this.settingsObserver.watch(this.settings, 'dev-mode', () => {
+            this.applyDevelopmentStyle();
+        });
+
+        this.settingsObserver.watchMany(this.settings, [
+            'show-running-indicator',
+            'indicator-show-open',
+            'indicator-show-focused',
+            'indicator-show-minimized',
+            'show-window-count',
+            'indicator-mode',
+            'indicator-shape',
+            'indicator-color',
+            'indicator-opacity',
+            'indicator-bottom-offset',
+            'indicator-size',
+            'indicator-border-size',
+            'indicator-border-color',
+            'indicator-border-opacity',
+        ], () => this.indicators.update(this.itemActors));
     }
 
     private connectSignals(): void {
         this.connectThemeSignal();
         this.connectPanelGeometrySignals();
         this.connectPointerSignals();
-        this.connectSettingsSignal();
+        this.connectSettingsSignals();
         this.connectApplicationSignals();
         this.connectWindowSignals();
         this.connectContentGeometrySignal();
