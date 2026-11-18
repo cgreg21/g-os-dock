@@ -2,7 +2,7 @@ import Meta from 'gi://Meta?version=51';
 
 /** Tracks window geometry and lifetime signals for smart-hide updates. */
 export class WindowTracker {
-    private tracked: Array<{ window: Meta.Window; signals: number[] }> = [];
+    private tracked = new Map<Meta.Window, number[]>();
     private destroyed = false;
 
     constructor(private display: Meta.Display, private onChange: () => void) {}
@@ -17,7 +17,7 @@ export class WindowTracker {
     }
 
     track(window: Meta.Window): void {
-        if (this.destroyed || !window || this.tracked.some(entry => entry.window === window))
+        if (this.destroyed || !window || this.tracked.has(window))
             return;
 
         const signals: number[] = [];
@@ -41,7 +41,7 @@ export class WindowTracker {
             }
         }
 
-        this.tracked.push({ window, signals });
+        this.tracked.set(window, signals);
     }
 
     destroy(): void {
@@ -49,22 +49,19 @@ export class WindowTracker {
             return;
 
         this.destroyed = true;
-        for (const entry of [...this.tracked])
-            this.untrack(entry.window);
+        for (const window of this.tracked.keys())
+            this.untrack(window);
     }
 
     private untrack(window: Meta.Window): void {
-        const index = this.tracked.findIndex(entry => entry.window === window);
-        if (index < 0)
+        const signals = this.tracked.get(window);
+        if (!signals)
             return;
 
-        const [entry] = this.tracked.splice(index, 1);
-        if (!entry)
-            return;
-
-        for (const signal of entry.signals) {
+        this.tracked.delete(window);
+        for (const signal of signals) {
             try {
-                entry.window.disconnect(signal);
+                window.disconnect(signal);
             } catch (_error) {
                 // Window may already have been disposed by Mutter.
             }
