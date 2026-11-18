@@ -7,6 +7,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { DockDragDrop } from './drag-and-drop.js';
 import { DockTooltip } from './tooltip.js';
 import { getDockMenuSide } from './menu-position.js';
+import { getIconPaddingStyle } from './icon-padding.js';
 
 /** Configurable app-grid launcher and GNOME system actions. */
 export class DockSystemItem {
@@ -49,15 +50,7 @@ export class DockSystemItem {
         const name = this.settings.get_string('system-icon-name') || 'view-app-grid-symbolic';
         this.button.set_child(new St.Icon({ icon_name: name, icon_size: this.iconSize,
             style_class: 'g-os-dock-system-icon' }));
-        const top = this.settings.get_int('icon-padding-top');
-        const right = this.settings.get_int('icon-padding-right');
-        const bottom = this.settings.get_int('icon-padding-bottom');
-        const left = this.settings.get_int('icon-padding-left');
-        this.button.set_style(
-            `padding: ${top}px ${right}px ${bottom}px ${left}px; ` +
-            `min-width: ${this.iconSize + left + right}px; ` +
-            `min-height: ${this.iconSize + top + bottom}px;`,
-        );
+        this.button.set_style(getIconPaddingStyle(this.settings, this.iconSize));
     }
 
     private showMenu(): void {
