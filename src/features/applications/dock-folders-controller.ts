@@ -5,6 +5,7 @@ import Gio from 'gi://Gio?version=2.0';
 import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { getDockMenuSide } from '../layout/menu-position.js';
 import { DockDragDrop, type DockDndItem } from '../interaction/drag-and-drop.js';
 
 interface DockFolderRecord {
@@ -46,6 +47,7 @@ export class DockFoldersController {
         private readonly settings: Gio.Settings,
         private readonly dragDrop: DockDragDrop,
         private readonly appSystem: Shell.AppSystem,
+        private readonly dockPosition: () => string,
         private readonly onChanged: () => void,
     ) {}
 
@@ -193,7 +195,7 @@ export class DockFoldersController {
         const folder = this.folders.find(candidate => candidate.id === id);
         if (!folder)
             return;
-        const menu = new PopupMenu.PopupMenu(folder.actor, 0.5, 'TOP');
+        const menu = new PopupMenu.PopupMenu(folder.actor, 0.5, getDockMenuSide(this.dockPosition()));
         Main.uiGroup.add_child(menu.actor);
         for (const appId of folder.appIds) {
             const app = this.appSystem.lookup_app(appId);
