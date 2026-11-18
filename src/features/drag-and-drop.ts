@@ -98,6 +98,8 @@ export class DockDragDrop {
             return DND.DragMotionResult.NO_DROP;
         const items = this.getItems();
         const dragged = items.find(item => item.id === sourceId);
+        if (!dragged)
+            return DND.DragMotionResult.NO_DROP;
         const targets = items.filter(item => item.id !== sourceId);
         const index = this.getDropIndex(targets, x, y);
         const favoriteCount = targets.filter(item =>
