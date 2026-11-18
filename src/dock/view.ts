@@ -27,6 +27,7 @@ import { DockRuntimeSignalsController } from './runtime-signals-controller.js';
 import { DockActorSignalsController } from './actor-signals-controller.js';
 import { LifecycleScope } from '../features/lifecycle-scope.js';
 import { resolveApplicationOrder } from '../features/application-order.js';
+import { calculateDockIconSize } from '../features/icon-sizing.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -333,40 +334,28 @@ export class DockView {
         vertical: boolean,
         configuredSize: number,
     ): number {
-        const spacing = this.settings.get_int('dock-spacing');
         const favoriteIds = new Set(
             this.favorites.getFavorites().map(app => app.get_id()),
         );
-        let hasFavorites = false;
-        let hasRunningApps = false;
-        for (const app of applications) {
-            if (favoriteIds.has(app.get_id()))
-                hasFavorites = true;
-            else
-                hasRunningApps = true;
-            if (hasFavorites && hasRunningApps)
-                break;
-        }
-        const separatorSpace = this.settings.get_boolean('show-favorites-separator') &&
-            hasFavorites && hasRunningApps
-            ? this.settings.get_int('favorites-separator-size') + spacing
-            : 0;
-        const itemCount = applications.length +
-            Number(this.settings.get_boolean('show-system-icon')) +
-            Number(this.settings.get_boolean('show-trash-icon')) +
-            this.dockItems.volumeCount;
         const iconPadding = vertical
             ? this.settings.get_int('icon-padding-top') + this.settings.get_int('icon-padding-bottom')
             : this.settings.get_int('icon-padding-left') + this.settings.get_int('icon-padding-right');
-        const overhead = vertical ? 25 : 4;
-        const fittedSize = itemCount > 0
-            ? Math.floor(
-                (available - separatorSpace - spacing * Math.max(0, itemCount - 1)) /
-                itemCount,
-            ) - overhead - iconPadding
-            : configuredSize;
 
-        return Math.min(configuredSize, Math.max(16, fittedSize));
+        return calculateDockIconSize({
+            applicationIds: applications.map(app => app.get_id()),
+            favoriteIds,
+            availableSpace: available,
+            configuredSize,
+            spacing: this.settings.get_int('dock-spacing'),
+            showFavoritesSeparator: this.settings.get_boolean('show-favorites-separator'),
+            separatorSize: this.settings.get_int('favorites-separator-size'),
+            additionalItemCount:
+                Number(this.settings.get_boolean('show-system-icon')) +
+                Number(this.settings.get_boolean('show-trash-icon')) +
+                this.dockItems.volumeCount,
+            iconPadding,
+            vertical,
+        });
     }
 
     private syncApplicationItems(applications: Shell.App[], size: number): boolean {
