@@ -43,6 +43,7 @@ test('does not reserve vertical badge space when no count badge is visible', () 
         additionalItemCount: 0,
         availableSpace: 200,
         configuredSize: 100,
+        spacing: 0,
         vertical: true,
     }), 100);
 });
@@ -67,6 +68,7 @@ test('does not add vertical badge space to horizontal dock length', () => {
         additionalItemCount: 0,
         availableSpace: 200,
         configuredSize: 100,
+        spacing: 0,
         windowCountBadgeCount: 2,
         vertical: false,
     }), 96);
