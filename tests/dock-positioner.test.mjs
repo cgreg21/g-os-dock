@@ -6,6 +6,7 @@ import {
     resolveDockSurfacePosition,
     resolveHiddenTranslation,
     isVerticalDockPosition,
+    resolveOppositeDockEdge,
 } from '../dist/features/dock-positioner.js';
 
 const bounds = { x: 100, y: 50, width: 800, height: 600 };
@@ -121,4 +122,12 @@ test('shares the vertical orientation rule for all dock edges', () => {
     assert.equal(isVerticalDockPosition('top'), false);
     assert.equal(isVerticalDockPosition('bottom'), false);
     assert.equal(isVerticalDockPosition('unknown'), false);
+});
+
+test('resolves the opposite popup edge for all dock positions', () => {
+    assert.equal(resolveOppositeDockEdge('top'), 'bottom');
+    assert.equal(resolveOppositeDockEdge('bottom'), 'top');
+    assert.equal(resolveOppositeDockEdge('left'), 'right');
+    assert.equal(resolveOppositeDockEdge('right'), 'left');
+    assert.equal(resolveOppositeDockEdge('unknown'), 'left');
 });
