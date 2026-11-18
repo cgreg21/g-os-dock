@@ -11,6 +11,7 @@ import {
     canDropDockItemAtIndex,
     isDockDndFavoriteBoundaryInsertion,
     resolveDockDndInsertionIndex,
+    resolveDockDndInsertionIndexWithHysteresis,
     resolveDockDndPreviewChildIndex,
     resolveDockRemovalZoneGeometry,
 } from './dnd-geometry.js';
@@ -55,6 +56,7 @@ export class DockDragDrop {
     private removalZone: St.Widget | null = null;
     private smokeActors = new Set<St.Widget>();
     private smokeSequence = 0;
+    private previewInsertionIndex: number | null = null;
 
     constructor(
         private actor: St.Widget,
@@ -83,7 +85,11 @@ export class DockDragDrop {
 
         this.setDragDelegate(item);
         const registration = {
-            draggable: DND.makeDraggable(actor, { dragActorOpacity: 210 }),
+            draggable: DND.makeDraggable(actor, {
+                dragActorOpacity: 210,
+                // Require a deliberate press before a pointer movement starts a drag.
+                timeoutThreshold: 160,
+            }),
             signals: [] as number[],
             item,
             onStart,
@@ -167,7 +173,7 @@ export class DockDragDrop {
             return DND.DragMotionResult.NO_DROP;
         }
         const targets = items.filter(item => item.id !== sourceId);
-        const index = this.getDropIndex(targets, x, y);
+        const index = this.getStableDropIndex(targets, x, y);
         if (index === null) {
             this.previewSlot?.hide();
             return DND.DragMotionResult.NO_DROP;
@@ -188,6 +194,7 @@ export class DockDragDrop {
             return DND.DragMotionResult.NO_DROP;
         }
 
+        this.previewInsertionIndex = index;
         this.movePreview(index, targets);
         return DND.DragMotionResult.MOVE_DROP;
     }
@@ -205,7 +212,7 @@ export class DockDragDrop {
             return false;
         const remaining = items.filter(item => item.id !== sourceId);
         // Use the final pointer position, not a potentially stale hover index.
-        const target = this.getDropIndex(remaining, x, y);
+        const target = this.getStableDropIndex(remaining, x, y);
         if (target === null)
             return false;
         const dragged = items[sourceIndex]!;
@@ -245,6 +252,18 @@ export class DockDragDrop {
         return resolveDockDndInsertionIndex(midpoints, coordinate);
     }
 
+    private getStableDropIndex(items: DockDndItem[], x: number, y: number): number | null {
+        const vertical = this.isVertical();
+        const coordinate = vertical ? y : x;
+        const midpoints = items.map(item => this.getItemMidpoint(item.actor, vertical));
+        return resolveDockDndInsertionIndexWithHysteresis(
+            midpoints,
+            coordinate,
+            this.previewInsertionIndex,
+            10,
+        );
+    }
+
     private isFavorite(item: DockDndItem): boolean {
         return item.isFavorite?.() ?? false;
     }
@@ -252,6 +271,9 @@ export class DockDragDrop {
     private beginPreview(item: DockDndItem): void {
         this.endPreview();
         this.draggedItem = item;
+        const initialItems = this.getItems();
+        const initialSourceIndex = initialItems.findIndex(candidate => candidate.id === item.id);
+        this.previewInsertionIndex = initialSourceIndex < 0 ? null : initialSourceIndex;
         this.previewSlot = new St.Widget({
             style_class: 'g-os-dock-dnd-preview',
             reactive: false,
@@ -341,6 +363,7 @@ export class DockDragDrop {
             }
             this.draggedItem.actor.show();
             this.draggedItem = null;
+        this.previewInsertionIndex = null;
         }
     }
 
