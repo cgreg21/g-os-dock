@@ -23,6 +23,7 @@ import { DockVolumeItems } from '../features/volume-items.js';
 import { dockCache } from '../features/cache.js';
 import { SettingsObserver } from '../features/settings-observer.js';
 import { LifecycleScope } from '../features/lifecycle-scope.js';
+import { resolveApplicationOrder } from '../features/application-order.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -388,55 +389,13 @@ export class DockView {
     private getItemOrderRanks(ids: string[]): ReadonlyMap<string, number> {
         const key = `dock-item-order-ranks:${JSON.stringify(ids)}`;
         return dockCache.getOrCreate(key, () =>
-            new Map(ids.map((id, index) => [id, index])),
-        );
-    }
-
     private getApplications(): Shell.App[] {
-        // Keep the dock in two strict sections: favorites in their configured
-        // order, followed by running applications that are not favorites.
-        // Do not rely on AppSystem.get_running() ordering for this invariant.
-        const favorites = this.favorites.getFavorites();
-        const running = this.appSystem.get_running();
-        const favoriteIds = new Set<string>();
-        const seenIds = new Set<string>();
-        const result: Shell.App[] = [];
-
-        for (const app of favorites) {
-            const id = app.get_id();
-            if (!id || seenIds.has(id))
-                continue;
-            favoriteIds.add(id);
-            seenIds.add(id);
-            result.push(app);
-        }
-
-        // Running favorites are already represented in the first section.
-        // Only non-favorites are appended, in the order reported by GNOME.
-        for (const app of running) {
-            const id = app.get_id();
-            if (id && !seenIds.has(id)) {
-                seenIds.add(id);
-                result.push(app);
-            }
-        }
-
-        const order = this.getItemOrderRanks(this.settings.get_strv('dock-item-order'));
-        const ordered = result.map((app, index) => {
-            const id = app.get_id();
-            return {
-                app,
-                index,
-                favorite: favoriteIds.has(id),
-                rank: order.get(`app:${id}`) ?? Number.MAX_SAFE_INTEGER,
-            };
-        });
-        ordered.sort((a, b) =>
-            Number(b.favorite) - Number(a.favorite) ||
-            a.rank - b.rank ||
-            a.index - b.index,
+        const ranks = this.getItemOrderRanks(this.settings.get_strv('dock-item-order'));
+        return resolveApplicationOrder(
+            this.favorites.getFavorites(),
+            this.appSystem.get_running(),
+            ranks,
         );
-        return ordered.map(item => item.app);
     }
 
     private getDndItems(): DockDndItem[] {
