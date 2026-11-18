@@ -67,9 +67,13 @@ function addIconThemeSelector(group: Adw.PreferencesGroup, settings: Gio.Setting
     const display = Gdk.Display.get_default();
     if (!display) return;
     const theme = Gtk.IconTheme.get_for_display(display);
-    const names = [...theme.get_icon_names()].sort((a, b) => a.localeCompare(b));
-    const fallback = 'view-app-grid-symbolic';
-    if (!names.includes(fallback)) names.unshift(fallback);
+    // Keep symbolic variants out of the picker: the launcher preview should
+    // use the same regular application-icon style as the rest of the dock.
+    const names = [...theme.get_icon_names()]
+        .filter(name => !name.endsWith('-symbolic'))
+        .sort((a, b) => a.localeCompare(b));
+    if (names.length === 0) return;
+    const fallback = names.includes('view-app-grid') ? 'view-app-grid' : names[0];
     const row = new Adw.ComboRow({
         title: 'Applications icon',
         subtitle: 'Choose an icon from the current icon theme',
