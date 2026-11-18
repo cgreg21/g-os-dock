@@ -3,6 +3,7 @@ import GLib from 'gi://GLib?version=2.0';
 import Meta from 'gi://Meta?version=51';
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
+import { rectanglesOverlap } from './geometry.js';
 
 const HIDE_DELAY_MS = 650;
 const SMART_HIDE_DELAY_MS = 80;
@@ -263,10 +264,7 @@ export class DockVisibility {
                 return false;
 
             const rect = window.get_frame_rect();
-            return rect.x < dockRect.x + dockRect.width &&
-                rect.x + rect.width > dockRect.x &&
-                rect.y < dockRect.y + dockRect.height &&
-                rect.y + rect.height > dockRect.y;
+            return rectanglesOverlap(rect, dockRect);
         });
 
         if (overlaps) {
