@@ -1,8 +1,8 @@
 import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
-import { DockLayout } from './layout.js';
-import { DockItemsController } from './dock-items-controller.js';
-import { calculateDockIconSize } from './icon-sizing.js';
+import { DockLayout } from '../features/layout.js';
+import { DockItemsController } from '../features/dock-items-controller.js';
+import { calculateDockIconSize } from '../features/icon-sizing.js';
 
 /** Coordinates item reconciliation, sizing and post-refresh layout updates. */
 export interface DockRefreshCallbacks {
