@@ -2,6 +2,7 @@ import Clutter from 'gi://Clutter?version=51';
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { dockCache } from './cache.js';
+import { FAVORITES_SEPARATOR_MARGIN } from './favorites-separator.js';
 
 /**
  * Owns the presentation and lifecycle of the separator between favorites
@@ -43,7 +44,9 @@ export class DockFavoritesSeparatorController {
                 `border-radius: ${Math.ceil(thickness / 2)}px; ` +
                 `width: ${width}px; min-width: ${width}px; max-width: ${width}px; ` +
                 `height: ${height}px; min-height: ${height}px; max-height: ${height}px; ` +
-                (vertical ? 'margin: 4px 0;' : 'margin: 0 4px;'),
+                (vertical
+                    ? `margin: ${FAVORITES_SEPARATOR_MARGIN}px 0;`
+                    : `margin: 0 ${FAVORITES_SEPARATOR_MARGIN}px;`),
         );
         const dimensions = `${width}x${height}`;
         if (this.dimensions !== dimensions) {
