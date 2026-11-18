@@ -161,3 +161,12 @@
   background-color: rgba(255, 255, 255, 0.55);
 }
 
+
+.g-os-dock-folder {
+  border-radius: 12px;
+}
+
+.g-os-dock-folder-drop-target {
+  background-color: rgba(53, 132, 228, 0.28);
+  border: 2px solid rgba(120, 169, 255, 0.9);
+}
