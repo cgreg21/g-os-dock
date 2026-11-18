@@ -2,6 +2,7 @@ export interface DockFolderRecord {
     id: string;
     name: string;
     appIds: string[];
+    viewMode?: 'grid' | 'stack';
 }
 
 export interface DockFolderRemovalState {
@@ -56,7 +57,7 @@ export function resolveDockFolderRemoval(
     const index = order.indexOf(folderId);
     const nextOrder = order.filter(id => id !== folderId);
     if (remaining.length >= 2) {
-        nextFolders.push({ id: folderId, name: folder.name, appIds: remaining });
+        nextFolders.push({ ...folder, appIds: remaining });
         const folderIndex = index < 0 ? nextOrder.length : Math.min(index, nextOrder.length);
         nextOrder.splice(folderIndex, 0, folderId);
         nextOrder.splice(folderIndex + 1, 0, `app:${appId}`);
