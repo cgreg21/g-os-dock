@@ -89,6 +89,7 @@ export class DockFoldersController {
             } else {
                 const membersChanged = folder.appIds.join('\\0') !== validIds.join('\\0');
                 folder.name = record.name;
+                folder.viewMode = record.viewMode;
                 folder.appIds = validIds;
                 if (folder.iconSize !== iconSize || membersChanged) {
                     folder.actor.set_child(this.createFolderPreview(folder, iconSize));
