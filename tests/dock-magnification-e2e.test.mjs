@@ -15,9 +15,9 @@ test('E2E: magnification has a configurable 100–400 percent range', () => {
 
 test('E2E: magnification uses a frame-driven raised-cosine wave with smoothed pointer input', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
-    assert.ok(controller.includes("connect('motion-event'"));
-    assert.ok(controller.includes("connect('enter-event'"));
-    assert.ok(controller.includes("connect('leave-event'"));
+    assert.ok(controller.includes("this.surface.connect('motion-event'"));
+    assert.ok(controller.includes("this.surface.connect('enter-event'"));
+    assert.ok(controller.includes("this.surface.connect('leave-event'"));
     assert.ok(controller.includes('Clutter.Timeline.new_for_actor'));
     assert.ok(controller.includes('CURSOR_TAU = 0.045'));
     assert.ok(controller.includes('SPRING_OMEGA = 20'));
@@ -30,7 +30,8 @@ test('E2E: magnification keeps dock slots fixed while tracking the pointer wave'
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
     assert.ok(controller.includes('item.button.get_allocation_box()'));
-    assert.ok(controller.includes('The button remains the fixed layout slot'));
+    assert.ok(controller.includes('item.button.set_size_request(Math.ceil(requestedWidth), Math.ceil(requestedHeight))'));
+    assert.ok(controller.includes('this.content.queue_relayout()'));
     assert.ok(!controller.includes('GAP_COMPRESSION'));
     assert.ok(!controller.includes('expanded[i + 1]'));
 });
@@ -92,8 +93,9 @@ test('E2E: dock background expands with the live magnification wave on all orien
     const layout = read('../src/features/layout/layout.ts');
 
     assert.ok(controller.includes('onSurfaceExtentChanged?.('));
-    assert.ok(controller.includes('firstExtent * (first.scale - 1) / 2'));
-    assert.ok(controller.includes('lastExtent * (last.scale - 1) / 2'));
+    assert.ok(controller.includes('this.content.queue_relayout()'));
+    assert.ok(view.includes('this.layout.position(false)'));
+    assert.ok(layout.includes('position(immediate = false)'));
     assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0)'));
     assert.ok(base.includes('setMagnificationSurfaceHandler'));
     assert.ok(base.includes('magnificationSurfaceHandlers.get(this.content)'));
@@ -128,7 +130,10 @@ test('E2E: magnification scales visual actors without resizing dock slots', () =
     assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
     assert.ok(controller.includes('item.button.get_allocation_box()'));
     assert.ok(controller.includes('this.setVisualPivot(visual)'));
+    assert.ok(controller.includes('this.surface = content.get_parent() ?? content'));
     assert.ok(!controller.includes('GAP_COMPRESSION'));
+    assert.ok(controller.includes('baseVisualWidth * (item.scale - 1)'));
+    assert.ok(controller.includes('item.button.set_size_request(-1, -1)'));
     assert.ok(!controller.includes('entry.button.set_scale'));
     assert.ok(!controller.includes('entry.button.translation_x'));
     assert.ok(!controller.includes('entry.button.translation_y'));
@@ -148,10 +153,29 @@ test('E2E: only visual icons scale; button padding and dock gaps remain fixed', 
     assert.ok(!controller.includes('item.button.set_scale'));
     assert.ok(!controller.includes('item.button.translation_x'));
     assert.ok(!controller.includes('item.button.translation_y'));
+    assert.ok(controller.includes('requestedHeight = item.baseButtonHeight + item.baseVisualHeight * (item.scale - 1)'));
     assert.ok(base.includes('controller.register(this.button, visualActor'));
     assert.ok(app.includes('base.setIconPadding(this.dependencies.settings, size, icon)'));
     assert.ok(system.includes('this.item.setIconPadding(this.settings, this.iconSize, icon)'));
     assert.ok(trash.includes('this.item.setIconPadding(this.settings, this.iconSize, this.icon)'));
     assert.ok(volumes.includes('item.item.setIconPadding(this.settings, size, item.icon)'));
     assert.ok(folders.includes('folder.actor.get_first_child() ?? folder.actor'));
+});
+
+
+test('E2E: magnification resizes button slots and the dock surface without changing padding or spacing', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    const layout = read('../src/features/layout/layout.ts');
+    const view = read('../src/dock/view.ts');
+    const padding = read('../src/features/layout/icon-padding.ts');
+
+    assert.ok(controller.includes('item.button.set_size_request(Math.ceil(requestedWidth), Math.ceil(requestedHeight))'));
+    assert.ok(controller.includes('item.button.set_size_request(-1, -1)'));
+    assert.ok(controller.includes('this.content.queue_relayout()'));
+    assert.ok(view.includes('this.layout.position(false)'));
+    assert.ok(layout.includes('position(immediate = false)'));
+    assert.ok(padding.includes('padding: ${top}px ${right}px ${bottom}px ${left}px'));
+    assert.ok(controller.includes('this.surface = content.get_parent() ?? content'));
+    assert.ok(controller.includes("this.surface.connect('motion-event'"));
+    assert.ok(controller.includes("this.surface.connect('leave-event'"));
 });
