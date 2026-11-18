@@ -10,13 +10,16 @@ interface MagnifiedItem {
     end: number;
     center: number;
     scale: number;
+    baseButtonWidth: number | null;
+    baseButtonHeight: number | null;
+    baseVisualWidth: number | null;
+    baseVisualHeight: number | null;
 }
 
 /**
- * Frame-driven icon-only dock magnifier.
- *
- * The button remains the fixed layout slot: its padding, margins and spacing
- * never scale or reflow. Only the visual icon actor is magnified.
+ * Frame-driven dock magnifier. Icon scale is converted into a matching button
+ * size request so the content layout and dock surface follow the live wave.
+ * CSS padding and BoxLayout spacing remain unchanged.
  */
 export class DockMagnificationController {
     private readonly items = new Map<St.Button, MagnifiedItem>();
@@ -28,6 +31,7 @@ export class DockMagnificationController {
     private envelope = 0;
     private envelopeVelocity = 0;
     private targetEnvelope = 0;
+    private readonly surface: Clutter.Actor;
 
     private static readonly CURSOR_TAU = 0.045;
     private static readonly SPRING_OMEGA = 20;
@@ -39,15 +43,16 @@ export class DockMagnificationController {
         private readonly dockPosition: () => string,
         private readonly onSurfaceExtentChanged?: (leading: number, trailing: number) => void,
     ) {
-        this.content.reactive = true;
-        this.cleanup.addSignal(content, content.connect('motion-event', (_actor, event) => {
+        this.surface = content.get_parent() ?? content;
+        this.surface.reactive = true;
+        this.cleanup.addSignal(this.surface, this.surface.connect('motion-event', (_actor, event) => {
             const [x, y] = event.get_coords();
             this.rawPointer = this.isVertical() ? y : x;
             this.targetEnvelope = this.settings.get_boolean('dock-magnification-enabled') ? 1 : 0;
             this.startTimeline();
             return Clutter.EVENT_PROPAGATE;
         }));
-        this.cleanup.addSignal(content, content.connect('enter-event', (_actor, event) => {
+        this.cleanup.addSignal(this.surface, this.surface.connect('enter-event', (_actor, event) => {
             const [x, y] = event.get_coords();
             this.rawPointer = this.isVertical() ? y : x;
             if (this.settings.get_boolean('dock-magnification-enabled')) {
@@ -56,7 +61,7 @@ export class DockMagnificationController {
             }
             return Clutter.EVENT_PROPAGATE;
         }));
-        this.cleanup.addSignal(content, content.connect('leave-event', () => {
+        this.cleanup.addSignal(this.surface, this.surface.connect('leave-event', () => {
             this.targetEnvelope = 0;
             this.startTimeline();
             return Clutter.EVENT_PROPAGATE;
@@ -93,6 +98,8 @@ export class DockMagnificationController {
         this.setVisualPivot(visual);
         this.items.set(button, {
             button, visual, start: 0, end: 0, center: 0, scale: 1,
+            baseButtonWidth: null, baseButtonHeight: null,
+            baseVisualWidth: null, baseVisualHeight: null,
         });
         if (this.envelope > 0)
             this.startTimeline();
@@ -125,6 +132,7 @@ export class DockMagnificationController {
             return;
         this.items.delete(button);
         this.resetVisual(item.visual);
+        item.button.set_size_request(-1, -1);
         if (this.items.size === 0)
             this.destroy();
         else if (this.envelope > 0)
@@ -134,7 +142,7 @@ export class DockMagnificationController {
     private startTimeline(): void {
         if (this.destroyed || this.timeline || this.items.size === 0)
             return;
-        this.timeline = Clutter.Timeline.new_for_actor(this.content, 3600 * 1000);
+        this.timeline = Clutter.Timeline.new_for_actor(this.surface, 3600 * 1000);
         this.timeline.set_repeat_count(-1);
         this.timeline.connect('new-frame', () => this.onFrame());
         this.timeline.start();
@@ -148,7 +156,7 @@ export class DockMagnificationController {
     }
 
     private onFrame(): void {
-        if (this.destroyed || !this.content.get_stage()) {
+        if (this.destroyed || !this.surface.get_stage()) {
             this.stopTimeline();
             return;
         }
@@ -183,7 +191,7 @@ export class DockMagnificationController {
             this.resetAllVisuals();
     }
 
-    /** Scale only the icon actors; button allocations and inter-item gaps stay fixed. */
+    /** Recalculate button slots from the icon scale while keeping CSS padding and spacing fixed. */
     private applyWave(): void {
         if (this.destroyed || this.cursor === null || !this.content.has_allocation())
             return;
@@ -217,18 +225,23 @@ export class DockMagnificationController {
                 ((item.center - min) / effectWidth) * 2 * Math.PI));
             const hann = (1 - Math.cos(theta)) / 2;
             item.scale = 1 + this.envelope * (maximum - 1) * hann;
+            if (item.baseButtonWidth === null || item.baseButtonHeight === null ||
+                item.baseVisualWidth === null || item.baseVisualHeight === null) {
+                item.baseButtonWidth = item.button.width;
+                item.baseButtonHeight = item.button.height;
+                item.baseVisualWidth = item.visual.width;
+                item.baseVisualHeight = item.visual.height;
+            }
             item.visual.set_scale(item.scale, item.scale);
+            const requestedWidth = item.baseButtonWidth + item.baseVisualWidth * (item.scale - 1);
+            const requestedHeight = item.baseButtonHeight + item.baseVisualHeight * (item.scale - 1);
+            item.button.set_size_request(Math.ceil(requestedWidth), Math.ceil(requestedHeight));
         }
 
-        // The surface may grow around the first/last icon, without changing slots.
-        const first = entries[0]!;
-        const last = entries[entries.length - 1]!;
-        const firstExtent = vertical ? first.visual.get_height() : first.visual.get_width();
-        const lastExtent = vertical ? last.visual.get_height() : last.visual.get_width();
-        this.onSurfaceExtentChanged?.(
-            Math.max(0, firstExtent * (first.scale - 1) / 2),
-            Math.max(0, lastExtent * (last.scale - 1) / 2),
-        );
+        // Re-measure the content and reposition the dock on its fixed screen edge.
+        // Padding and BoxLayout spacing are untouched; only button size requests change.
+        this.content.queue_relayout();
+        this.onSurfaceExtentChanged?.(0, 0);
     }
 
     private resetVisual(actor: Clutter.Actor): void {
@@ -240,8 +253,15 @@ export class DockMagnificationController {
     }
 
     private resetAllVisuals(): void {
-        for (const item of this.items.values())
+        for (const item of this.items.values()) {
             this.resetVisual(item.visual);
+            item.button.set_size_request(-1, -1);
+            item.baseButtonWidth = null;
+            item.baseButtonHeight = null;
+            item.baseVisualWidth = null;
+            item.baseVisualHeight = null;
+        }
+        this.content.queue_relayout();
     }
 
     destroy(): void {
