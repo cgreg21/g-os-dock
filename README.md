@@ -75,7 +75,7 @@ The build creates `g-os-dock@cgreg21.github.io.zip`, containing compiled JavaScr
 
 ## Ergonomics E2E scenarios
 
-Run `npm run pack` first to compile the extension, then run `npm run test:e2e`. The scenarios exercise complete interaction flows against the same pure state and geometry functions used by the dock: all four dock edges and panel clearance, dense icon sizing, popup reachability, hide/reveal bounds, drag hysteresis and favorites boundaries, and folder create/add/remove/dissolve flows. The E2E suite also runs in GitHub Actions after the unit tests.
+Run `npm run pack` first to compile the extension, then run `npm run test:e2e`. The scenarios exercise complete interaction flows against the same pure state and geometry functions used by the dock: all four dock edges and panel clearance, dense icon sizing, popup reachability, hide/reveal bounds, drag hysteresis and favorites boundaries, keyboard navigation and focus wrapping, and folder create/add/remove/dissolve flows. The E2E suite also runs in GitHub Actions after the unit tests.
 
 These are automated interaction-logic E2E scenarios, not pixel-driven GUI automation. They detect regressions in geometry, ordering and state transitions; they do not replace a visual usability session in the GNOME 51 DevKit (for example, checking actual pointer hitboxes, animation feel, contrast, and discoverability).
 
