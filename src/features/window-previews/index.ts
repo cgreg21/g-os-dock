@@ -95,9 +95,15 @@ export class WindowPreviews {
         previews.set_style('spacing: 8px; padding: 8px; border-radius: 14px; background-color: rgba(24,26,33,0.96); border: 1px solid rgba(255,255,255,0.18);');
         if (this.settings.get_boolean('dev-mode'))
             previews.add_style_class_name('g-os-dock-dev');
+        const buttonLayout = new Gio.Settings({
+            schema_id: 'org.gnome.desktop.wm.preferences',
+        }).get_string('button-layout');
+        const closeOnLeft = (buttonLayout.split(':')[0] ?? '').split(',').includes('close');
         let firstPreviewButton: St.Button | null = null;
         for (const [index, window] of windows.entries()) {
-            const preview = createWindowPreviewCard(app, window, index, () => this.hide());
+            const preview = createWindowPreviewCard(
+                app, window, index, () => this.hide(), closeOnLeft,
+            );
             if (!firstPreviewButton)
                 firstPreviewButton = preview.previewButton;
             previews.add_child(preview.card);
