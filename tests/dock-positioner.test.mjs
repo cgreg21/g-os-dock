@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
     DockPositioner,
     resolveDockEdgeSensor,
+    resolveDockSurfacePosition,
     resolveHiddenTranslation,
 } from '../dist/features/dock-positioner.js';
 
@@ -63,4 +64,52 @@ test('resolves hidden translations for each dock edge', () => {
     assert.deepEqual(resolveHiddenTranslation('right', size), { x: 120, y: 0 });
     assert.deepEqual(resolveHiddenTranslation('top', size), { x: 0, y: -64 });
     assert.deepEqual(resolveHiddenTranslation('bottom', size), { x: 0, y: 64 });
+});
+
+test('resolves dock surface placement for all four edges', () => {
+    const monitor = { x: 100, y: 50, width: 800, height: 600 };
+    const size = { width: 200, height: 100 };
+    const usableTop = 80;
+    assert.deepEqual(
+        resolveDockSurfacePosition(monitor, size, 'top', 12, usableTop),
+        { x: 400, y: 80 },
+    );
+    assert.deepEqual(
+        resolveDockSurfacePosition(monitor, size, 'bottom', 12, usableTop),
+        { x: 400, y: 538 },
+    );
+    assert.deepEqual(
+        resolveDockSurfacePosition(monitor, size, 'left', 12, usableTop),
+        { x: 112, y: 309 },
+    );
+    assert.deepEqual(
+        resolveDockSurfacePosition(monitor, size, 'right', 12, usableTop),
+        { x: 688, y: 309 },
+    );
+});
+
+test('resolves dock surface placement on monitors with negative origins', () => {
+    assert.deepEqual(
+        resolveDockSurfacePosition(
+            { x: -1920, y: 30, width: 1920, height: 1080 },
+            { width: 80, height: 64 },
+            'top',
+            12,
+            78,
+        ),
+        { x: -1000, y: 78 },
+    );
+});
+
+test('clamps oversized dock surfaces to the available monitor origin', () => {
+    assert.deepEqual(
+        resolveDockSurfacePosition(
+            { x: 100, y: 50, width: 100, height: 80 },
+            { width: 160, height: 120 },
+            'right',
+            12,
+            50,
+        ),
+        { x: 112, y: 50 },
+    );
 });
