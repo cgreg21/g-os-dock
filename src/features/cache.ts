@@ -31,7 +31,6 @@ export class DockCache {
             return undefined;
         }
 
-        // Refresh insertion order to make this an LRU cache.
         this.entries.delete(key);
         this.entries.set(key, entry);
         this.hits++;
@@ -60,8 +59,10 @@ export class DockCache {
     }
 
     getOrCreate<T>(key: string, factory: () => T, ttlMs = this.defaultTtlMs): T {
-        const cached = this.get<T>(key);
-        return cached === undefined ? this.set(key, factory(), ttlMs) : cached;
+        if (this.has(key))
+            return this.get<T>(key) as T;
+        this.misses++;
+        return this.set(key, factory(), ttlMs);
     }
 
     delete(key: string): boolean {
