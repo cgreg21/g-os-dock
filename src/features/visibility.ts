@@ -225,12 +225,25 @@ export class DockVisibility {
         if (this.isInactive() || !this.settings.get_boolean('smart-hide'))
             return;
 
-        const [dockX, dockY] = this.actor.get_transformed_position();
+        const [actorX, actorY] = this.actor.get_transformed_position();
+        const [backgroundX, backgroundY] = this.background.get_transformed_position();
+        // The decorative surface can be offset from the content actor when
+        // horizontal padding is asymmetric. Smart-hide must cover both.
+        const left = Math.min(actorX, backgroundX);
+        const top = Math.min(actorY, backgroundY);
+        const right = Math.max(
+            actorX + this.actor.width,
+            backgroundX + this.background.width,
+        );
+        const bottom = Math.max(
+            actorY + this.actor.height,
+            backgroundY + this.background.height,
+        );
         const dockRect = {
-            x: dockX,
-            y: dockY,
-            width: this.actor.width,
-            height: this.actor.height,
+            x: left,
+            y: top,
+            width: right - left,
+            height: bottom - top,
         };
         // Only windows on the active workspace may hide this dock. NORMAL_ALL
         // incorrectly lets a window on another virtual desktop hide it here.
