@@ -62,3 +62,27 @@ test('E2E: magnification is shared by all dock items and frame resources are cle
     assert.ok(controller.includes('this.cleanup.clear()'));
     assert.ok(controller.includes('this.resetAllActors()'));
 });
+
+test('E2E: every interactive dock item type joins the shared magnification wave', () => {
+    const base = read('../src/features/items/dock-item-base.ts');
+    const applications = read('../src/features/applications/app-item.ts');
+    const folders = read('../src/features/applications/dock-folders-controller.ts');
+    const system = read('../src/features/items/system-item.ts');
+    const trash = read('../src/features/items/trash-item.ts');
+    const volumes = read('../src/features/items/volume-items.ts');
+
+    assert.ok(base.includes('controller.register(this.button)'));
+    assert.ok(applications.includes('new DockItemBase('));
+    assert.ok(folders.includes('new DockItemBase(\n            this.content,'));
+    assert.ok(system.includes('new DockItemBase(\n            this.content,'));
+    assert.ok(trash.includes('new DockItemBase(\n            this.content,'));
+    assert.ok(volumes.includes('new DockItemBase(\n            this.content,'));
+});
+
+test('E2E: folder items participate in shared magnification and keep lifecycle cleanup', () => {
+    const folders = read('../src/features/applications/dock-folders-controller.ts');
+    assert.ok(folders.includes('if (folder.actor.get_parent() !== this.content)'));
+    assert.ok(folders.includes('folder.base.destroy()'));
+    assert.ok(folders.includes('this.animateIn(folder.actor)'));
+    assert.ok(folders.includes('this.animateOut(folder)'));
+});
