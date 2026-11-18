@@ -598,6 +598,7 @@ export class DockView {
                 this.dragDrop,
                 size,
                 () => this.refresh(),
+                () => this.settings.get_string('dock-position'),
             );
             return true;
         }
@@ -615,7 +616,11 @@ export class DockView {
         }
         if (!this.trashItem) {
             this.trashItem = new DockTrashItem(
-                this.content, this.settings, size, this.dragDrop,
+                this.content,
+                this.settings,
+                size,
+                this.dragDrop,
+                () => this.settings.get_string('dock-position'),
             );
             return true;
         }
