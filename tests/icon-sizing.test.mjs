@@ -99,42 +99,42 @@ test('preserves negative available space for impossible layouts', () => {
 
 test('resolves application count and favorites separator cost generically', () => {
     assert.deepEqual(
-        resolveDockSizingMetrics(
-            ['favorite', 'running', 'other'],
-            new Set(['favorite']),
-            2,
-            true,
-            3,
-            7,
-        ),
+        resolveDockSizingMetrics({
+            applicationIds: ['favorite', 'running', 'other'],
+            favoriteIds: new Set(['favorite']),
+            additionalItemCount: 2,
+            showFavoritesSeparator: true,
+            separatorSize: 3,
+            spacing: 7,
+        }),
         { itemCount: 5, separatorSpace: 10 },
     );
 });
 
 test('does not reserve separator cost when one application group is absent', () => {
     assert.deepEqual(
-        resolveDockSizingMetrics(
-            ['favorite-a', 'favorite-b'],
-            new Set(['favorite-a', 'favorite-b']),
-            -2,
-            true,
-            3,
-            7,
-        ),
+        resolveDockSizingMetrics({
+            applicationIds: ['favorite-a', 'favorite-b'],
+            favoriteIds: new Set(['favorite-a', 'favorite-b']),
+            additionalItemCount: -2,
+            showFavoritesSeparator: true,
+            separatorSize: 3,
+            spacing: 7,
+        }),
         { itemCount: 2, separatorSpace: 0 },
     );
 });
 
 test('does not reserve separator cost when the separator is disabled', () => {
     assert.deepEqual(
-        resolveDockSizingMetrics(
-            ['favorite', 'running'],
-            new Set(['favorite']),
-            1,
-            false,
-            3,
-            7,
-        ),
+        resolveDockSizingMetrics({
+            applicationIds: ['favorite', 'running'],
+            favoriteIds: new Set(['favorite']),
+            additionalItemCount: 1,
+            showFavoritesSeparator: false,
+            separatorSize: 3,
+            spacing: 7,
+        }),
         { itemCount: 3, separatorSpace: 0 },
     );
 });
