@@ -1,6 +1,8 @@
 import St from 'gi://St?version=51';
 import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
+import Clutter from 'gi://Clutter?version=51';
+import { AnimationManager, type AnimationTarget } from '../../core/animation-manager.js';
 import { DockAppItemFactory, type DockAppButton } from './app-item.js';
 
 /**
@@ -10,6 +12,8 @@ import { DockAppItemFactory, type DockAppButton } from './app-item.js';
 export class DockApplicationItemsController {
     private currentItems: DockAppButton[] = [];
     private currentSize = 0;
+    private readonly animations = new AnimationManager();
+    private nextAnimationId = 0;
 
     constructor(
         private readonly content: St.BoxLayout,
@@ -30,6 +34,7 @@ export class DockApplicationItemsController {
         const sizeChanged = this.currentSize !== 0 && this.currentSize !== size;
         const previousById = new Map<string, DockAppButton>();
         const existingItems = new Set(this.currentItems);
+        const createdItems = new Set<DockAppButton>();
 
         if (!sizeChanged) {
             for (const item of this.currentItems) {
@@ -48,8 +53,10 @@ export class DockApplicationItemsController {
                     if (item)
                         previousById.delete(id);
                 }
-                if (!item)
+                if (!item) {
                     item = this.factory.create(app, size);
+                    createdItems.add(item);
+                }
 
                 // Register newly created actors before any operation that can
                 // throw, so the rollback also covers padding and parenting.
@@ -57,6 +64,8 @@ export class DockApplicationItemsController {
                 item._gOsDockBase.setIconPadding(this.settings, size);
                 if (item.get_parent() !== this.content)
                     this.content.add_child(item);
+                if (createdItems.has(item))
+                    this.animateIn(item);
             }
         } catch (error) {
             for (const item of pending) {
@@ -76,7 +85,7 @@ export class DockApplicationItemsController {
         for (const item of this.currentItems) {
             if (retained.has(item))
                 continue;
-            this.destroyItem(item);
+            this.animateOut(item);
         }
 
         this.currentItems = pending;
@@ -85,10 +94,36 @@ export class DockApplicationItemsController {
     }
 
     destroy(): void {
+        this.animations.destroy();
         for (const item of this.currentItems)
             this.destroyItem(item);
         this.currentItems = [];
         this.currentSize = 0;
+    }
+
+    private animateIn(item: DockAppButton): void {
+        item.opacity = 0;
+        item.scale_x = 0.82;
+        item.scale_y = 0.82;
+        this.animations.animate(
+            `item-enter-${++this.nextAnimationId}`,
+            item as unknown as AnimationTarget,
+            { opacity: 255, scaleX: 1, scaleY: 1 },
+            { durationMs: 210, mode: Clutter.AnimationMode.EASE_OUT_BACK },
+        );
+    }
+
+    private animateOut(item: DockAppButton): void {
+        this.animations.animate(
+            `item-exit-${++this.nextAnimationId}`,
+            item as unknown as AnimationTarget,
+            { opacity: 0, scaleX: 0.78, scaleY: 0.78 },
+            {
+                durationMs: 170,
+                mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                onComplete: () => this.destroyItem(item),
+            },
+        );
     }
 
     private destroyItem(item: DockAppButton): void {
