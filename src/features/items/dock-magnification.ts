@@ -7,13 +7,7 @@ interface MagnifiedItem {
     actor: St.Button;
 }
 
-/**
- * One pointer tracker for the whole dock.
- *
- * Do not route pointer motion through AnimationManager: it cancels the active
- * Clutter transitions before every retarget, which makes fast pointer movement
- * visibly stutter. Actor.ease() retargets from the current interpolated value.
- */
+/** Pointer-driven magnification wave shared by every item in one dock. */
 export class DockMagnificationController {
     private readonly items = new Map<St.Button, MagnifiedItem>();
     private readonly cleanup = new CleanupManager();
@@ -51,8 +45,27 @@ export class DockMagnificationController {
     register(actor: St.Button): void {
         if (this.destroyed || this.items.has(actor))
             return;
-        actor.set_pivot_point(0.5, 0.5);
+        this.setBaselinePivot(actor);
         this.items.set(actor, { actor });
+    }
+
+    private setBaselinePivot(actor: St.Button): void {
+        // Scale away from the dock's outer edge: all icons keep the same
+        // baseline even when the focused icon grows to 400%.
+        switch (this.dockPosition()) {
+        case 'top':
+            actor.set_pivot_point(0.5, 0);
+            break;
+        case 'left':
+            actor.set_pivot_point(0, 0.5);
+            break;
+        case 'right':
+            actor.set_pivot_point(1, 0.5);
+            break;
+        default: // bottom
+            actor.set_pivot_point(0.5, 1);
+            break;
+        }
     }
 
     unregister(actor: St.Button): void {
@@ -74,38 +87,31 @@ export class DockMagnificationController {
         const vertical = ['left', 'right'].includes(this.dockPosition());
         const pointer = vertical ? pointerY : pointerX;
         const maximum = Math.max(1, Math.min(4, this.settings.get_int('dock-magnification-scale') / 100));
-        const snapshots = [...this.items.values()].map(({ actor }) => {
+
+        for (const { actor } of this.items.values()) {
+            // The coordinate along the dock's length is unaffected by the
+            // baseline-anchored scale pivot, so the wave does not chase itself.
             const [x, y] = actor.get_transformed_position();
-            const [width, height] = actor.get_transformed_size();
-            // Remove the previous magnification translation from the measured
-            // center so the pointer is compared against the stable layout slot.
-            const center = vertical
-                ? y + height / 2 - actor.translation_y
-                : x + width / 2 - actor.translation_x;
-            const size = Math.max(1, vertical ? actor.get_height() : actor.get_width());
-            return { actor, center, size };
-        });
+            const width = actor.get_width();
+            const height = actor.get_height();
+            const center = vertical ? y + height / 2 : x + width / 2;
+            const size = Math.max(1, vertical ? height : width);
+            const distance = Math.abs(pointer - center);
 
-        for (const item of snapshots) {
-            const distance = Math.abs(pointer - item.center);
-            const radius = item.size * 1.8;
-            const t = Math.max(0, 1 - distance / radius);
-            // Smootherstep has zero slope at both ends: no sudden scale jumps
-            // when an icon enters or leaves the magnification field.
-            const influence = t * t * t * (t * (t * 6 - 15) + 10);
+            // A bell-shaped wave: strongest under the pointer, smoothly fading
+            // across neighboring icons without a hard edge or flat plateau.
+            const radius = size * 1.65;
+            const influence = Math.exp(-0.5 * Math.pow(distance / radius, 2));
             const scale = 1 + (maximum - 1) * influence;
-            const direction = Math.sign(item.center - pointer);
-            const displacement = direction * (scale - 1) * item.size * 0.42;
 
-            // Retarget in place. Unlike cancel()+ease(), this preserves the
-            // current velocity/position instead of restarting from a snapped
-            // transition on every pointer event.
-            item.actor.ease({
+            // Retarget the active Clutter transition directly. No per-motion
+            // cancellation and no translations: the row/column baseline stays fixed.
+            actor.ease({
                 scaleX: scale,
                 scaleY: scale,
-                translationX: vertical ? 0 : displacement,
-                translationY: vertical ? displacement : 0,
-                duration: 145,
+                translationX: 0,
+                translationY: 0,
+                duration: 115,
                 mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
             });
         }
@@ -118,7 +124,7 @@ export class DockMagnificationController {
                 scaleY: 1,
                 translationX: 0,
                 translationY: 0,
-                duration: 180,
+                duration: 190,
                 mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
             });
         }
