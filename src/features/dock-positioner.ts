@@ -12,6 +12,53 @@ export interface DockPoint {
     y: number;
 }
 
+export interface DockEdgeSensorOptions {
+    monitor: DockRectangle;
+    edge: DockEdge;
+    thickness: number;
+    topInset?: number;
+    topEdgeOffset?: number;
+}
+
+/** Resolve the screen-space rectangle of the dock's edge reveal sensor. */
+export function resolveDockEdgeSensor(options: DockEdgeSensorOptions): DockRectangle {
+    const { monitor, edge, thickness } = options;
+    const top = Math.min(
+        monitor.y + monitor.height,
+        monitor.y + Math.max(0, options.topInset ?? 0),
+    );
+    const height = Math.max(thickness, monitor.y + monitor.height - top);
+
+    switch (edge) {
+        case 'top':
+            return { x: monitor.x, y: top, width: monitor.width, height: thickness };
+        case 'left':
+            return { x: monitor.x, y: top, width: thickness, height };
+        case 'right':
+            return {
+                x: monitor.x + monitor.width - thickness,
+                y: top,
+                width: thickness,
+                height,
+            };
+        case 'bottom':
+            return {
+                x: monitor.x,
+                y: monitor.y + monitor.height - thickness,
+                width: monitor.width,
+                height: thickness,
+            };
+    }
+}
+
+/** Resolve the translation needed to move a dock completely beyond one edge. */
+export function resolveHiddenTranslation(edge: DockEdge, size: DockSize): DockPoint {
+    return {
+        x: edge === 'left' ? -size.width : edge === 'right' ? size.width : 0,
+        y: edge === 'top' ? -size.height : edge === 'bottom' ? size.height : 0,
+    };
+}
+
 /** Shared monitor-bounded placement for dock surfaces and floating UI. */
 export class DockPositioner {
     static clamp(
