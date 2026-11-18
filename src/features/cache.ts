@@ -1,1 +1,1 @@
-export * from './core/cache.ts';
+export * from '../core/cache.js';

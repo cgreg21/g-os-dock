@@ -1,1 +1,1 @@
-export * from './core/cleanup-manager.ts';
+export * from '../core/cleanup-manager.js';

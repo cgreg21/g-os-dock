@@ -1,1 +1,1 @@
-export * from './core/chrome-actor-manager.ts';
+export * from '../core/chrome-actor-manager.js';

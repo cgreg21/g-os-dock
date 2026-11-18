@@ -1,1 +1,1 @@
-export * from './core/color-utils.ts';
+export * from '../core/color-utils.js';
