@@ -50,7 +50,7 @@ export class DockDragDrop {
         (actor, options) => Main.layoutManager.addChrome(actor, options),
         actor => Main.layoutManager.removeChrome(actor),
     );
-    private removalZone: St.BoxLayout;
+    private removalZone: St.Widget;
     private removalZoneDelegate: {
         handleDragOver: (source: DockDragSource) => number;
         acceptDrop: (source: DockDragSource) => boolean;
@@ -64,19 +64,11 @@ export class DockDragDrop {
         private persistOrder: (ids: string[]) => void,
         private monitor: { x: number; y: number; width: number; height: number },
     ) {
-        this.removalZone = new St.BoxLayout({
+        this.removalZone = new St.Widget({
             style_class: 'g-os-dock-removal-zone',
-            orientation: Clutter.Orientation.HORIZONTAL,
             reactive: false,
             can_focus: false,
-            x_expand: false,
-            y_expand: false,
         });
-        this.removalZone.add_child(new St.Icon({
-            icon_name: 'user-trash-symbolic',
-            icon_size: 18,
-        }));
-        this.removalZone.add_child(new St.Label({ text: 'Remove' }));
         this.removalZoneDelegate = {
             handleDragOver: source => this.handleRemovalDragOver(source),
             acceptDrop: source => this.acceptRemovalDrop(source),
@@ -371,9 +363,6 @@ export class DockDragDrop {
         const geometry = resolveDockRemovalZoneGeometry(
             this.monitor,
             this.settings.get_string('dock-position'),
-            148,
-            52,
-            12,
             Main.panel.height,
         );
         this.removalZone.set_position(geometry.x, geometry.y);
