@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateDockIconSize } from '../dist/features/icon-sizing.js';
+import { calculateAvailableDockSpace, calculateDockIconSize } from '../dist/features/icon-sizing.js';
 
 const defaults = {
     applicationIds: ['favorite', 'running'],
@@ -56,4 +56,43 @@ test('does not mutate supplied collections', () => {
     calculateDockIconSize({ ...defaults, applicationIds: appIds, favoriteIds });
     assert.deepEqual(appIds, ['favorite', 'running']);
     assert.deepEqual([...favoriteIds], ['favorite']);
+});
+
+test('calculates vertical available space below the panel inset', () => {
+    assert.equal(calculateAvailableDockSpace({
+        monitorWidth: 1920,
+        monitorY: 100,
+        monitorHeight: 1080,
+        usableTop: 150,
+        edgeDistance: 12,
+        padding: 20,
+        border: 4,
+        vertical: true,
+    }), 994);
+});
+
+test('calculates horizontal available space from both edge insets', () => {
+    assert.equal(calculateAvailableDockSpace({
+        monitorWidth: 1920,
+        monitorY: 0,
+        monitorHeight: 1080,
+        usableTop: 0,
+        edgeDistance: 12,
+        padding: 20,
+        border: 4,
+        vertical: false,
+    }), 1872);
+});
+
+test('preserves negative available space for impossible layouts', () => {
+    assert.equal(calculateAvailableDockSpace({
+        monitorWidth: 100,
+        monitorY: 0,
+        monitorHeight: 100,
+        usableTop: 90,
+        edgeDistance: 20,
+        padding: 20,
+        border: 4,
+        vertical: true,
+    }), -34);
 });
