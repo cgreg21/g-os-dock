@@ -210,6 +210,28 @@ export class DockView {
         );
     }
 
+    private connectWindowSignals(): void {
+        this.focusSignal = global.display.connect(
+            'notify::focus-window',
+            () => {
+                this.updateIndicators();
+                this.visibility.queueSmartHideCheck();
+            },
+        );
+        this.restackedSignal = global.display.connect(
+            'restacked',
+            () => this.visibility.queueSmartHideCheck(),
+        );
+        this.workspaceSignal = global.workspace_manager.connect(
+            'active-workspace-changed',
+            () => this.visibility.queueSmartHideCheck(),
+        );
+        this.windowCreatedSignal = global.display.connect(
+            'window-created',
+            (_display: Meta.Display, window: Meta.Window) => this.windowTracker.track(window),
+        );
+    }
+
     private connectSignals(): void {
         this.desktopThemeSignal = this.desktopSettings.connect(
             'changed::color-scheme',
@@ -239,25 +261,7 @@ export class DockView {
             'changed',
             () => this.refresh(),
         );
-        this.focusSignal = global.display.connect(
-            'notify::focus-window',
-            () => {
-                this.updateIndicators();
-                this.visibility.queueSmartHideCheck();
-            },
-        );
-        this.restackedSignal = global.display.connect(
-            'restacked',
-            () => this.visibility.queueSmartHideCheck(),
-        );
-        this.workspaceSignal = global.workspace_manager.connect(
-            'active-workspace-changed',
-            () => this.visibility.queueSmartHideCheck(),
-        );
-        this.windowCreatedSignal = global.display.connect(
-            'window-created',
-            (_display: Meta.Display, window: Meta.Window) => this.windowTracker.track(window),
-        );
+        this.connectWindowSignals();
         this.connectContentGeometrySignal();
     }
 
