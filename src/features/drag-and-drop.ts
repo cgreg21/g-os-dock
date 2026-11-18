@@ -114,8 +114,11 @@ export class DockDragDrop {
             .slice(0, index)
             .filter(item => item.app).length;
         if (dragged?.app && this.isFavorite(dragged) &&
-            applicationsBefore > favoriteCount)
+            applicationsBefore > favoriteCount) {
+            // Do not let acceptDrop reuse a previously valid preview position.
+            this.previewIndex = null;
             return DND.DragMotionResult.NO_DROP;
+        }
 
         this.movePreview(index, targets);
         return DND.DragMotionResult.MOVE_DROP;
