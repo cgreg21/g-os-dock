@@ -28,7 +28,6 @@ export type DockDragSource = {
 export class DockDragDrop {
     private draggedItem: DockDndItem | null = null;
     private previewSlot: St.Widget | null = null;
-    private previewIndex: number | null = null;
     private draggables = new Map<St.Widget, DND.Draggable>();
     private removingItemId: string | null = null;
     private removalZone: St.Widget;
@@ -111,7 +110,6 @@ export class DockDragDrop {
         if (dragged?.app && this.isFavorite(dragged) &&
             applicationsBefore > favoriteCount) {
             // Do not let acceptDrop reuse a previously valid preview position.
-            this.previewIndex = null;
             this.previewSlot?.hide();
             return DND.DragMotionResult.NO_DROP;
         }
@@ -182,7 +180,14 @@ export class DockDragDrop {
         );
         item.actor.hide();
         this.content.add_child(this.previewSlot);
-        this.movePreview(this.content.get_children().indexOf(item.actor));
+
+        const items = this.getItems();
+        const index = items.findIndex(candidate => candidate.id === item.id);
+        if (index < 0) {
+            this.endPreview();
+            return;
+        }
+        this.movePreview(index, items.filter(candidate => candidate.id !== item.id));
     }
 
     private movePreview(index: number, items?: DockDndItem[]): void {
@@ -193,7 +198,6 @@ export class DockDragDrop {
             item.id !== this.draggedItem?.id,
         );
         const target = Math.max(0, Math.min(index, targets.length));
-        this.previewIndex = target;
         // Resolve the slot from registered dock items only. Structural
         // actors such as the favorites separator are intentionally ignored.
         const children = this.content.get_children();
@@ -219,7 +223,6 @@ export class DockDragDrop {
             this.previewSlot.destroy();
             this.previewSlot = null;
         }
-        this.previewIndex = null;
         if (this.draggedItem) {
             if (this.draggedItem.id !== this.removingItemId) {
                 this.draggedItem.actor.opacity = 255;
