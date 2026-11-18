@@ -4,6 +4,7 @@ import Gio from 'gi://Gio?version=2.0';
 import type { DockAppButton } from './app-item.js';
 import { dockCache } from './cache.js';
 import { dockStyles } from './style-manager.js';
+import { resolveWindowIndicatorState } from './window-indicator-state.js';
 
 /** Updates configurable open, focused and minimized application indicators. */
 export class DockIndicators {
@@ -45,13 +46,11 @@ export class DockIndicators {
 
             let state = this.windowStates.get(item);
             if (refreshWindowState || !state) {
-                const windows = app.get_windows();
-                state = {
-                    count: windows.length,
-                    running: windows.length > 0 || app.get_state() === Shell.AppState.RUNNING,
-                    active: !!focused && windows.includes(focused),
-                    minimized: windows.length > 0 && windows.every(window => window.minimized),
-                };
+                state = resolveWindowIndicatorState(
+                    app.get_windows(),
+                    focused,
+                    app.get_state() === Shell.AppState.RUNNING,
+                );
                 this.windowStates.set(item, state);
             }
             const { count, running, active, minimized } = state;
