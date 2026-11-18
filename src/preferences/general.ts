@@ -78,7 +78,11 @@ function addIconThemeSelector(group: Adw.PreferencesGroup, settings: Gio.Setting
         title: 'Applications icon',
         subtitle: 'Choose an icon from the current icon theme',
         model: new Gtk.StringList({ strings: names }),
+        // ComboRow search is inactive without an expression describing
+        // which string should be searched in each model item.
+        expression: Gtk.PropertyExpression.new(Gtk.StringObject, null, 'string'),
         enable_search: true,
+        search_match_mode: Gtk.StringFilterMatchMode.SUBSTRING,
     });
     const factory = new Gtk.SignalListItemFactory();
     factory.connect('setup', (_factory, listItem) => {
