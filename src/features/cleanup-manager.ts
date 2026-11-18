@@ -11,6 +11,10 @@ export class CleanupManager {
         this.cleanups.push(cleanup);
     }
 
+    addSignal(emitter: { disconnect(id: number): void }, id: number): void {
+        this.add(() => emitter.disconnect(id));
+    }
+
     clear(): void {
         if (this.cleared)
             return;
