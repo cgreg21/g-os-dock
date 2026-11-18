@@ -80,7 +80,7 @@ function addIconThemeSelector(group: Adw.PreferencesGroup, settings: Gio.Setting
         model: new Gtk.StringList({ strings: names }),
         // ComboRow search is inactive without an expression describing
         // which string should be searched in each model item.
-        expression: Gtk.PropertyExpression.new(Gtk.StringObject, null, 'string'),
+        expression: Gtk.PropertyExpression.new(Gtk.StringObject.$gtype, null, 'string'),
         enable_search: true,
         search_match_mode: Gtk.StringFilterMatchMode.SUBSTRING,
     });
