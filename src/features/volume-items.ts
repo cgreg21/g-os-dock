@@ -144,7 +144,7 @@ export class DockVolumeItems {
             }
         });
         const name = entry.mount.get_name();
-        const tooltip = new DockTooltip(button, name, this.dockPosition());
+        const tooltip = new DockTooltip(button, name, this.dockPosition);
         this.content.add_child(button);
         this.updateButtonPadding(button);
         this.items.set(entry.id, { button, icon, mount: entry.mount, name, tooltip });
