@@ -163,8 +163,8 @@ test('E2E: keyboard navigation follows the dock axis and opens previews inward',
     const keys = { left: 1, right: 2, up: 3, down: 4, home: 5, end: 6, escape: 7 };
     assert.equal(resolveDockKeyboardAction(1, 'bottom', keys), 'previous');
     assert.equal(resolveDockKeyboardAction(2, 'bottom', keys), 'next');
-    assert.equal(resolveDockKeyboardAction(4, 'bottom', keys), 'previews');
-    assert.equal(resolveDockKeyboardAction(3, 'top', keys), 'previews');
+    assert.equal(resolveDockKeyboardAction(3, 'bottom', keys), 'previews');
+    assert.equal(resolveDockKeyboardAction(4, 'top', keys), 'previews');
     assert.equal(resolveDockKeyboardAction(2, 'left', keys), 'previews');
     assert.equal(resolveDockKeyboardAction(1, 'right', keys), 'previews');
     assert.equal(resolveDockKeyboardAction(5, 'right', keys), 'first');
