@@ -1,3 +1,5 @@
+import { hexColorToRgb, normalizeHexColor } from './color-utils.js';
+
 export interface IndicatorMarkerStyleOptions {
     length: number;
     thickness: number;
@@ -11,9 +13,7 @@ export interface IndicatorMarkerStyleOptions {
 
 /** Convert a validated hexadecimal color into an RGB CSS tuple. */
 export function resolveIndicatorColor(value: string): string {
-    const normalized = /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#e6e6f0';
-    const hex = normalized.slice(1);
-    return `${parseInt(hex.slice(0, 2), 16)}, ${parseInt(hex.slice(2, 4), 16)}, ${parseInt(hex.slice(4, 6), 16)}`;
+    return hexColorToRgb(normalizeHexColor(value, '#e6e6f0'));
 }
 
 /** Stable cache key for one marker's visual style, excluding the number of markers. */
