@@ -23,6 +23,7 @@ export interface DockDndItem {
     canRemove?: () => boolean;
     isFavorite?: () => boolean;
     onRemove?: () => void;
+    onCreateFolder?: (target: DockDndItem) => void;
 }
 
 export type DockDragSource = {
@@ -212,6 +213,11 @@ export class DockDragDrop {
         if (target === null)
             return false;
         const dragged = items[sourceIndex]!;
+        const folderTarget = this.getFolderDropTarget(remaining, x, y);
+        if (folderTarget && dragged.onCreateFolder) {
+            dragged.onCreateFolder(folderTarget);
+            return true;
+        }
         const favoriteCount = remaining.filter(item =>
             item.app && this.isFavorite(item),
         ).length;
@@ -231,6 +237,28 @@ export class DockDragDrop {
         ordered.splice(target, 0, items[sourceIndex]!);
         this.persistOrder(ordered.map(item => item.id));
         return true;
+    }
+
+
+    /** Resolve an intentional center drop separately from edge-based reordering. */
+    private getFolderDropTarget(items: DockDndItem[], x: number, y: number): DockDndItem | null {
+        const vertical = this.isVertical();
+        for (const item of items) {
+            if (!item.app && !item.id.startsWith('folder:'))
+                continue;
+            const [stageX, stageY] = item.actor.get_transformed_position();
+            const [valid, localX, localY] = this.actor.transform_stage_point(
+                stageX + item.actor.width / 2,
+                stageY + item.actor.height / 2,
+            );
+            if (!valid)
+                continue;
+            const halfWidth = Math.max(1, item.actor.width * 0.34);
+            const halfHeight = Math.max(1, item.actor.height * 0.34);
+            if (Math.abs(x - localX) <= halfWidth && Math.abs(y - localY) <= halfHeight)
+                return item;
+        }
+        return null;
     }
 
     private clearDragDelegate(actor: St.Widget): void {
