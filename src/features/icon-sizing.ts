@@ -1,3 +1,39 @@
+export interface UniformItemSizingOptions {
+    availableSpace: number;
+    itemCount: number;
+    spacing: number;
+    additionalSpace: number;
+    overhead: number;
+    itemPadding: number;
+    configuredSize: number;
+    minimumSize: number;
+}
+
+/** Calculate a uniform item size after subtracting all non-item space. */
+export function calculateUniformItemSize(options: UniformItemSizingOptions): number {
+    const {
+        availableSpace,
+        itemCount,
+        spacing,
+        additionalSpace,
+        overhead,
+        itemPadding,
+        configuredSize,
+        minimumSize,
+    } = options;
+
+    return calculateUniformItemSize({
+        availableSpace,
+        itemCount,
+        spacing,
+        additionalSpace: separatorSpace,
+        overhead,
+        itemPadding: iconPadding,
+        configuredSize,
+        minimumSize: 16,
+    });
+}
+
 export interface DockIconSizingOptions {
     applicationIds: readonly string[];
     favoriteIds: ReadonlySet<string>;
