@@ -1,8 +1,6 @@
 import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
-import Meta from 'gi://Meta?version=51';
-import Mtk from 'gi://Mtk?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -28,6 +26,7 @@ import { DockActorSignalsController } from './actor-signals-controller.js';
 import { LifecycleScope } from '../features/lifecycle-scope.js';
 import { resolveApplicationOrder } from '../features/application-order.js';
 import { DockRefreshController } from './refresh-controller.js';
+import { DockApplicationActivationController } from '../features/application-activation-controller.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -70,6 +69,7 @@ export class DockView {
     private itemOrder: DockItemOrderController<DockDndItem>;
     private favoriteOrder: FavoriteOrderController;
     private refreshController: DockRefreshController;
+    private activation: DockApplicationActivationController;
 
     constructor(index: number, monitor: MonitorGeometry, settings: Gio.Settings) {
         this.monitor = monitor;
@@ -176,6 +176,11 @@ export class DockView {
             dockPosition: () => this.settings.get_string('dock-position'),
             settings: this.settings,
         });
+        this.activation = new DockApplicationActivationController(
+            () => this.itemActors,
+            global.display,
+            () => global.get_current_time(),
+        );
         this.applicationItems = new DockApplicationItemsController(
             this.content,
             this.appItemFactory,
@@ -378,53 +383,7 @@ export class DockView {
     }
 
     private activateApp(app: Shell.App): void {
-        const windows = app.get_windows();
-        this.updateWindowIconGeometry(app, windows);
-        if (windows.length === 0) {
-            app.activate();
-            return;
-        }
-
-        const focused = global.display.focus_window;
-        // Clicking the currently focused application's icon toggles its
-        // active window to the minimized state, like a conventional dock.
-        if (focused && windows.includes(focused)) {
-            focused.minimize();
-            return;
-        }
-
-        // Prefer a visible window; if every window is minimized, restore the
-        // first one before activating it.
-        const target = windows.find(window => !window.minimized) ?? windows[0];
-        if (!target)
-            return;
-        if (target.minimized)
-            target.unminimize();
-
-        app.activate_window(target, global.get_current_time());
-    }
-
-    /** Tell Mutter where this application's dock icon is for minimize/restore animations. */
-    private updateWindowIconGeometry(app: Shell.App, windows: Meta.Window[]): void {
-        const item = this.itemActors.find(candidate =>
-            candidate._gOsDockApp.get_id() === app.get_id(),
-        );
-        const icon = item?._gOsDockIcon;
-        if (!icon || !icon.is_mapped())
-            return;
-
-        const [x, y] = icon.get_transformed_position();
-        const [width, height] = icon.get_transformed_size();
-        if (width <= 0 || height <= 0)
-            return;
-
-        // Mutter's built-in minimize and unminimize animations use this
-        // root-window-relative rectangle as their destination/source.
-        const geometry = Mtk.Rectangle.new(
-            Math.round(x), Math.round(y), Math.round(width), Math.round(height),
-        );
-        for (const window of windows)
-            window.set_icon_geometry(geometry);
+        this.activation.activate(app);
     }
 
     private applyDevelopmentStyle(): void {
