@@ -65,8 +65,6 @@ export class DockApplicationItemsController {
                 item._gOsDockBase.setIconPadding(this.settings, size);
                 if (item.get_parent() !== this.content)
                     this.content.add_child(item);
-                if (createdItems.has(item))
-                    this.animateIn(item);
             }
         } catch (error) {
             for (const item of pending) {
@@ -91,6 +89,8 @@ export class DockApplicationItemsController {
 
         this.currentItems = pending;
         this.currentSize = size;
+        for (const item of createdItems)
+            this.animateIn(item);
         return structureChanged;
     }
 
