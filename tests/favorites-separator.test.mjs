@@ -4,6 +4,7 @@ import {
     calculateFavoritesSeparatorSpace,
     hasFavoritesSeparatorTarget,
     resolveFavoritesSeparatorTarget,
+    resolveFavoritesSeparatorTargetIndex,
 } from '../dist/features/favorites-separator.js';
 
 const app = id => ({ get_id: () => id });
@@ -87,4 +88,21 @@ test('calculates the exact main-axis separator cost', () => {
 
 test('normalizes negative separator dimensions to zero', () => {
     assert.equal(calculateFavoritesSeparatorSpace(true, -2, -4, -6), 0);
+});
+
+test('resolves the separator target index from generic application IDs', () => {
+    assert.equal(
+        resolveFavoritesSeparatorTargetIndex(
+            ['favorite-a', 'favorite-b', 'running-a', 'running-b'],
+            new Set(['favorite-a', 'favorite-b']),
+        ),
+        2,
+    );
+    assert.equal(
+        resolveFavoritesSeparatorTargetIndex(
+            ['running-a', 'favorite-a'],
+            new Set(['favorite-a']),
+        ),
+        -1,
+    );
 });
