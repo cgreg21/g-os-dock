@@ -440,11 +440,14 @@ export class DockView {
         configuredSize: number,
     ): number {
         const spacing = this.settings.get_int('dock-spacing');
+        const favoriteIds = new Set(
+            this.favorites.getFavorites().map(app => app.get_id()),
+        );
         const hasFavorites = applications.some(app =>
-            this.favorites.isFavorite(app.get_id()),
+            favoriteIds.has(app.get_id()),
         );
         const hasRunningApps = applications.some(app =>
-            !this.favorites.isFavorite(app.get_id()),
+            !favoriteIds.has(app.get_id()),
         );
         const separatorSpace = this.settings.get_boolean('show-favorites-separator') &&
             hasFavorites && hasRunningApps
