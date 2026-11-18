@@ -532,7 +532,7 @@ export class DockView {
                 if (item) {
                     previousById.delete(id!);
                 } else {
-                    item = this.createItem(app, size);
+                    item = this.appItemFactory.create(app, size);
                 }
 
                 this.updateItemPadding(item, size);
@@ -744,10 +744,6 @@ export class DockView {
             return;
         item.set_style(style);
         item._gOsDockPaddingStyle = style;
-    }
-
-    private createItem(app: Shell.App, size: number): DockAppButton {
-        return this.appItemFactory.create(app, size);
     }
 
     private updateIndicators(): void {
