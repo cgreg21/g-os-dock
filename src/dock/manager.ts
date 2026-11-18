@@ -57,6 +57,8 @@ export class DockManager {
     }
 
     private rebuild(): void {
+        if (!this.enabled)
+            return;
         this.destroyViews();
 
         const monitors = Main.layoutManager.monitors;
