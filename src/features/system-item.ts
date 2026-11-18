@@ -62,11 +62,7 @@ export class DockSystemItem {
 
     private showMenu(): void {
         if (this.destroyed) return;
-        if (this.menu) {
-            this.menu.close();
-            this.menuManager.removeMenu(this.menu);
-            this.menu.destroy();
-        }
+        this.closeMenu();
         const side = getDockMenuSide(this.dockPosition());
         const menu = new PopupMenu.PopupMenu(this.button, 0.5, side);
         this.menu = menu;
@@ -118,6 +114,20 @@ export class DockSystemItem {
         );
     }
 
+    /** Close and dispose the current menu without re-entering its close handler. */
+    private closeMenu(): void {
+        const menu = this.menu;
+        if (!menu)
+            return;
+
+        // Clear the reference before close(): open-state-changed may fire
+        // synchronously and must not dispose this menu a second time.
+        this.menu = null;
+        menu.close();
+        this.menuManager.removeMenu(menu);
+        menu.destroy();
+    }
+
     private addItem(menu: PopupMenu.PopupMenu, label: string, action: () => void): void {
         const item = new PopupMenu.PopupMenuItem(label);
         item.connect('activate', action);
@@ -133,12 +143,7 @@ export class DockSystemItem {
         this.destroyed = true;
         if (this.iconSignal) this.settings.disconnect(this.iconSignal);
         this.dragDrop.unregisterItem(this.button);
-        if (this.menu) {
-            this.menu.close();
-            this.menuManager.removeMenu(this.menu);
-            this.menu.destroy();
-            this.menu = null;
-        }
+        this.closeMenu();
         this.button.destroy();
     }
 }
