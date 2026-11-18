@@ -28,6 +28,7 @@ import { resolveApplicationOrder } from '../features/application-order.js';
 import { DockRefreshController } from './refresh-controller.js';
 import { DockApplicationActivationController } from '../features/application-activation-controller.js';
 import { resolveFavoritesSeparatorTarget } from '../features/favorites-separator.js';
+import { resolveDockDndOrder } from '../features/dock-dnd-order.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -326,13 +327,7 @@ export class DockView {
             this.createAppDndItem(item),
         );
         items.push(...this.dockItems.getDndItems());
-        const positions = new Map(
-            this.content.get_children().map((child, index) => [child, index]),
-        );
-        items.sort((a, b) =>
-            (positions.get(a.actor) ?? -1) - (positions.get(b.actor) ?? -1),
-        );
-        return items;
+        return resolveDockDndOrder(items, this.content.get_children());
     }
 
     private createAppDndItem(item: DockAppButton): DockDndItem {
