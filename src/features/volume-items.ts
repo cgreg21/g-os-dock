@@ -1,9 +1,8 @@
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { DockDragDrop } from './drag-and-drop.js';
-import { DockTooltip } from './tooltip.js';
-import { getIconPaddingStyle } from './icon-padding.js';
 import { CleanupManager } from './cleanup-manager.js';
+import { DockItemBase } from './dock-item-base.js';
 
 type DriveCategory = 'network' | 'usb' | 'system';
 
@@ -23,12 +22,12 @@ export class DockVolumeItems {
     private cleanup = new CleanupManager();
     private items = new Map<string, {
         button: St.Button;
+        item: DockItemBase;
         icon: St.Icon;
         mount: Gio.Mount;
         name: string;
         iconKey: string;
-        paddingStyle: string;
-        tooltip: DockTooltip;
+
     }>();
     private destroyed = false;
 
@@ -68,8 +67,7 @@ export class DockVolumeItems {
         for (const [id, item] of this.items) {
             const entry = visible.get(id);
             if (!entry || entry.mount !== item.mount) {
-                this.dragDrop.unregisterItem(item.button);
-                item.button.destroy();
+                item.item.destroy();
                 this.items.delete(id);
                 changed = true;
             }
@@ -78,16 +76,12 @@ export class DockVolumeItems {
         for (const [id, entry] of visible) {
             const existing = this.items.get(id);
             if (existing) {
-                const paddingStyle = getIconPaddingStyle(this.settings, this.iconSize);
-                if (existing.paddingStyle !== paddingStyle) {
-                    existing.button.set_style(paddingStyle);
-                    existing.paddingStyle = paddingStyle;
-                }
+                existing.item.setIconPadding(this.settings, this.iconSize);
                 const name = entry.mount.get_name();
                 if (existing.name !== name) {
                     existing.name = name;
                     existing.button.accessible_name = name;
-                    existing.tooltip.setText(name);
+                    existing.item.setTooltip(name);
                 }
                 // Avoid replacing the icon actor's GIcon when the mount icon is unchanged.
                 const icon = entry.mount.get_icon();
@@ -157,15 +151,14 @@ export class DockVolumeItems {
             }
         });
         const name = entry.mount.get_name();
-        const tooltip = new DockTooltip(button, name, this.dockPosition);
-        this.content.add_child(button);
-        const paddingStyle = getIconPaddingStyle(this.settings, this.iconSize);
-        button.set_style(paddingStyle);
+        const item = new DockItemBase(
+            this.content, button, name, this.dockPosition, this.dragDrop, entry.id,
+        );
+        item.setIconPadding(this.settings, this.iconSize);
         this.items.set(entry.id, {
-            button, icon, mount: entry.mount, name,
-            iconKey: gicon.to_string() ?? '', paddingStyle, tooltip,
+            button, item, icon, mount: entry.mount, name,
+            iconKey: gicon.to_string() ?? '',
         });
-        this.dragDrop.registerItem({ id: entry.id, actor: button });
     }
 
     getCount(): number {
@@ -178,11 +171,7 @@ export class DockVolumeItems {
         this.iconSize = size;
         for (const item of this.items.values()) {
             item.icon.icon_size = size;
-            const paddingStyle = getIconPaddingStyle(this.settings, size);
-            if (item.paddingStyle !== paddingStyle) {
-                item.button.set_style(paddingStyle);
-                item.paddingStyle = paddingStyle;
-            }
+            item.item.setIconPadding(this.settings, size);
         }
     }
 
@@ -199,8 +188,7 @@ export class DockVolumeItems {
         this.destroyed = true;
         this.cleanup.clear();
         for (const item of this.items.values()) {
-            this.dragDrop.unregisterItem(item.button);
-            item.button.destroy();
+            item.item.destroy();
         }
         this.items.clear();
     }
