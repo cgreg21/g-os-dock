@@ -14,7 +14,7 @@ import { DockAppearance } from '../features/appearance.js';
 import { DockLayout } from '../features/layout.js';
 import { DockIndicators } from '../features/indicators.js';
 import { WindowTracker } from '../features/window-tracker.js';
-import { DockAppItemFactory } from '../features/app-item.js';
+import { DockAppItemFactory, type DockAppButton } from '../features/app-item.js';
 import { DockApplicationItemsController } from '../features/application-items-controller.js';
 import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
