@@ -167,7 +167,10 @@ export class DockView {
         );
         DockItemBase.setMagnificationSurfaceHandler(
             this.content,
-            (leading, trailing) => this.layout.setMagnificationInsets(leading, trailing),
+            (leading, trailing) => {
+                this.layout.setMagnificationInsets(leading, trailing);
+                this.layout.position(false);
+            },
         );
         this.indicators = new DockIndicators(this.settings, () => this.destroyed);
         this.windowTracker = new WindowTracker(
