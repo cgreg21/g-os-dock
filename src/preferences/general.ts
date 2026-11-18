@@ -3,6 +3,7 @@ import Gio from 'gi://Gio?version=2.0';
 import Gdk from 'gi://Gdk?version=4.0';
 import Gtk from 'gi://Gtk?version=4.0';
 import { addColorPicker } from './color-picker.js';
+import { addSwitch } from './settings-controls.js';
 
 export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.Settings): void {
     const group = new Adw.PreferencesGroup({ title: 'Dock behavior' });
@@ -56,12 +57,6 @@ export function addBehaviorPreferences(page: Adw.PreferencesPage, settings: Gio.
     page.add(group);
     addSwitch(group, settings, 'show-running-indicator', 'Show running application indicators');
     addSwitch(group, settings, 'show-window-count', 'Show window count badges');
-}
-
-function addSwitch(group: Adw.PreferencesGroup, settings: Gio.Settings, key: string, title: string): void {
-    const row = new Adw.SwitchRow({ title });
-    group.add(row);
-    settings.bind(key, row, 'active', Gio.SettingsBindFlags.DEFAULT);
 }
 
 function addIconThemeSelector(group: Adw.PreferencesGroup, settings: Gio.Settings): void {
