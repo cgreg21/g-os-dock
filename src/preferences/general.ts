@@ -47,7 +47,7 @@ export function addItemPreferences(page: Adw.PreferencesPage, settings: Gio.Sett
     addSwitch(separator, settings, 'show-favorites-separator', 'Show separator between favorites and running apps');
     addSeparatorColorPicker(separator, settings);
     addSpin(separator, settings, 'favorites-separator-size', 'Thickness (px)', 1, 8);
-    addSpin(separator, settings, 'favorites-separator-length', 'Length (% of icon size)', 10, 100);
+    addSpin(separator, settings, 'favorites-separator-length', 'Height (px)', 4, 128);
 }
 
 export function addBehaviorPreferences(page: Adw.PreferencesPage, settings: Gio.Settings): void {
