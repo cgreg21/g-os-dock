@@ -79,3 +79,40 @@ test('ignores stale callbacks after a keyed task is replaced', () => {
     backend.run(2);
     assert.equal(calls, 10);
 });
+
+test('contains callback failures and releases task ownership', () => {
+    const backend = new FakeBackend();
+    const scheduler = new TaskScheduler(backend);
+    const originalLogError = globalThis.logError;
+    globalThis.logError = () => {};
+    try {
+        scheduler.timeout('broken', 1, () => { throw new Error('task failed'); });
+        backend.run(1);
+        assert.equal(scheduler.size, 0);
+    } finally {
+        globalThis.logError = originalLogError;
+    }
+});
+
+test('continues cancelling tasks when the backend reports a removal failure', () => {
+    const removed = [];
+    const originalLogError = globalThis.logError;
+    globalThis.logError = () => {};
+    try {
+        const backend = new FakeBackend();
+        backend.remove = id => {
+            removed.push(id);
+            if (id === 1)
+                throw new Error('already removed');
+            backend.tasks.delete(id);
+        };
+        const scheduler = new TaskScheduler(backend);
+        scheduler.timeout('first', 1, () => {});
+        scheduler.timeout('second', 1, () => {});
+        scheduler.destroy();
+        assert.deepEqual(removed, [1, 2]);
+        assert.equal(scheduler.size, 0);
+    } finally {
+        globalThis.logError = originalLogError;
+    }
+});
