@@ -48,9 +48,10 @@ export class DockSystemItem {
 
     private updateIcon(): void {
         const name = this.settings.get_string('system-icon-name') || 'view-app-grid-symbolic';
-        this.button.set_child(new St.Icon({ icon_name: name, icon_size: this.iconSize,
-            style_class: 'g-os-dock-system-icon' }));
-        this.item.setIconPadding(this.settings, this.iconSize);
+        const icon = new St.Icon({ icon_name: name, icon_size: this.iconSize,
+            style_class: 'g-os-dock-system-icon' });
+        this.button.set_child(icon);
+        this.item.setIconPadding(this.settings, this.iconSize, icon);
     }
 
     private showMenu(): void {
