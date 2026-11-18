@@ -170,14 +170,15 @@ test('E2E: visual anchors preserve the outer edge in all dock orientations', () 
     assert.ok(controller.includes("visual.set_pivot_point(0.5, position === 'top' ? 0 : 1)"));
 });
 
-test('E2E: magnification animates button dimensions alongside visual scale', () => {
+test('E2E: button dimensions track every visual scale notification', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes("'dock-magnification-enabled'"));
     assert.ok(controller.includes("'dock-magnification-scale'"));
     assert.ok(controller.includes('this.settings.get_int'));
     assert.ok(controller.includes('this.settings.get_boolean'));
     assert.ok(controller.includes('resolveMagnificationButtonSize('));
-    assert.ok(controller.includes('{ width: buttonWidth, height: buttonHeight }'));
+    assert.ok(controller.includes('button.set_width(buttonWidth)'));
+    assert.ok(controller.includes('button.set_height(buttonHeight)'));
     assert.ok(controller.includes("visual.connect('notify::scale-x'"));
     assert.ok(controller.includes("visual.connect('notify::scale-y'"));
     assert.ok(controller.includes('this.syncButtonSize(button, visual)'));
