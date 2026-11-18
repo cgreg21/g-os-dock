@@ -26,6 +26,7 @@ export class DockVolumeItems {
         mount: Gio.Mount;
         name: string;
         iconKey: string;
+        paddingStyle: string;
         tooltip: DockTooltip;
     }>();
     private destroyed = false;
@@ -78,7 +79,11 @@ export class DockVolumeItems {
             const existing = this.items.get(id);
             if (existing) {
                 existing.icon.icon_size = this.iconSize;
-                this.updateButtonPadding(existing.button);
+                const paddingStyle = getIconPaddingStyle(this.settings, this.iconSize);
+                if (existing.paddingStyle !== paddingStyle) {
+                    existing.button.set_style(paddingStyle);
+                    existing.paddingStyle = paddingStyle;
+                }
                 const name = entry.mount.get_name();
                 if (existing.name !== name) {
                     existing.name = name;
@@ -155,17 +160,13 @@ export class DockVolumeItems {
         const name = entry.mount.get_name();
         const tooltip = new DockTooltip(button, name, this.dockPosition);
         this.content.add_child(button);
-        this.updateButtonPadding(button);
+        const paddingStyle = getIconPaddingStyle(this.settings, this.iconSize);
+        button.set_style(paddingStyle);
         this.items.set(entry.id, {
             button, icon, mount: entry.mount, name,
-            iconKey: gicon.to_string() ?? '', tooltip,
+            iconKey: gicon.to_string() ?? '', paddingStyle, tooltip,
         });
         this.dragDrop.registerItem({ id: entry.id, actor: button });
-    }
-
-    /** Apply the same configurable icon box geometry as app, launcher and trash items. */
-    private updateButtonPadding(button: St.Button): void {
-        button.set_style(getIconPaddingStyle(this.settings, this.iconSize));
     }
 
     getCount(): number {
@@ -176,7 +177,11 @@ export class DockVolumeItems {
         this.iconSize = size;
         for (const item of this.items.values()) {
             item.icon.icon_size = size;
-            this.updateButtonPadding(item.button);
+            const paddingStyle = getIconPaddingStyle(this.settings, size);
+            if (item.paddingStyle !== paddingStyle) {
+                item.button.set_style(paddingStyle);
+                item.paddingStyle = paddingStyle;
+            }
         }
     }
 
