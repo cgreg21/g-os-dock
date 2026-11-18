@@ -8,6 +8,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 import { createWindowPreviewCard } from './card.js';
+import { dockCache } from '../cache.js';
 
 /**
  * Owns the lifecycle and rendering of application window previews.
@@ -93,7 +94,11 @@ export class WindowPreviews {
         if (windows.length === 0)
             return;
 
-        const verticalDock = ['left', 'right'].includes(this.settings.get_string('dock-position'));
+        const dockPosition = this.settings.get_string('dock-position');
+        const verticalDock = dockCache.getOrCreate(
+            `preview-vertical-dock:${dockPosition}`,
+            () => dockPosition === 'left' || dockPosition === 'right',
+        );
         const previews = new St.BoxLayout({
             style_class: 'g-os-dock-previews',
             orientation: verticalDock
@@ -108,7 +113,10 @@ export class WindowPreviews {
         if (this.settings.get_boolean('dev-mode'))
             previews.add_style_class_name('g-os-dock-dev');
         const buttonLayout = this.windowManagerSettings.get_string('button-layout');
-        const closeOnLeft = (buttonLayout.split(':')[0] ?? '').split(',').includes('close');
+        const closeOnLeft = dockCache.getOrCreate(
+            `preview-close-button-left:${buttonLayout}`,
+            () => (buttonLayout.split(':')[0] ?? '').split(',').includes('close'),
+        );
         let firstPreviewButton: St.Button | null = null;
         for (const [index, window] of windows.entries()) {
             const preview = createWindowPreviewCard(
@@ -143,7 +151,7 @@ export class WindowPreviews {
         const [previewMinHeight, previewNaturalHeight] = previews.get_preferred_height(-1);
         const previewWidth = Math.max(previewMinWidth, previewNaturalWidth);
         const previewHeight = Math.max(previewMinHeight, previewNaturalHeight);
-        const position = this.settings.get_string('dock-position');
+        const position = dockPosition;
         let x = itemX + itemWidth / 2 - previewWidth / 2;
         let y = itemY - previewHeight - 12;
         if (position === 'top')
