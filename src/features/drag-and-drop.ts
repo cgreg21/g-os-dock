@@ -5,6 +5,7 @@ import Shell from 'gi://Shell?version=51';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { dockCache } from './cache.js';
+import { ChromeActorManager } from './chrome-actor-manager.js';
 
 export interface DockDndItem {
     id: string;
@@ -33,6 +34,10 @@ export class DockDragDrop {
     private removingItemId: string | null = null;
     private removingActor: St.Widget | null = null;
     private destroyed = false;
+    private chromeActors = new ChromeActorManager<St.Widget>(
+        (actor, options) => Main.layoutManager.addChrome(actor, options),
+        actor => Main.layoutManager.removeChrome(actor),
+    );
     private removalZone: St.Widget;
     private removalZoneDelegate: {
         handleDragOver: (source: DockDragSource) => number;
@@ -58,7 +63,7 @@ export class DockDragDrop {
         };
         (this.removalZone as St.Widget & { _delegate?: unknown })._delegate = this.removalZoneDelegate;
         this.updateRemovalZoneGeometry();
-        Main.layoutManager.addChrome(this.removalZone, {
+        this.chromeActors.add(this.removalZone, {
             affectsStruts: false,
             trackFullscreen: false,
         });
@@ -382,7 +387,7 @@ export class DockDragDrop {
             actor.remove_style_class_name('dragging');
             this.unregisterItem(actor);
         }
-        Main.layoutManager.removeChrome(this.removalZone);
+        this.chromeActors.destroy();
         this.removalZone.destroy();
     }
 }
