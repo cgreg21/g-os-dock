@@ -13,6 +13,7 @@ export class DockApplicationItemsController {
     private currentItems: DockAppButton[] = [];
     private currentSize = 0;
     private readonly animations = new AnimationManager();
+    private readonly retiringItems = new Set<DockAppButton>();
     private nextAnimationId = 0;
 
     constructor(
@@ -95,8 +96,9 @@ export class DockApplicationItemsController {
 
     destroy(): void {
         this.animations.destroy();
-        for (const item of this.currentItems)
+        for (const item of [...this.currentItems, ...this.retiringItems])
             this.destroyItem(item);
+        this.retiringItems.clear();
         this.currentItems = [];
         this.currentSize = 0;
     }
@@ -114,6 +116,7 @@ export class DockApplicationItemsController {
     }
 
     private animateOut(item: DockAppButton): void {
+        this.retiringItems.add(item);
         this.animations.animate(
             `item-exit-${++this.nextAnimationId}`,
             item as unknown as AnimationTarget,
@@ -121,7 +124,10 @@ export class DockApplicationItemsController {
             {
                 durationMs: 170,
                 mode: Clutter.AnimationMode.EASE_IN_QUAD,
-                onComplete: () => this.destroyItem(item),
+                onComplete: () => {
+                    this.retiringItems.delete(item);
+                    this.destroyItem(item);
+                },
             },
         );
     }
