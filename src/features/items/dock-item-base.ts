@@ -7,9 +7,11 @@ import { getIconPaddingStyle } from '../layout/icon-padding.js';
 import { CleanupManager } from '../../core/cleanup-manager.js';
 import { AnimationManager, type AnimationTarget } from '../../core/animation-manager.js';
 import { dockStyles } from '../../core/style-manager.js';
+import { DockMagnificationController } from './dock-magnification.js';
 
 /** Shared lifecycle and presentation primitives for interactive dock buttons. */
 export class DockItemBase {
+    private static readonly magnificationControllers = new WeakMap<St.BoxLayout, DockMagnificationController>();
     readonly cleanup = new CleanupManager();
     private tooltip: DockTooltip;
     private destroyed = false;
@@ -17,6 +19,7 @@ export class DockItemBase {
     private focused = false;
     private settings: Gio.Settings | null = null;
     private observedSettings: Gio.Settings | null = null;
+    private magnification: DockMagnificationController | null = null;
 
     constructor(
         private content: St.BoxLayout | null,
@@ -52,6 +55,15 @@ export class DockItemBase {
         const style = getIconPaddingStyle(settings, size);
         dockStyles.apply(this.button, style);
         this.settings = settings;
+        if (this.content) {
+            let controller = DockItemBase.magnificationControllers.get(this.content);
+            if (!controller) {
+                controller = new DockMagnificationController(this.content, settings, this.dockPosition);
+                DockItemBase.magnificationControllers.set(this.content, controller);
+            }
+            controller.register(this.button);
+            this.magnification = controller;
+        }
         if (this.observedSettings !== settings) {
             this.observedSettings = settings;
             for (const key of ['hover-animation', 'hover-animation-intensity', 'hover-animation-duration']) {
@@ -70,6 +82,13 @@ export class DockItemBase {
         const settings = this.settings;
         const mode = settings?.get_string('hover-animation') ?? 'scale';
         const intensity = settings?.get_int('hover-animation-intensity') ?? 5;
+        if (settings?.get_boolean('dock-magnification-enabled') ?? true) {
+            if (active && mode === 'glow')
+                this.button.add_style_class_name('g-os-dock-item-hover-glow');
+            else
+                this.button.remove_style_class_name('g-os-dock-item-hover-glow');
+            return;
+        }
         const duration = settings?.get_int('hover-animation-duration') ?? 130;
         const strength = Math.max(1, Math.min(8, intensity));
         const scale = active && (mode === 'scale' || mode === 'bounce')
@@ -119,6 +138,12 @@ export class DockItemBase {
             return;
         this.destroyed = true;
         this.animations.destroy();
+        if (this.magnification) {
+            this.magnification.unregister(this.button);
+            if (this.content && this.magnification.size === 0)
+                DockItemBase.magnificationControllers.delete(this.content);
+            this.magnification = null;
+        }
         this.button.scale_x = 1;
         this.button.scale_y = 1;
         this.button.translation_x = 0;
