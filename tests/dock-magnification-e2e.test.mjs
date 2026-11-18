@@ -144,8 +144,11 @@ test('E2E: every registered visual uses its transformed geometry without mutatio
     assert.ok(controller.includes('private readonly items = new Map<St.Button, Clutter.Actor>()'));
     assert.ok(controller.includes('this.items.set(button, visual)'));
     assert.ok(controller.includes('getItemScales('));
-    assert.ok(controller.includes('visual.get_transformed_position()'));
-    assert.ok(controller.includes('visual.get_transformed_size()'));
+    assert.ok(controller.includes('button.get_transformed_position()'));
+    assert.ok(controller.includes('button.get_transformed_size()'));
+    assert.ok(controller.includes('visual.height : visual.width'));
+    assert.ok(controller.includes('unscaled allocation'));
+    assert.ok(!controller.includes('visual.get_transformed_position()'));
     assert.ok(controller.includes('resolveMagnificationItemScale('));
     assert.ok(controller.includes('return scales'));
 });
