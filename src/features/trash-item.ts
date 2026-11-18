@@ -97,6 +97,8 @@ export class DockTrashItem {
     }
 
     setIconSize(size: number): void {
+        if (this.iconSize === size)
+            return;
         this.iconSize = size;
         this.updateIcon();
     }
