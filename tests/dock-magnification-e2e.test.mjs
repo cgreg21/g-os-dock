@@ -83,7 +83,7 @@ test('E2E: per-item magnification uses the real item center and extent', async (
 test('E2E: per-item influence adapts to different rendered dimensions', async () => {
     const { resolveMagnificationItemScale } = await loadItemScaleResolver();
     const small = resolveMagnificationItemScale(30, 20, 20, 2.5, 4);
-    const large = resolveMagnificationItemScale(40, 0, 80, 2.5, 4);
+    const large = resolveMagnificationItemScale(50, 0, 80, 2.5, 4);
     assert.equal(small, 4);
     assert.ok(large > 1);
     assert.ok(large < 4);
