@@ -21,6 +21,7 @@ import { WindowPreviews } from '../features/window-previews/index.js';
 import { DockItemsController } from '../features/dock-items-controller.js';
 import { DockFavoritesSeparatorController } from '../features/favorites-separator-controller.js';
 import { DockItemOrderController } from '../features/dock-item-order-controller.js';
+import { FavoriteOrderController } from '../features/favorite-order-controller.js';
 import { SettingsObserver } from '../features/settings-observer.js';
 import { LifecycleScope } from '../features/lifecycle-scope.js';
 import { resolveApplicationOrder } from '../features/application-order.js';
@@ -62,6 +63,7 @@ export class DockView {
     private dockItems: DockItemsController;
     private favoritesSeparator: DockFavoritesSeparatorController;
     private itemOrder: DockItemOrderController<DockDndItem>;
+    private favoriteOrder: FavoriteOrderController;
 
     constructor(index: number, monitor: MonitorGeometry, settings: Gio.Settings) {
         this.monitor = monitor;
@@ -189,6 +191,11 @@ export class DockView {
             this.settings,
             () => this.getDndItems(),
         );
+        this.favoriteOrder = new FavoriteOrderController(this.settings, {
+            getFavoriteIds: () => this.favorites.getFavorites().map(app => app.get_id()),
+            addFavorite: id => this.favorites.addFavorite(id),
+            moveFavoriteToPos: (id, position) => this.favorites.moveFavoriteToPos(id, position),
+        });
 
         try {
             this.addToStage();
@@ -446,57 +453,7 @@ export class DockView {
     }
 
     private persistItemOrder(ids: string[]): void {
-        // The favorites boundary is defined by the number of favorite apps,
-        // not by raw dock slots (the launcher may be placed anywhere).
-        const appIds = ids
-            .filter(id => id.startsWith('app:'))
-            .map(id => id.slice(4));
-        const favoriteCount = this.favorites.getFavorites().length;
-        // With no favorites yet, the first app slot acts as the pinning area
-        // so the user can create the first favorite with the same gesture.
-        const pinningBoundary = Math.max(1, favoriteCount);
-
-        this.settings.set_strv('dock-item-order', ids);
-
-        this.syncFavoriteOrder(appIds, pinningBoundary);
-    }
-
-    private syncFavoriteOrder(appIds: string[], pinningBoundary: number): void {
-        // Persist the dock order before pinning: addFavorite emits favorites.changed
-        // and can synchronously trigger a dock refresh.
-        const favoriteIds = new Set(
-            this.favorites.getFavorites().map(app => app.get_id()),
-        );
-        for (let index = 0; index < pinningBoundary && index < appIds.length; index++) {
-            const id = appIds[index];
-            if (!id || favoriteIds.has(id))
-                continue;
-            this.favorites.addFavorite(id);
-            favoriteIds.add(id);
-        }
-
-        const currentFavorites = this.favorites.getFavorites().map(app => app.get_id());
-        const currentPositions = new Map(
-            currentFavorites.map((id, index) => [id, index]),
-        );
-        const orderedFavorites = appIds.filter(id => currentPositions.has(id));
-
-        for (const [index, id] of orderedFavorites.entries()) {
-            const current = currentPositions.get(id);
-            if (current === undefined || current === index)
-                continue;
-
-            this.favorites.moveFavoriteToPos(id, index);
-            currentFavorites.splice(current, 1);
-            currentFavorites.splice(index, 0, id);
-            const firstChanged = Math.min(current, index);
-            const lastChanged = Math.max(current, index);
-            for (let position = firstChanged; position <= lastChanged; position++) {
-                const favoriteId = currentFavorites[position];
-                if (favoriteId !== undefined)
-                    currentPositions.set(favoriteId, position);
-            }
-        }
+        this.favoriteOrder.persist(ids);
     }
 
     private getAvailableSpace(vertical: boolean): number {
