@@ -255,7 +255,7 @@ export class DockView {
         this.cleanup.addSignal(this.actor, this.actor.connect(
             'notify::hover',
             () => this.visibility.onPointerChanged(),
-        );
+        ));
         this.cleanup.addSignal(this.edgeSensor, this.edgeSensor.connect('notify::hover', () => {
             if (this.edgeSensor.hover)
                 this.visibility.show();
