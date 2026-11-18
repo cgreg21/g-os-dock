@@ -3,7 +3,7 @@ import GLib from 'gi://GLib?version=2.0';
 import Meta from 'gi://Meta?version=51';
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
-import { rectanglesOverlap } from './geometry.js';
+import { rectanglesOverlap, unionRectangles } from './geometry.js';
 
 const HIDE_DELAY_MS = 650;
 const SMART_HIDE_DELAY_MS = 80;
@@ -233,22 +233,22 @@ export class DockVisibility {
         const [backgroundX, backgroundY] = this.background.get_transformed_position();
         // The decorative surface can be offset from the content actor when
         // horizontal padding is asymmetric. Smart-hide must cover both.
-        const left = Math.min(actorX, backgroundX);
-        const top = Math.min(actorY, backgroundY);
-        const right = Math.max(
-            actorX + this.actor.width,
-            backgroundX + this.background.width,
+        const dockRect = unionRectangles(
+            {
+                x: actorX,
+                y: actorY,
+                width: this.actor.width,
+                height: this.actor.height,
+            },
+            {
+                x: backgroundX,
+                y: backgroundY,
+                width: this.background.width,
+                height: this.background.height,
+            },
         );
-        const bottom = Math.max(
-            actorY + this.actor.height,
-            backgroundY + this.background.height,
-        );
-        const dockRect = {
-            x: left,
-            y: top,
-            width: right - left,
-            height: bottom - top,
-        };
+        if (!dockRect)
+            return;
         // Only windows on the active workspace may hide this dock. NORMAL_ALL
         // incorrectly lets a window on another virtual desktop hide it here.
         const activeWorkspace = global.workspace_manager.get_active_workspace();
