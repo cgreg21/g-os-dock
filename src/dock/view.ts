@@ -20,7 +20,6 @@ import { WindowPreviews } from '../features/window-previews/index.js';
 import { DockSystemItem } from '../features/system-item.js';
 import { DockTrashItem } from '../features/trash-item.js';
 import { DockVolumeItems } from '../features/volume-items.js';
-import { getIconPaddingStyle } from '../features/icon-padding.js';
 import { dockCache } from '../features/cache.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
@@ -607,9 +606,8 @@ export class DockView {
     }
 
     private destroyAppItem(item: DockAppButton): void {
-        this.dragDrop.unregisterItem(item);
         item.get_parent()?.remove_child(item);
-        item.destroy();
+        item._gOsDockBase.destroy();
     }
 
     private refresh(): void {
@@ -788,11 +786,7 @@ export class DockView {
 
     /** Update per-side icon padding on retained actors when preferences change. */
     private updateItemPadding(item: DockAppButton, size: number): void {
-        const style = getIconPaddingStyle(this.settings, size);
-        if (item._gOsDockPaddingStyle === style)
-            return;
-        item.set_style(style);
-        item._gOsDockPaddingStyle = style;
+        item._gOsDockPaddingStyle = item._gOsDockBase.setIconPadding(this.settings, size);
     }
 
     private activateApp(app: Shell.App): void {
