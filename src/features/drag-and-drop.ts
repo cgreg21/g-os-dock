@@ -100,12 +100,16 @@ export class DockDragDrop {
     handleDragOver(source: DockDragSource, _dragActor: Clutter.Actor,
         x: number, y: number, _time: number): number {
         const sourceId = source?.dockItemId;
-        if (!sourceId)
+        if (!sourceId) {
+            this.previewSlot?.hide();
             return DND.DragMotionResult.NO_DROP;
+        }
         const items = this.getItems();
         const dragged = items.find(item => item.id === sourceId);
-        if (!dragged)
+        if (!dragged) {
+            this.previewSlot?.hide();
             return DND.DragMotionResult.NO_DROP;
+        }
         const targets = items.filter(item => item.id !== sourceId);
         const index = this.getDropIndex(targets, x, y);
         const favoriteCount = targets.filter(item =>
