@@ -96,6 +96,7 @@ export class DockFoldersController {
             } else {
                 const membersChanged = folder.appIds.join('\\0') !== validIds.join('\\0');
                 folder.name = record.name;
+                folder.base.setTooltip(record.name);
                 if (record.viewMode)
                     folder.viewMode = record.viewMode;
                 else
@@ -105,9 +106,9 @@ export class DockFoldersController {
                     const previousPreview = folder.actor.get_child();
                     folder.actor.set_child(this.createFolderPreview(folder, iconSize));
                     previousPreview?.destroy();
-                    folder.base.setIconPadding(this.settings, iconSize);
                     folder.iconSize = iconSize;
                 }
+                folder.base.setIconPadding(this.settings, iconSize);
             }
             next.push(folder);
         }
