@@ -118,3 +118,42 @@ test('returns no intersection for touching or invalid rectangles', async () => {
         { x: 0, y: 0, width: 10, height: 10 },
     ), null);
 });
+
+
+test('keeps intersection, overlap, and union symmetric for valid rectangles', async () => {
+    const {
+        intersectRectangles,
+        isValidRectangle,
+        rectanglesOverlap,
+        unionRectangles,
+    } = await import('../dist/features/geometry.js');
+    const cases = [
+        [
+            { x: -120, y: 40, width: 80, height: 60 },
+            { x: -80, y: 20, width: 100, height: 70 },
+        ],
+        [
+            { x: 0, y: 0, width: 20, height: 20 },
+            { x: 5, y: 5, width: 5, height: 5 },
+        ],
+        [
+            { x: 100, y: -50, width: 25, height: 30 },
+            { x: 125, y: -50, width: 10, height: 30 },
+        ],
+    ];
+
+    for (const [first, second] of cases) {
+        assert.equal(rectanglesOverlap(first, second), rectanglesOverlap(second, first));
+        assert.deepEqual(intersectRectangles(first, second), intersectRectangles(second, first));
+        assert.deepEqual(unionRectangles(first, second), unionRectangles(second, first));
+
+        const union = unionRectangles(first, second);
+        assert.ok(union && isValidRectangle(union));
+        for (const rectangle of [first, second]) {
+            assert.ok(union.x <= rectangle.x);
+            assert.ok(union.y <= rectangle.y);
+            assert.ok(union.x + union.width >= rectangle.x + rectangle.width);
+            assert.ok(union.y + union.height >= rectangle.y + rectangle.height);
+        }
+    }
+});
