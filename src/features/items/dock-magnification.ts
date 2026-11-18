@@ -55,6 +55,7 @@ export class DockMagnificationController {
         }));
         this.cleanup.addSignal(this.surface, this.surface.connect('leave-event', () => {
             this.pointerAxis = null;
+            log('[G-OS Dock] magnification pointer: left surface');
             return Clutter.EVENT_PROPAGATE;
         }));
     }
@@ -71,6 +72,7 @@ export class DockMagnificationController {
         this.pointerAxis = resolveMagnificationPointerAxis(
             position, pointerX, pointerY, surfaceX, surfaceY, surfaceWidth, surfaceHeight,
         );
+        log(`[G-OS Dock] magnification pointer: axis=${this.pointerAxis === null ? 'outside' : this.pointerAxis.toFixed(1)}px, stage=(${pointerX.toFixed(1)}, ${pointerY.toFixed(1)})`);
     }
 
     /** Local pointer coordinate on the dock's main axis, or null outside it. */
