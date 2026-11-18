@@ -67,38 +67,30 @@ test('uses the end slot when no registered target actor is mounted', () => {
     assert.equal(resolveDockDndPreviewChildIndex(-1, 4, 8, false), 8);
 });
 
-test('positions the removal target opposite a bottom or top dock', () => {
+test('restores a two-thirds-screen removal area opposite horizontal docks', () => {
     const monitor = { x: 100, y: 50, width: 1200, height: 800 };
     assert.deepEqual(resolveDockRemovalZoneGeometry(monitor, 'bottom'), {
-        x: 626, y: 62, width: 148, height: 52,
+        x: 100, y: 82, width: 1200, height: 533,
     });
     assert.deepEqual(resolveDockRemovalZoneGeometry(monitor, 'top'), {
-        x: 626, y: 786, width: 148, height: 52,
+        x: 100, y: 317, width: 1200, height: 533,
     });
 });
 
-test('positions the removal target opposite a left or right dock', () => {
+test('restores a two-thirds-screen removal area opposite vertical docks', () => {
     const monitor = { x: 100, y: 50, width: 1200, height: 800 };
     assert.deepEqual(resolveDockRemovalZoneGeometry(monitor, 'left'), {
-        x: 1140, y: 424, width: 148, height: 52,
+        x: 500, y: 50, width: 800, height: 800,
     });
     assert.deepEqual(resolveDockRemovalZoneGeometry(monitor, 'right'), {
-        x: 112, y: 424, width: 148, height: 52,
+        x: 100, y: 50, width: 800, height: 800,
     });
 });
 
-test('keeps the removal target within small non-origin monitors', () => {
-    const zone = resolveDockRemovalZoneGeometry(
-        { x: 20, y: 30, width: 100, height: 70 },
-        'bottom',
-    );
-    assert.deepEqual(zone, { x: 32, y: 42, width: 76, height: 46 });
-});
-
-test('keeps a removal target below the top panel when the dock is at the bottom', () => {
+test('keeps the large bottom-dock removal area below the top panel', () => {
     const monitor = { x: 100, y: 50, width: 1200, height: 800 };
     assert.deepEqual(
-        resolveDockRemovalZoneGeometry(monitor, 'bottom', 148, 52, 12, 32),
-        { x: 626, y: 94, width: 148, height: 52 },
+        resolveDockRemovalZoneGeometry(monitor, 'bottom', 32),
+        { x: 100, y: 82, width: 1200, height: 501 },
     );
 });
