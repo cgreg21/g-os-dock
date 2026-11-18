@@ -41,7 +41,7 @@ export class DockVolumeItems {
         private dockPosition: () => string,
     ) {
         this.monitor = Gio.VolumeMonitor.get();
-        for (const signal of ['mount-added', 'mount-removed', 'mount-changed']) {
+        for (const signal of ['mount-added', 'mount-removed', 'mount-changed'] as const) {
             const id = this.monitor.connect(signal, () => this.handleMonitorChange());
             this.cleanup.add(() => this.monitor.disconnect(id));
         }
