@@ -59,6 +59,8 @@ export class DockFoldersController {
     private folders: MountedFolder[] = [];
     private readonly retiringFolders = new Set<MountedFolder>();
     private readonly animations = new AnimationManager();
+    private readonly menuManager: PopupMenu.PopupMenuManager;
+    private readonly folderMenus = new Set<PopupMenu.PopupMenu>();
     private nextAnimationId = 0;
     private destroyed = false;
 
@@ -70,7 +72,9 @@ export class DockFoldersController {
         private readonly dockPosition: () => string,
         private readonly getItemSize: () => number,
         private readonly onChanged: () => void,
-    ) {}
+    ) {
+        this.menuManager = new PopupMenu.PopupMenuManager(content);
+    }
 
     getHiddenAppIds(): Set<string> {
         return new Set(readFolders(this.settings).flatMap(folder => folder.appIds));
@@ -217,6 +221,12 @@ export class DockFoldersController {
             return;
         this.destroyed = true;
         this.animations.destroy();
+        for (const menu of [...this.folderMenus]) {
+            this.folderMenus.delete(menu);
+            this.menuManager.removeMenu(menu);
+            menu.close();
+            menu.destroy();
+        }
         for (const folder of [...this.folders, ...this.retiringFolders])
             this.destroyFolder(folder);
         this.retiringFolders.clear();
@@ -333,6 +343,9 @@ export class DockFoldersController {
 
         const menu = new PopupMenu.PopupMenu(folder.actor, 0.5, getDockMenuSide(this.dockPosition()));
         Main.uiGroup.add_child(menu.actor);
+        // Register with GNOME's menu manager so clicks outside the popup close it.
+        this.menuManager.addMenu(menu);
+        this.folderMenus.add(menu);
         const mode = folder.viewMode ?? this.settings.get_string('folder-view-mode');
         const applications = folder.appIds
             .map(appId => ({ appId, app: this.appSystem.lookup_app(appId) }))
@@ -409,6 +422,8 @@ export class DockFoldersController {
                 });
             } else if (!closing) {
                 closing = true;
+                this.folderMenus.delete(menu);
+                this.menuManager.removeMenu(menu);
                 menu.actor.reactive = false;
                 menu.actor.ease({
                     opacity: 0,
