@@ -181,3 +181,47 @@ test('E2E: magnification respects settings and never resizes buttons or dock lay
     assert.ok(!controller.includes('button.set_size('));
     assert.ok(!controller.includes('queue_relayout('));
 });
+
+async function loadButtonLayoutResolvers() {
+    const source = read('../src/features/items/dock-magnification.ts');
+    const mainMatch = source.match(/export function resolveMagnificationMainAxisLayout\\([\\s\\S]*?\\n}\\n/);
+    const crossMatch = source.match(/export function resolveMagnificationCrossAxisLayout\\([\\s\\S]*?\\n}\\n/);
+    assert.ok(mainMatch, 'the main-axis button layout resolver must be present');
+    assert.ok(crossMatch, 'the cross-axis button layout resolver must be present');
+    const stripTypes = value => value
+        .replace('export function', 'function')
+        .replace(/: (?:number|boolean|\\[number, number\\])/g, '');
+    const moduleSource = stripTypes(mainMatch[0]) + '\\n' +
+        stripTypes(crossMatch[0]) +
+        '\\nexport { resolveMagnificationMainAxisLayout, resolveMagnificationCrossAxisLayout };\\n';
+    const encoded = Buffer.from(moduleSource).toString('base64');
+    return import('data:text/javascript;base64,' + encoded);
+}
+
+test('E2E: magnified main-axis slots preserve gaps and keep the group centered', async () => {
+    const { resolveMagnificationMainAxisLayout } = await loadButtonLayoutResolvers();
+    const first = resolveMagnificationMainAxisLayout(10, 40, 2, 0, 60);
+    const second = resolveMagnificationMainAxisLayout(56, 40, 1.5, 40, 60);
+    assert.deepEqual(first, [-20, 80]);
+    assert.deepEqual(second, [56, 60]);
+    assert.equal(second[0] - (first[0] + first[1]), -4);
+    const originalCenter = (10 + 96) / 2;
+    const targetCenter = (first[0] + second[0] + second[1]) / 2;
+    assert.equal(targetCenter, originalCenter);
+});
+
+test('E2E: magnified cross-axis slots stay attached to the selected outer edge', async () => {
+    const { resolveMagnificationCrossAxisLayout } = await loadButtonLayoutResolvers();
+    assert.deepEqual(resolveMagnificationCrossAxisLayout(20, 40, 2, false), [20, 80]);
+    assert.deepEqual(resolveMagnificationCrossAxisLayout(20, 40, 2, true), [-20, 80]);
+    assert.deepEqual(resolveMagnificationCrossAxisLayout(20, 40, 1, true), [20, 40]);
+});
+
+test('E2E: invalid button layout geometry safely preserves the original slot', async () => {
+    const { resolveMagnificationMainAxisLayout, resolveMagnificationCrossAxisLayout } =
+        await loadButtonLayoutResolvers();
+    assert.deepEqual(resolveMagnificationMainAxisLayout(10, 40, 0.5, 0, 20), [10, 40]);
+    assert.deepEqual(resolveMagnificationMainAxisLayout(10, 40, 2, 30, 20), [10, 40]);
+    assert.deepEqual(resolveMagnificationCrossAxisLayout(10, 0, 2, true), [10, 0]);
+    assert.deepEqual(resolveMagnificationCrossAxisLayout(10, 40, Number.NaN, true), [10, 40]);
+});
