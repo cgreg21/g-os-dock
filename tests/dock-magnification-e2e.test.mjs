@@ -102,9 +102,12 @@ test('E2E: dock backdrop blur is configurable and updates with appearance settin
 });
 
 
-test('E2E: magnification scales visual actors without resizing dock slots', () => {
+test('E2E: magnification scales visual actors and recalculates button slots', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
+    assert.ok(controller.includes('item.button.set_size(width, height)'));
+    assert.ok(controller.includes('item.baseButtonWidth +'));
+    assert.ok(controller.includes('this.content.queue_relayout()'));
     assert.ok(controller.includes('item.button.get_allocation_box()'));
     assert.ok(controller.includes('this.setVisualPivot(visual)'));
     assert.ok(controller.includes('this.surface = content.get_parent() ?? content'));
@@ -128,14 +131,13 @@ test('E2E: dock background width follows magnification while its height and vert
 });
 
 
-test('E2E: magnification is driven by the content surface pointer without per-frame layout churn', () => {
+test('E2E: magnification is driven by the content surface pointer and updates button allocations', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes("this.surface.connect('motion-event'"));
     assert.ok(controller.includes('this.rawPointer = this.isVertical() ? y : x'));
     assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
     assert.ok(controller.includes('item.visual.translation_y = 0'));
     assert.ok(!controller.includes('item.button.set_style(`${item.baseStyle} min-width'));
-    assert.ok(!controller.includes('this.content.queue_relayout()'));
 });
 
 test('E2E: screen-edge pivots keep icons fixed to the dock edge during magnification', () => {
