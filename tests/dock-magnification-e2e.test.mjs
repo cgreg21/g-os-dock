@@ -220,7 +220,7 @@ test('E2E: immutable reference slots preserve gaps and center total growth', asy
     const slots = resolveMagnificationMainAxisSlots(
         [10, 56, 102], [40, 40, 40], [2, 1.5, 1],
     );
-    assert.deepEqual(slots, [[-20, 80], [66, 60], [112, 40]]);
+    assert.deepEqual(slots, [[-20, 80], [66, 60], [132, 40]]);
     assert.equal(slots[1][0] - (slots[0][0] + slots[0][1]), 6);
     assert.equal(slots[2][0] - (slots[1][0] + slots[1][1]), 6);
     const originalCenter = (10 + 142) / 2;
