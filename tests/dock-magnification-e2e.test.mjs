@@ -26,19 +26,6 @@ test('E2E: magnification uses a frame-driven raised-cosine wave with smoothed po
     assert.ok(controller.includes('MAX_FRAME_DT = 1 / 30'));
 });
 
-test('E2E: magnification recalculates button slots while tracking the pointer wave', () => {
-    const controller = read('../src/features/items/dock-magnification.ts');
-    assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
-    assert.ok(controller.includes('item.button.set_style(`${item.baseStyle} min-width: ${width}px; min-height: ${height}px;`)'));
-    assert.ok(controller.includes('item.button.get_allocation_box()'));
-    assert.ok(controller.includes('min-width: ${width}px; min-height: ${height}px;'));
-    assert.ok(controller.includes('this.content.queue_relayout()'));
-    assert.ok(controller.includes('item.visual.translation_y = -mainAxisGrowth / 2'));
-    assert.ok(controller.includes('item.visual.translation_y = mainAxisGrowth / 2'));
-    assert.ok(!controller.includes('GAP_COMPRESSION'));
-    assert.ok(!controller.includes('expanded[i + 1]'));
-});
-
 test('E2E: magnification keeps every icon anchored to the screen-facing edge', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes("actor.set_pivot_point(0.5, 1)"));
@@ -147,45 +134,6 @@ test('E2E: magnification scales visual actors without resizing dock slots', () =
 });
 
 
-test('E2E: only visual icons scale; button padding and dock gaps remain fixed', () => {
-    const controller = read('../src/features/items/dock-magnification.ts');
-    const base = read('../src/features/items/dock-item-base.ts');
-    const app = read('../src/features/applications/app-item.ts');
-    const system = read('../src/features/items/system-item.ts');
-    const trash = read('../src/features/items/trash-item.ts');
-    const volumes = read('../src/features/items/volume-items.ts');
-    const folders = read('../src/features/applications/dock-folders-controller.ts');
-
-    assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
-    assert.ok(!controller.includes('item.button.set_scale'));
-    assert.ok(!controller.includes('item.button.translation_x'));
-    assert.ok(!controller.includes('item.button.translation_y'));
-    assert.ok(controller.includes('requestedHeight = item.baseButtonHeight + item.baseVisualHeight * (item.scale - 1)'));
-    assert.ok(base.includes('controller.register(this.button, visualActor'));
-    assert.ok(app.includes('base.setIconPadding(this.dependencies.settings, size, icon)'));
-    assert.ok(system.includes('this.item.setIconPadding(this.settings, this.iconSize, icon)'));
-    assert.ok(trash.includes('this.item.setIconPadding(this.settings, this.iconSize, this.icon)'));
-    assert.ok(volumes.includes('item.item.setIconPadding(this.settings, size, item.icon)'));
-    assert.ok(folders.includes('folder.actor.get_first_child() ?? folder.actor'));
-});
-
-
-test('E2E: magnification resizes button slots and the dock surface without changing padding or spacing', () => {
-    const controller = read('../src/features/items/dock-magnification.ts');
-    const layout = read('../src/features/layout/layout.ts');
-    const view = read('../src/dock/view.ts');
-    const padding = read('../src/features/layout/icon-padding.ts');
-
-    assert.ok(controller.includes('min-width: ${width}px; min-height: ${height}px;'));
-    assert.ok(controller.includes('item.button.set_style(item.baseStyle)'));
-    assert.ok(controller.includes('this.content.queue_relayout()'));
-    assert.ok(view.includes('this.layout.position(false)'));
-    assert.ok(layout.includes('position(immediate = false)'));
-    assert.ok(padding.includes('padding: ${top}px ${right}px ${bottom}px ${left}px'));
-    assert.ok(controller.includes('this.surface = content.get_parent() ?? content'));
-    assert.ok(controller.includes("this.surface.connect('motion-event'"));
-    assert.ok(controller.includes("this.surface.connect('leave-event'"));
-});
 
 
 test('E2E: dock background width follows magnification while its height and vertical position stay fixed', () => {
@@ -197,4 +145,24 @@ test('E2E: dock background width follows magnification while its height and vert
     assert.ok(layout.includes('const height = this.backgroundBaseHeight'));
     assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, true)'));
     assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, false)'));
+});
+
+
+test('E2E: magnification is driven by the content surface pointer without per-frame layout churn', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    assert.ok(controller.includes("this.surface.connect('motion-event'"));
+    assert.ok(controller.includes('this.rawPointer = this.isVertical() ? y : x'));
+    assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
+    assert.ok(controller.includes('item.visual.translation_y = 0'));
+    assert.ok(!controller.includes('item.button.set_style(`${item.baseStyle} min-width'));
+    assert.ok(!controller.includes('this.content.queue_relayout()'));
+});
+
+test('E2E: screen-edge pivots keep icons fixed to the dock edge during magnification', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    assert.ok(controller.includes("actor.set_pivot_point(0.5, 1)"));
+    assert.ok(controller.includes("actor.set_pivot_point(0.5, 0)"));
+    assert.ok(controller.includes("actor.set_pivot_point(0, 0.5)"));
+    assert.ok(controller.includes("actor.set_pivot_point(1, 0.5)"));
+    assert.ok(!controller.includes('mainAxisGrowth / 2'));
 });
