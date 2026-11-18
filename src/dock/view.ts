@@ -266,14 +266,6 @@ export class DockView {
         const favorites = this.favorites.getFavorites();
         const running = this.appSystem.get_running();
         const favoriteIds = new Set<string>();
-        const runningById = new Map<string, Shell.App>();
-
-        for (const app of running) {
-            const id = app.get_id();
-            if (id)
-                runningById.set(id, app);
-        }
-
         const result: Shell.App[] = [];
         for (const app of favorites) {
             const id = app.get_id();
@@ -287,7 +279,7 @@ export class DockView {
         // Only non-favorites are appended, in the order reported by GNOME.
         for (const app of running) {
             const id = app.get_id();
-            if (id && !favoriteIds.has(id) && runningById.has(id)) {
+            if (id && !favoriteIds.has(id)) {
                 favoriteIds.add(id);
                 result.push(app);
             }
