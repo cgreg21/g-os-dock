@@ -2,6 +2,11 @@ import type { DockRectangle } from './geometry.js';
 
 export type DockEdge = 'top' | 'right' | 'bottom' | 'left';
 
+/** Share the edge-to-orientation rule across dock layout and UI features. */
+export function isVerticalDockPosition(position: string): boolean {
+    return position === 'left' || position === 'right';
+}
+
 export interface DockSize {
     width: number;
     height: number;
