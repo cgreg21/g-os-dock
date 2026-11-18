@@ -67,11 +67,14 @@ export class DockIndicators {
                     for (let index = 0; index < markerCount; index++) {
                         const marker = new St.Widget();
                         marker.set_size(length, thickness);
-                        marker.set_style(
-                            `width: ${length}px; height: ${thickness}px; ` +
-                            `border-radius: ${radius}; background-color: rgba(${color}, ${opacity}); ` +
-                            `border: ${borderSize}px solid rgba(${borderColor}, ${borderOpacity});`,
+                        const markerStyle = dockCache.getOrCreate(
+                            `indicator-marker-style:${length}:${thickness}:${radius}:${color}:${opacity}:${borderSize}:${borderColor}:${borderOpacity}`,
+                            () =>
+                                `width: ${length}px; height: ${thickness}px; ` +
+                                `border-radius: ${radius}; background-color: rgba(${color}, ${opacity}); ` +
+                                `border: ${borderSize}px solid rgba(${borderColor}, ${borderOpacity});`,
                         );
+                        marker.set_style(markerStyle);
                         item._gOsDockIndicator.add_child(marker);
                     }
                     this.markerSignatures.set(item, signature);
