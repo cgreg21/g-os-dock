@@ -360,7 +360,7 @@ export class DockView {
             'indicator-border-size',
             'indicator-border-color',
             'indicator-border-opacity',
-        ], () => this.indicators.update(this.itemActors));
+        ], () => this.indicators.update(this.itemActors, false));
     }
 
     private connectSignals(): void {
