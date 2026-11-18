@@ -36,6 +36,11 @@ export class DockTooltip {
         });
     }
 
+    setText(text: string): void {
+        this.actor.text = text;
+        this.hide();
+    }
+
     private scheduleShow(): void {
         this.cancelTimeout();
         this.timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 700, () => {
