@@ -596,3 +596,18 @@ test('E2E: keyboard focus rejects non-integer indices and invalid item counts', 
         assert.equal(resolveWrappedDockIndex(index, count), null);
     }
 });
+
+import { readFileSync } from 'node:fs';
+
+test('E2E: folder application grids use the same translucent card treatment as window previews', () => {
+    const stylesheet = readFileSync(new URL('../stylesheet.css', import.meta.url), 'utf8');
+    const controller = readFileSync(
+        new URL('../src/features/applications/dock-folders-controller.ts', import.meta.url),
+        'utf8',
+    );
+    assert.match(controller, /createFolderAppCard\(entry\.app\)/);
+    assert.match(controller, /g-os-dock-folder-app-card/);
+    assert.match(controller, /g-os-dock-preview-open/);
+    assert.match(stylesheet, /\.g-os-dock-folder-app-card\s*\{[^}]*background-color:\s*rgba\(255,\s*255,\s*255,\s*0\.07\)/s);
+    assert.match(stylesheet, /\.g-os-dock-folder-app-card:hover[\s\S]*background-color:\s*rgba\(255,\s*255,\s*255,\s*0\.16\)/);
+});
