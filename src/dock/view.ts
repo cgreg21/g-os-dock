@@ -21,6 +21,7 @@ import { DockSystemItem } from '../features/system-item.js';
 import { DockTrashItem } from '../features/trash-item.js';
 import { DockVolumeItems } from '../features/volume-items.js';
 import { getIconPaddingStyle } from '../features/icon-padding.js';
+import { dockCache } from '../features/cache.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -675,12 +676,15 @@ export class DockView {
         // in a horizontal dock it is vertical (length = height).
         const separatorWidth = vertical ? length : thickness;
         const separatorHeight = vertical ? thickness : length;
-        const style =
-            `background-color: ${color}; opacity: ${opacity}; ` +
-            `border-radius: ${Math.ceil(thickness / 2)}px; ` +
-            `width: ${separatorWidth}px; min-width: ${separatorWidth}px; max-width: ${separatorWidth}px; ` +
-            `height: ${separatorHeight}px; min-height: ${separatorHeight}px; max-height: ${separatorHeight}px; ` +
-            (vertical ? 'margin: 4px 0;' : 'margin: 0 4px;');
+        const style = dockCache.getOrCreate(
+            `favorites-separator-style:${color}:${opacity}:${thickness}:${separatorWidth}:${separatorHeight}:${vertical}`,
+            () =>
+                `background-color: ${color}; opacity: ${opacity}; ` +
+                `border-radius: ${Math.ceil(thickness / 2)}px; ` +
+                `width: ${separatorWidth}px; min-width: ${separatorWidth}px; max-width: ${separatorWidth}px; ` +
+                `height: ${separatorHeight}px; min-height: ${separatorHeight}px; max-height: ${separatorHeight}px; ` +
+                (vertical ? 'margin: 4px 0;' : 'margin: 0 4px;'),
+        );
         const dimensionsKey = `${separatorWidth}x${separatorHeight}`;
         if (this.favoritesSeparatorSize !== dimensionsKey) {
             this.favoritesSeparator.set_size(separatorWidth, separatorHeight);
