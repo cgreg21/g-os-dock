@@ -118,7 +118,6 @@ export class DockLayout {
             this.actor.set_size(width, height);
             this.actor.set_position(Math.round(x), Math.round(y));
             this.background.set_size(width, height);
-            this.hasPositioned = true;
         } else {
             this.animations.animate(
                 'dock-surface',
@@ -132,6 +131,7 @@ export class DockLayout {
         // This keeps it visually centered even when the four padding values
         // are different, rather than centering it on the padded outer actor.
         this.syncBackgroundToContent(x, y, width, height, contentWidth, paddingLeft);
+        this.hasPositioned = true;
         this.positionSensor(panelBottom);
     }
 
