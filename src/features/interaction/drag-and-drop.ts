@@ -6,6 +6,7 @@ import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { dockCache } from '../../core/cache.js';
 import { ChromeActorManager } from '../../core/chrome-actor-manager.js';
+import { canDropDockItemAtIndex, resolveDockDndInsertionIndex } from './dnd-geometry.js';
 
 export interface DockDndItem {
     id: string;
@@ -30,7 +31,12 @@ export type DockDragSource = {
 export class DockDragDrop {
     private draggedItem: DockDndItem | null = null;
     private previewSlot: St.Widget | null = null;
-    private draggables = new Map<St.Widget, { draggable: DND.Draggable; signals: number[] }>();
+    private draggables = new Map<St.Widget, {
+        draggable: DND.Draggable;
+        signals: number[];
+        item: DockDndItem;
+        onStart: () => void;
+    }>();
     private removingItemId: string | null = null;
     private removingActor: St.Widget | null = null;
     private destroyed = false;
@@ -74,28 +80,50 @@ export class DockDragDrop {
         if (this.destroyed)
             return;
         const actor = item.actor;
-        if (this.draggables.has(actor))
-            this.unregisterItem(actor);
+        const existing = this.draggables.get(actor);
+        if (existing) {
+            existing.item = item;
+            existing.onStart = onStart;
+            this.setDragDelegate(item);
+            if (this.draggedItem?.actor === actor)
+                this.draggedItem = item;
+            return;
+        }
+
+        this.setDragDelegate(item);
+        const registration = {
+            draggable: DND.makeDraggable(actor, { dragActorOpacity: 210 }),
+            signals: [] as number[],
+            item,
+            onStart,
+        };
+        registration.signals = [
+            registration.draggable.connect('drag-begin', () => {
+                const current = registration.item;
+                this.showRemovalZone();
+                registration.onStart();
+                actor.add_style_class_name('dragging');
+                this.beginPreview(current);
+            }),
+            registration.draggable.connect('drag-end', () => this.finishDrag(actor)),
+            registration.draggable.connect('drag-cancelled', () => this.finishDrag(actor)),
+        ];
+        this.draggables.set(actor, registration);
+    }
+
+    private setDragDelegate(item: DockDndItem): void {
+        const actor = item.actor;
         (actor as St.Widget & { _delegate?: unknown })._delegate = {
             dockItemId: item.id,
             app: item.app,
             actor,
-            getDragActor: () => new Clutter.Clone({ source: actor }),
+            getDragActor: () => {
+                const clone = new Clutter.Clone({ source: actor });
+                clone.set_size(actor.width, actor.height);
+                return clone;
+            },
             getDragActorSource: () => actor,
         };
-        const draggable = DND.makeDraggable(actor, { dragActorOpacity: 210 });
-        const signals = [
-            draggable.connect('drag-begin', () => {
-                this.draggedItem = item;
-                this.showRemovalZone();
-                onStart();
-                actor.add_style_class_name('dragging');
-                this.beginPreview(item);
-            }),
-            draggable.connect('drag-end', () => this.finishDrag(actor)),
-            draggable.connect('drag-cancelled', () => this.finishDrag(actor)),
-        ];
-        this.draggables.set(actor, { draggable, signals });
     }
 
     unregisterItem(actor: St.Widget): void {
@@ -152,8 +180,11 @@ export class DockDragDrop {
         const applicationsBefore = targets
             .slice(0, index)
             .filter(item => item.app).length;
-        if (dragged?.app && this.isFavorite(dragged) &&
-            applicationsBefore > favoriteCount) {
+        if (!canDropDockItemAtIndex(
+            !!dragged.app && this.isFavorite(dragged),
+            applicationsBefore,
+            favoriteCount,
+        )) {
             // Do not let acceptDrop reuse a previously valid preview position.
             this.previewSlot?.hide();
             return DND.DragMotionResult.NO_DROP;
@@ -186,8 +217,11 @@ export class DockDragDrop {
             .filter(item => item.app).length;
         // Ignore system items when enforcing the favorites boundary.
         // Non-favorites may still be dropped into that section to be pinned.
-        if (dragged.app && this.isFavorite(dragged) &&
-            applicationsBefore > favoriteCount)
+        if (!canDropDockItemAtIndex(
+            !!dragged.app && this.isFavorite(dragged),
+            applicationsBefore,
+            favoriteCount,
+        ))
             return false;
 
         const ordered = [...remaining];
@@ -207,13 +241,8 @@ export class DockDragDrop {
     private getDropIndex(items: DockDndItem[], x: number, y: number): number {
         const vertical = this.isVertical();
         const coordinate = vertical ? y : x;
-        let index = 0;
-        for (const item of items) {
-            const midpoint = this.getItemMidpoint(item.actor, vertical);
-            if (midpoint !== null && coordinate > midpoint)
-                index++;
-        }
-        return Math.max(0, Math.min(index, items.length));
+        const midpoints = items.map(item => this.getItemMidpoint(item.actor, vertical));
+        return resolveDockDndInsertionIndex(midpoints, coordinate);
     }
 
     private isFavorite(item: DockDndItem): boolean {
@@ -321,7 +350,7 @@ export class DockDragDrop {
     }
 
     private handleRemovalDragOver(source: DockDragSource): number {
-        if (this.destroyed)
+        if (this.destroyed || this.removingItemId)
             return DND.DragMotionResult.NO_DROP;
         const item = this.getItems().find(candidate => candidate.id === source?.dockItemId);
         return item?.canRemove?.()

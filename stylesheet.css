@@ -98,8 +98,7 @@
 }
 
 .g-os-dock-item.dragging {
-  opacity: 0.55;
-  transform: scale(0.92);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38);
 }
 
 .g-os-dock-item.drop-target {
