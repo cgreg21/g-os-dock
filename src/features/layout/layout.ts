@@ -42,8 +42,8 @@ export class DockLayout {
     }
 
     /**
-     * Expands the decorative surface to follow the live magnification wave.
-     * Insets are measured along the dock's main axis and do not alter icon layout.
+     * Tracks magnification state while allowing the backdrop to grow in width only.
+     * Its baseline height and vertical position remain fixed until the wave settles.
      */
     setMagnificationInsets(leading: number, trailing: number, active = leading > 0 || trailing > 0): void {
         if (this.isDestroyed())
