@@ -77,6 +77,8 @@ export function createWindowPreviewCard(
         closeOnLeft ? 0 : 176 - closeButtonSize,
         0,
     );
+    // Prevent the nested close control from activating the parent preview button.
+    closeButton.connect('button-press-event', () => Clutter.EVENT_STOP);
     closeButton.connect('clicked', () => {
         window.delete(global.get_current_time());
         onClose();
