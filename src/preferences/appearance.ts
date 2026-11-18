@@ -43,6 +43,14 @@ export function addIconPreferences(page: Adw.PreferencesPage, settings: Gio.Sett
     addSpin(icons, settings, 'dock-spacing', 'Space between icons', 0, 24, 1);
     for (const [key, title] of [['icon-padding-top', 'Top padding'], ['icon-padding-right', 'Right padding'], ['icon-padding-bottom', 'Bottom padding'], ['icon-padding-left', 'Left padding']] as const)
         addSpin(icons, settings, key, title, 0, 24, 1);
+
+    const hover = new Adw.PreferencesGroup({ title: 'Dock and icon hover animations' });
+    page.add(hover);
+    addCombo(hover, settings, 'hover-animation', 'Animation style',
+        ['None', 'Scale', 'Lift', 'Bounce', 'Glow'],
+        ['none', 'scale', 'lift', 'bounce', 'glow']);
+    addSpin(hover, settings, 'hover-animation-intensity', 'Animation intensity', 1, 8, 1);
+    addSpin(hover, settings, 'hover-animation-duration', 'Animation duration (ms)', 80, 300, 10);
 }
 
 export function addIndicatorPreferences(page: Adw.PreferencesPage, settings: Gio.Settings): void {
