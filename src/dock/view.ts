@@ -141,7 +141,11 @@ export class DockView {
             () => this.destroyed,
         );
         this.indicators = new DockIndicators(this.settings, () => this.destroyed);
-        this.windowTracker = new WindowTracker(global.display, () => this.visibility.queueSmartHideCheck());
+        this.windowTracker = new WindowTracker(
+            global.display,
+            () => this.visibility.queueSmartHideCheck(),
+            () => this.indicators.update(this.itemActors),
+        );
         this.keyboard = new DockKeyboardNavigation({
             settings: this.settings,
             getItems: () => this.itemActors,
