@@ -291,9 +291,6 @@ export class DockView {
         this.settingsObserver.watchMany(this.settings, [
             'show-system-icon',
             'show-trash-icon',
-            'show-network-drives',
-            'show-system-drives',
-            'show-usb-drives',
             'dock-position',
             'icon-size',
             'dock-spacing',
@@ -312,6 +309,15 @@ export class DockView {
             'favorites-separator-size',
         ], () => {
             this.refresh();
+            this.positionDock();
+        });
+
+        this.settingsObserver.watchMany(this.settings, [
+            'show-network-drives',
+            'show-system-drives',
+            'show-usb-drives',
+        ], () => {
+            this.refresh(true);
             this.positionDock();
         });
 
@@ -689,13 +695,13 @@ export class DockView {
         item._gOsDockBase.destroy();
     }
 
-    private refresh(): void {
+    private refresh(syncVolumes = false): void {
         if (this.destroyed)
             return;
 
         const applications = this.getApplications();
         const configuredSize = this.settings.get_int('icon-size');
-        const volumeItemsChanged = this.syncVolumeItems(configuredSize);
+        const volumeItemsChanged = syncVolumes ? this.syncVolumeItems(configuredSize) : false;
         const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
         const available = this.getAvailableSpace(vertical);
         const size = this.getIconSize(applications, available, vertical, configuredSize);
@@ -934,7 +940,7 @@ export class DockView {
 
         this.applyDevelopmentStyle();
         this.appearance.apply();
-        this.refresh();
+        this.refresh(true);
         this.positionDock();
         this.visibility.applySettings();
 
