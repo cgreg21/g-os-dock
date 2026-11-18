@@ -52,11 +52,13 @@ test('creates a reusable style cache key independent of marker count', () => {
         '12:4:999px:230, 230, 240:0.8:1:10, 20, 30:0.5',
     );
     assert.equal(
-        createIndicatorMarkerSignature(2, options).replace(/^2:/, ''),
+        createIndicatorMarkerSignature(2, options),
+        `2:${createIndicatorMarkerStyleKey(options)}`,
         createIndicatorMarkerStyleKey(options),
     );
     assert.equal(
-        createIndicatorMarkerSignature(5, options).replace(/^5:/, ''),
+        createIndicatorMarkerSignature(5, options),
+        `5:${createIndicatorMarkerStyleKey(options)}`,
         createIndicatorMarkerStyleKey(options),
     );
 });
