@@ -21,10 +21,8 @@ import { DockSystemItem } from '../features/system-item.js';
 import { DockTrashItem } from '../features/trash-item.js';
 import { DockVolumeItems } from '../features/volume-items.js';
 import { dockCache } from '../features/cache.js';
-import { CleanupManager } from '../features/cleanup-manager.js';
 import { SettingsObserver } from '../features/settings-observer.js';
-import { TaskScheduler } from '../features/task-scheduler.js';
-import { ChromeActorManager } from '../features/chrome-actor-manager.js';
+import { LifecycleScope } from '../features/lifecycle-scope.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -37,20 +35,17 @@ export class DockView {
     private monitorIndex: number;
     private settings: Gio.Settings;
     private desktopSettings: Gio.Settings;
-    private chromeActors = new ChromeActorManager<St.Widget>(
-        (actor, options) => Main.layoutManager.addChrome(actor, options),
-        actor => Main.layoutManager.removeChrome(actor),
-    );
-    private scheduler = new TaskScheduler({
+    private lifecycle = new LifecycleScope<St.Widget>({
         timeout: (delay, callback) => GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, callback),
         idle: callback => GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, callback),
         remove: sourceId => GLib.Source.remove(sourceId),
-    });
+    },
+    (actor, options) => Main.layoutManager.addChrome(actor, options),
+    actor => Main.layoutManager.removeChrome(actor));
     private appSystem: Shell.AppSystem;
     private favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
 
     private destroyed = false;
-    private cleanup = new CleanupManager();
     private settingsObserver = new SettingsObserver();
     private contextMenu: AppContextMenu;
     private itemActors: DockAppButton[] = [];
@@ -191,15 +186,15 @@ export class DockView {
 
     private addToStage(): void {
         const options = { affectsStruts: false, trackFullscreen: false };
-        this.chromeActors.add(this.background, options);
-        this.chromeActors.add(this.actor, options);
-        this.chromeActors.add(this.edgeSensor, options);
+        this.lifecycle.chrome.add(this.background, options);
+        this.lifecycle.chrome.add(this.actor, options);
+        this.lifecycle.chrome.add(this.edgeSensor, options);
     }
 
     private connectPanelGeometrySignals(): void {
         const panel = Main.panel as St.Widget;
         for (const property of ['x', 'y', 'width', 'height']) {
-            this.cleanup.addSignal(panel, panel.connect(
+            this.lifecycle.addSignal(panel, panel.connect(
                 `notify::${property}`,
                 () => {
                     if (this.destroyed)
@@ -212,40 +207,40 @@ export class DockView {
 
     private connectContentGeometrySignal(): void {
         // Coalesce allocation notifications into one geometry update.
-        this.cleanup.addSignal(
+        this.lifecycle.addSignal(
             this.content,
             this.content.connect('notify::allocation', () => this.queueLayoutUpdate()),
         );
     }
 
     private connectWindowSignals(): void {
-        this.cleanup.addSignal(global.display, global.display.connect(
+        this.lifecycle.addSignal(global.display, global.display.connect(
             'notify::focus-window',
             () => {
                 this.indicators.update(this.itemActors);
                 this.visibility.queueSmartHideCheck();
             },
         ));
-        this.cleanup.addSignal(global.display, global.display.connect(
+        this.lifecycle.addSignal(global.display, global.display.connect(
             'restacked',
             () => this.visibility.queueSmartHideCheck(),
         ));
-        this.cleanup.addSignal(global.workspace_manager, global.workspace_manager.connect(
+        this.lifecycle.addSignal(global.workspace_manager, global.workspace_manager.connect(
             'active-workspace-changed',
             () => this.visibility.queueSmartHideCheck(),
         ));
-        this.cleanup.addSignal(global.display, global.display.connect(
+        this.lifecycle.addSignal(global.display, global.display.connect(
             'window-created',
             (_display: Meta.Display, window: Meta.Window) => this.windowTracker.track(window),
         ));
     }
 
     private connectApplicationSignals(): void {
-        this.cleanup.addSignal(this.appSystem, this.appSystem.connect(
+        this.lifecycle.addSignal(this.appSystem, this.appSystem.connect(
             'app-state-changed',
             () => this.refresh(),
         ));
-        this.cleanup.addSignal(this.favorites, this.favorites.connect(
+        this.lifecycle.addSignal(this.favorites, this.favorites.connect(
             'changed',
             () => this.refresh(),
         ));
@@ -259,11 +254,11 @@ export class DockView {
     }
 
     private connectPointerSignals(): void {
-        this.cleanup.addSignal(this.actor, this.actor.connect(
+        this.lifecycle.addSignal(this.actor, this.actor.connect(
             'notify::hover',
             () => this.visibility.onPointerChanged(),
         ));
-        this.cleanup.addSignal(this.edgeSensor, this.edgeSensor.connect('notify::hover', () => {
+        this.lifecycle.addSignal(this.edgeSensor, this.edgeSensor.connect('notify::hover', () => {
             if (this.edgeSensor.hover)
                 this.visibility.show();
         }));
@@ -971,7 +966,7 @@ export class DockView {
         if (this.destroyed)
             return;
 
-        this.scheduler.idle('layout-update', () => {
+        this.lifecycle.tasks.idle('layout-update', () => {
             if (!this.destroyed)
                 this.positionDock();
         });
@@ -981,9 +976,8 @@ export class DockView {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        this.scheduler.destroy();
         this.settingsObserver.destroy();
-        this.cleanup.clear();
+        this.lifecycle.destroy();
         this.visibility.destroy();
         this.previews.destroy();
         this.windowTracker.destroy();
@@ -996,7 +990,6 @@ export class DockView {
         this.volumeItems?.destroy();
         this.volumeItems = null;
         this.dragDrop.destroy();
-        this.chromeActors.destroy();
         this.actor.destroy();
         this.background.destroy();
         this.edgeSensor.destroy();
