@@ -554,11 +554,14 @@ export class DockView {
 
     private syncFavoritesSeparator(size: number, vertical: boolean): void {
         const enabled = this.settings.get_boolean('show-favorites-separator');
+        const favoriteIds = new Set(
+            this.favorites.getFavorites().map(app => app.get_id()),
+        );
         const hasFavorite = this.itemActors.some(item =>
-            this.favorites.isFavorite(item._gOsDockApp.get_id()),
+            favoriteIds.has(item._gOsDockApp.get_id()),
         );
         const firstNonFavorite = this.itemActors.find(item =>
-            !this.favorites.isFavorite(item._gOsDockApp.get_id()),
+            !favoriteIds.has(item._gOsDockApp.get_id()),
         );
 
         if (!enabled || !hasFavorite || !firstNonFavorite) {
