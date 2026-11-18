@@ -40,29 +40,40 @@ export class DockVisibility {
         // Every dock starts fully offscreen, independently of its visibility
         // settings. DockView calls this after the first item/layout pass, so
         // both actors already have their measured dimensions.
-        if (!this.initialized) {
+        const firstInitialization = !this.initialized;
+        if (firstInitialization) {
             this.initialized = true;
+            // Measure and place both layers before revealing either one. The
+            // first visible frame therefore starts beyond the selected monitor
+            // edge instead of flashing at the dock's final position.
             this.setHiddenPosition();
             this.actor.reactive = false;
             this.actor.hide();
             this.background.hide();
+            // Reveal only after the layout pass has supplied real dimensions.
+            // This also runs with auto-hide enabled; its normal delay below
+            // starts after the entrance animation has begun.
+            this.show();
         }
 
         if (!autoHide && !smartHide) {
             this.cancelHide();
-            this.actor.remove_all_transitions();
-            this.background.show();
-            this.actor.show();
-            this.actor.opacity = 255;
-            this.background.opacity = 255;
-            this.actor.translation_x = 0;
-            this.actor.translation_y = 0;
-            this.background.translation_x = 0;
-            this.background.translation_y = 0;
-            this.actor.reactive = true;
+            if (!firstInitialization) {
+                this.actor.remove_all_transitions();
+                this.background.remove_all_transitions();
+                this.background.show();
+                this.actor.show();
+                this.actor.opacity = 255;
+                this.background.opacity = 255;
+                this.actor.translation_x = 0;
+                this.actor.translation_y = 0;
+                this.background.translation_x = 0;
+                this.background.translation_y = 0;
+                this.actor.reactive = true;
+            }
         } else if (autoHide) {
             this.scheduleHide();
-        } else if (smartHide) {
+        } else if (smartHide && !firstInitialization) {
             // Smart-hide starts visible, then the overlap check decides whether
             // it should remain visible or slide back offscreen.
             this.show();
