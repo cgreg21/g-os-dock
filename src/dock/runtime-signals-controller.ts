@@ -1,6 +1,5 @@
 import Meta from 'gi://Meta?version=51';
-import { ManagedSignalController } from '../features/managed-signal-controller.js';
-
+import { ManagedSignalController, type SignalEmitter } from '../features/managed-signal-controller.js';
 
 export interface DockRuntimeSignalCallbacks {
     refresh(): void;
@@ -11,7 +10,6 @@ export interface DockRuntimeSignalCallbacks {
 
 /** Owns application, focus, stacking and workspace signal subscriptions. */
 export class DockRuntimeSignalsController extends ManagedSignalController {
-    private readonly cleanup = new CleanupManager();
     constructor(
         private readonly appSystem: SignalEmitter,
         private readonly favorites: SignalEmitter,
@@ -42,9 +40,6 @@ export class DockRuntimeSignalsController extends ManagedSignalController {
         this.connectSignal(this.display, 'window-created',
             (_display: Meta.Display, window: Meta.Window) =>
                 this.run(() => this.callbacks.trackWindow(window)));
-    }
-
-    destroy(): void {
     }
 
 }
