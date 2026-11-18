@@ -3,6 +3,8 @@ import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import GLib from 'gi://GLib?version=2.0';
+import { AnimationManager, type AnimationTarget } from '../../core/animation-manager.js';
+import { DockItemBase } from '../items/dock-item-base.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { getDockMenuSide } from '../layout/menu-position.js';
@@ -22,6 +24,7 @@ interface DockFolderRecord {
 
 interface MountedFolder extends DockFolderRecord {
     actor: St.Button;
+    base: DockItemBase;
     iconSize: number;
 }
 
@@ -54,6 +57,9 @@ function readFolders(settings: Gio.Settings): DockFolderRecord[] {
 /** Owns persistent application folders and their popup launchers. */
 export class DockFoldersController {
     private folders: MountedFolder[] = [];
+    private readonly retiringFolders = new Set<MountedFolder>();
+    private readonly animations = new AnimationManager();
+    private nextAnimationId = 0;
     private destroyed = false;
 
     constructor(
@@ -84,8 +90,9 @@ export class DockFoldersController {
                 continue;
             let folder = byId.get(record.id);
             if (!folder) {
-                folder = { ...record, appIds: validIds, iconSize, actor: this.createActor(record, iconSize) };
+                folder = this.createMountedFolder(record, validIds, iconSize);
                 this.content.add_child(folder.actor);
+                this.animateIn(folder.actor);
             } else {
                 const membersChanged = folder.appIds.join('\\0') !== validIds.join('\\0');
                 folder.name = record.name;
@@ -95,7 +102,10 @@ export class DockFoldersController {
                     delete folder.viewMode;
                 folder.appIds = validIds;
                 if (folder.iconSize !== iconSize || membersChanged) {
+                    const previousPreview = folder.actor.get_child();
                     folder.actor.set_child(this.createFolderPreview(folder, iconSize));
+                    previousPreview?.destroy();
+                    folder.base.setIconPadding(this.settings, iconSize);
                     folder.iconSize = iconSize;
                 }
             }
@@ -105,9 +115,7 @@ export class DockFoldersController {
         for (const folder of this.folders) {
             if (next.some(candidate => candidate.id === folder.id))
                 continue;
-            this.dragDrop.unregisterItem(folder.actor);
-            folder.actor.get_parent()?.remove_child(folder.actor);
-            folder.actor.destroy();
+            this.animateOut(folder);
         }
         this.folders = next;
     }
@@ -118,6 +126,7 @@ export class DockFoldersController {
         if (!folder || !normalizedName || normalizedName === folder.name)
             return;
         this.updateFolderRecord(folderId, record => ({ ...record, name: normalizedName }));
+        folder.base.setTooltip(normalizedName);
         this.onChanged();
     }
 
@@ -206,33 +215,79 @@ export class DockFoldersController {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        for (const folder of this.folders) {
-            this.dragDrop.unregisterItem(folder.actor);
-            folder.actor.get_parent()?.remove_child(folder.actor);
-            folder.actor.destroy();
-        }
+        this.animations.destroy();
+        for (const folder of [...this.folders, ...this.retiringFolders])
+            this.destroyFolder(folder);
+        this.retiringFolders.clear();
         this.folders = [];
     }
 
-    private createActor(folder: DockFolderRecord, iconSize: number): St.Button {
-        const preview = this.createFolderPreview(folder, iconSize);
-        const actor = new St.Button({
-            style_class: 'g-os-dock-item g-os-dock-folder',
-            reactive: true,
-            can_focus: true,
-            track_hover: true,
-            child: preview,
-            accessible_name: folder.name,
-            x_expand: false,
-            y_expand: false,
-        });
-        actor.connect('clicked', () => this.openFolder(folder.id));
-        this.dragDrop.registerItem({
-            id: folder.id,
-            actor,
-            onCreateFolder: target => this.addToFolder(folder.id, target),
-        });
-        return actor;
+    private createMountedFolder(
+        folder: DockFolderRecord,
+        appIds: string[],
+        iconSize: number,
+    ): MountedFolder {
+        const mounted: MountedFolder = {
+            ...folder,
+            appIds,
+            iconSize,
+            actor: new St.Button({
+                style_class: 'g-os-dock-item g-os-dock-folder',
+                reactive: true,
+                can_focus: true,
+                track_hover: true,
+                child: this.createFolderPreview({ ...folder, appIds }, iconSize),
+                accessible_name: folder.name,
+                x_expand: false,
+                y_expand: false,
+            }),
+            base: null as unknown as DockItemBase,
+        };
+        mounted.actor.connect('clicked', () => this.openFolder(folder.id));
+        mounted.base = new DockItemBase(
+            null,
+            mounted.actor,
+            folder.name,
+            this.dockPosition,
+            this.dragDrop,
+            folder.id,
+            { onCreateFolder: target => this.addToFolder(folder.id, target) },
+        );
+        mounted.base.setIconPadding(this.settings, iconSize);
+        return mounted;
+    }
+
+    private animateIn(actor: St.Button): void {
+        actor.opacity = 0;
+        actor.scale_x = 0.82;
+        actor.scale_y = 0.82;
+        this.animations.animate(
+            `folder-enter-${++this.nextAnimationId}`,
+            actor as unknown as AnimationTarget,
+            { opacity: 255, scaleX: 1, scaleY: 1 },
+            { durationMs: 210, mode: Clutter.AnimationMode.EASE_OUT_BACK },
+        );
+    }
+
+    private animateOut(folder: MountedFolder): void {
+        this.retiringFolders.add(folder);
+        this.animations.animate(
+            `folder-exit-${++this.nextAnimationId}`,
+            folder.actor as unknown as AnimationTarget,
+            { opacity: 0, scaleX: 0.78, scaleY: 0.78 },
+            {
+                durationMs: 170,
+                mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                onComplete: () => {
+                    this.retiringFolders.delete(folder);
+                    this.destroyFolder(folder);
+                },
+            },
+        );
+    }
+
+    private destroyFolder(folder: MountedFolder): void {
+        folder.base.destroy();
     }
 
     /** Render four live application icons in a square preview matching the dock slot. */
