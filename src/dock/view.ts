@@ -501,11 +501,8 @@ export class DockView {
             }
         } catch (error) {
             for (const item of pending) {
-                if (!this.itemActors.includes(item)) {
-                    this.dragDrop.unregisterItem(item);
-                    item.get_parent()?.remove_child(item);
-                    item.destroy();
-                }
+                if (!this.itemActors.includes(item))
+                    this.destroyAppItem(item);
             }
             throw error;
         }
@@ -520,14 +517,18 @@ export class DockView {
         for (const item of this.itemActors) {
             if (retained.has(item))
                 continue;
-            this.dragDrop.unregisterItem(item);
-            item.get_parent()?.remove_child(item);
-            item.destroy();
+            this.destroyAppItem(item);
         }
 
         this.itemActors = pending;
         this.itemSize = size;
         return structureChanged;
+    }
+
+    private destroyAppItem(item: DockAppButton): void {
+        this.dragDrop.unregisterItem(item);
+        item.get_parent()?.remove_child(item);
+        item.destroy();
     }
 
     private refresh(): void {
