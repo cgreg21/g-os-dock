@@ -868,18 +868,33 @@ export class DockView {
         this.contentGeometrySignals = [];
     }
 
-    private disconnectSignals(): void {
+    private disconnectPointerSignals(): void {
         if (this.hoverSignal) this.actor.disconnect(this.hoverSignal);
         if (this.sensorHoverSignal) this.edgeSensor.disconnect(this.sensorHoverSignal);
+    }
+
+    private disconnectSettingsSignals(): void {
         if (this.settingsSignal) this.settings.disconnect(this.settingsSignal);
         if (this.desktopThemeSignal) this.desktopSettings.disconnect(this.desktopThemeSignal);
+    }
+
+    private disconnectApplicationSignals(): void {
         if (this.appStateSignal) this.appSystem.disconnect(this.appStateSignal);
         if (this.favoritesSignal) this.favorites.disconnect(this.favoritesSignal);
+    }
+
+    private disconnectWindowSignals(): void {
         if (this.focusSignal) global.display.disconnect(this.focusSignal);
         if (this.restackedSignal) global.display.disconnect(this.restackedSignal);
         if (this.workspaceSignal) global.workspace_manager.disconnect(this.workspaceSignal);
         if (this.windowCreatedSignal) global.display.disconnect(this.windowCreatedSignal);
+    }
 
+    private disconnectSignals(): void {
+        this.disconnectPointerSignals();
+        this.disconnectSettingsSignals();
+        this.disconnectApplicationSignals();
+        this.disconnectWindowSignals();
         this.disconnectGeometrySignals();
     }
 
