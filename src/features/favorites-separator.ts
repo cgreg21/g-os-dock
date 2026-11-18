@@ -33,7 +33,7 @@ export function calculateFavoritesSeparatorSpace(
     spacing: number,
 ): number {
     return visible
-        ? Math.max(0, thickness) + Math.max(0, margin) * 2 + Math.max(0, spacing)
+        ? Math.max(1, thickness) + Math.max(0, margin) * 2 + Math.max(0, spacing)
         : 0;
 }
 
