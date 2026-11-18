@@ -127,7 +127,6 @@ export function calculateDockIconSize(options: DockIconSizingOptions): number {
         availableSpace,
         itemCount,
         spacing,
-        additionalSpace: separatorSpace,
         additionalSpace: separatorSpace + (vertical
             ? Math.max(0, windowCountBadgeCount) * WINDOW_COUNT_BADGE_SPACE
             : 0),
