@@ -85,7 +85,7 @@ export class DockLayout {
         // This keeps it visually centered even when the four padding values
         // are different, rather than centering it on the padded outer actor.
         this.syncBackgroundToContent(x, y, width, height, contentWidth, paddingLeft);
-        this.positionSensor();
+        this.positionSensor(panelBottom);
     }
 
     private syncBackgroundToContent(
@@ -122,12 +122,11 @@ export class DockLayout {
             : null;
     }
 
-    positionSensor(): void {
+    positionSensor(panelBottom = this.getPanelBottom()): void {
         if (this.isDestroyed())
             return;
 
         const position = this.settings.get_string('dock-position');
-        const panelBottom = this.getPanelBottom();
         const sensorTop = panelBottom === null
             ? this.monitor.y
             : Math.min(this.monitor.y + this.monitor.height, panelBottom + 8);
