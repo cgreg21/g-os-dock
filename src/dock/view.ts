@@ -201,7 +201,7 @@ export class DockView {
                 () => {
                     if (this.destroyed)
                         return;
-                    this.layout.position();
+                    this.positionDock();
                     this.layout.positionSensor();
                 },
             ));
@@ -623,7 +623,7 @@ export class DockView {
         this.syncFavoritesSeparator(size, vertical);
 
         if (structureChanged || systemItemChanged || trashItemChanged || volumeItemsChanged)
-            this.layout.position();
+            this.positionDock();
 
         this.indicators.update(this.itemActors);
         this.visibility.queueSmartHideCheck();
@@ -835,6 +835,11 @@ export class DockView {
         }
     }
 
+    private positionDock(): void {
+        this.layout.position();
+        this.visibility.syncHiddenPosition();
+    }
+
     private applySettings(): void {
         if (this.destroyed)
             return;
@@ -842,7 +847,7 @@ export class DockView {
         this.applyDevelopmentStyle();
         this.appearance.apply();
         this.refresh();
-        this.layout.position();
+        this.positionDock();
         this.visibility.applySettings();
 
         this.syncEdgeSensor();
@@ -867,7 +872,7 @@ export class DockView {
         this.layoutIdleSource = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             this.layoutIdleSource = 0;
             if (!this.destroyed) {
-                this.layout.position();
+                this.positionDock();
                 this.layout.positionSensor();
             }
             return GLib.SOURCE_REMOVE;
