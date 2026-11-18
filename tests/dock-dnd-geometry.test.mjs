@@ -4,6 +4,7 @@ import {
     canDropDockItemAtIndex,
     isDockDndFavoriteBoundaryInsertion,
     resolveDockDndInsertionIndex,
+    resolveDockDndInsertionIndexWithHysteresis,
     resolveDockDndPreviewChildIndex,
     resolveDockRemovalZoneGeometry,
 } from '../dist/features/interaction/dnd-geometry.js';
@@ -93,4 +94,21 @@ test('keeps the large bottom-dock removal area below the top panel', () => {
         resolveDockRemovalZoneGeometry(monitor, 'bottom', 32),
         { x: 100, y: 82, width: 1200, height: 501 },
     );
+});
+
+test('keeps the insertion slot stable inside the hysteresis band', () => {
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 24, 1, 8), 1);
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 16, 1, 8), 1);
+});
+
+test('changes insertion slot only after crossing the hysteresis threshold', () => {
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 59, 1, 8), 1);
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 59, 2, 8), 2);
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 61, 1, 8), 2);
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 41, 2, 8), 1);
+});
+
+test('hysteresis still permits large pointer jumps and rejects invalid geometry', () => {
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 100, 0, 8), 3);
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, null, 80], 100, 0, 8), null);
 });
