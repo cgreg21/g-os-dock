@@ -681,10 +681,10 @@ export class DockView {
             `width: ${separatorWidth}px; min-width: ${separatorWidth}px; max-width: ${separatorWidth}px; ` +
             `height: ${separatorHeight}px; min-height: ${separatorHeight}px; max-height: ${separatorHeight}px; ` +
             (vertical ? 'margin: 4px 0;' : 'margin: 0 4px;');
-        const size = `${separatorWidth}x${separatorHeight}`;
-        if (this.favoritesSeparatorSize !== size) {
+        const dimensionsKey = `${separatorWidth}x${separatorHeight}`;
+        if (this.favoritesSeparatorSize !== dimensionsKey) {
             this.favoritesSeparator.set_size(separatorWidth, separatorHeight);
-            this.favoritesSeparatorSize = size;
+            this.favoritesSeparatorSize = dimensionsKey;
         }
         if (this.favoritesSeparatorStyle !== style) {
             this.favoritesSeparator.set_style(style);
