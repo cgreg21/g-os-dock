@@ -10,13 +10,9 @@ interface MagnifiedItem {
     end: number;
     center: number;
     scale: number;
-    baseButtonWidth: number | null;
-    baseButtonHeight: number | null;
     baseVisualWidth: number | null;
     baseVisualHeight: number | null;
     baseStyle: string;
-    requestedWidth: number | null;
-    requestedHeight: number | null;
 }
 
 /**
@@ -92,12 +88,8 @@ export class DockMagnificationController {
         const existing = this.items.get(button);
         if (existing) {
             existing.baseStyle = baseStyle;
-            existing.baseButtonWidth = null;
-            existing.baseButtonHeight = null;
             existing.baseVisualWidth = null;
             existing.baseVisualHeight = null;
-            existing.requestedWidth = null;
-            existing.requestedHeight = null;
             if (existing.visual !== visual) {
                 this.resetVisual(existing.visual);
                 existing.visual = visual;
@@ -108,9 +100,7 @@ export class DockMagnificationController {
         this.setVisualPivot(visual);
         this.items.set(button, {
             button, visual, start: 0, end: 0, center: 0, scale: 1,
-            baseButtonWidth: null, baseButtonHeight: null,
             baseVisualWidth: null, baseVisualHeight: null, baseStyle,
-            requestedWidth: null, requestedHeight: null,
         });
         if (this.envelope > 0)
             this.startTimeline();
@@ -231,58 +221,25 @@ export class DockMagnificationController {
         const averageSize = entries.reduce((sum, item) => sum + item.end - item.start, 0) / entries.length;
         const effectWidth = averageSize * 6;
         const min = this.cursor - effectWidth / 2;
-        let layoutChanged = false;
         for (const item of entries) {
             const theta = Math.max(0, Math.min(2 * Math.PI,
                 ((item.center - min) / effectWidth) * 2 * Math.PI));
             const hann = (1 - Math.cos(theta)) / 2;
             item.scale = 1 + this.envelope * (maximum - 1) * hann;
-            if (item.baseButtonWidth === null || item.baseButtonHeight === null ||
-                item.baseVisualWidth === null || item.baseVisualHeight === null) {
-                item.baseButtonWidth = item.button.width;
-                item.baseButtonHeight = item.button.height;
+            if (item.baseVisualWidth === null || item.baseVisualHeight === null) {
                 item.baseVisualWidth = item.visual.width;
                 item.baseVisualHeight = item.visual.height;
             }
+
+            // Keep layout slots stable: changing St.Button styles on every
+            // pointer frame forces repeated layout passes and causes stutter.
+            // Scale the visual around its screen-edge pivot instead.
             item.visual.set_scale(item.scale, item.scale);
-            const requestedWidth = item.baseButtonWidth + item.baseVisualWidth * (item.scale - 1);
-            const requestedHeight = item.baseButtonHeight + item.baseVisualHeight * (item.scale - 1);
-            const width = Math.ceil(requestedWidth);
-            const height = Math.ceil(requestedHeight);
-            if (item.requestedWidth !== width || item.requestedHeight !== height) {
-                item.button.set_style(`${item.baseStyle} min-width: ${width}px; min-height: ${height}px;`);
-                item.requestedWidth = width;
-                item.requestedHeight = height;
-                layoutChanged = true;
-            }
-
-            // StButton centers its child in the enlarged slot. Counter that
-            // centering shift so the icon stays pinned to the screen-facing edge.
-            const mainAxisGrowth = vertical
-                ? requestedHeight - item.baseButtonHeight
-                : requestedWidth - item.baseButtonWidth;
-            switch (this.dockPosition()) {
-            case 'top':
-                item.visual.translation_y = -mainAxisGrowth / 2;
-                break;
-            case 'left':
-                item.visual.translation_x = -mainAxisGrowth / 2;
-                break;
-            case 'right':
-                item.visual.translation_x = mainAxisGrowth / 2;
-                break;
-            default:
-                item.visual.translation_y = mainAxisGrowth / 2;
-                break;
-            }
+            item.visual.translation_x = 0;
+            item.visual.translation_y = 0;
         }
 
-        // Re-measure the content and reposition the dock on its fixed screen edge.
-        // Padding and BoxLayout spacing are untouched; only button size requests change.
-        if (layoutChanged) {
-            this.content.queue_relayout();
-            this.onSurfaceExtentChanged?.(0, 0, true);
-        }
+        // No CSS mutation or relayout is performed by the animation frame.
     }
 
     private resetVisual(actor: Clutter.Actor): void {
@@ -297,14 +254,9 @@ export class DockMagnificationController {
         for (const item of this.items.values()) {
             this.resetVisual(item.visual);
             item.button.set_style(item.baseStyle);
-            item.baseButtonWidth = null;
-            item.baseButtonHeight = null;
             item.baseVisualWidth = null;
             item.baseVisualHeight = null;
-            item.requestedWidth = null;
-            item.requestedHeight = null;
         }
-        this.content.queue_relayout();
     }
 
     destroy(): void {
