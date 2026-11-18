@@ -30,7 +30,7 @@ test('E2E: magnification reflows neighboring slots and keeps the pointer anchore
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes('const bounds = new Array<number>(count + 1)'));
     assert.ok(controller.includes('const expanded = new Array<number>(count + 1)'));
-    assert.ok(controller.includes('(bounds[i + 1]! - bounds[i]!) * entries[i]!.scale'));
+    assert.ok(controller.includes('const slotSize = bounds[i + 1]! - bounds[i]!'));
     assert.ok(controller.includes('shift = this.cursor - mapped'));
     assert.ok(controller.includes('mappedCenter - entry.center'));
     assert.ok(controller.includes('entry.actor.translation_x = translation'));
@@ -122,4 +122,14 @@ test('E2E: dock backdrop blur is configurable and updates with appearance settin
     assert.ok(appearance.includes('set_radius(normalizedRadius)'));
     assert.ok(appearance.includes('normalizedRadius === 0'));
     assert.ok(settings.includes("'background-blur'"));
+});
+
+
+test('E2E: magnification compresses flexible gaps without clipping enlarged icons', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    assert.ok(controller.includes('GAP_COMPRESSION = 0.35'));
+    assert.ok(controller.includes('const flexibleGap = Math.max(0, slotSize - iconSize)'));
+    assert.ok(controller.includes('flexibleGap * DockMagnificationController.GAP_COMPRESSION'));
+    assert.ok(controller.includes('Math.max(iconSize * entry.scale, compressedSlot)'));
+    assert.ok(controller.includes('(entry.scale - 1) / (maximum - 1)'));
 });
