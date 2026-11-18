@@ -4,6 +4,7 @@ import Meta from 'gi://Meta?version=51';
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { rectanglesOverlap, unionRectangles } from './geometry.js';
+import { resolveHiddenTranslation, type DockEdge } from './dock-positioner.js';
 import { TaskScheduler } from './task-scheduler.js';
 
 const HIDE_DELAY_MS = 650;
@@ -84,10 +85,7 @@ export class DockVisibility {
         const width = Math.max(this.actor.width, this.background.width);
         const height = Math.max(this.actor.height, this.background.height);
 
-        return {
-            x: position === 'left' ? -width : position === 'right' ? width : 0,
-            y: position === 'top' ? -height : position === 'bottom' ? height : 0,
-        };
+        return resolveHiddenTranslation(position as DockEdge, { width, height });
     }
 
     private setHiddenPosition(): void {
