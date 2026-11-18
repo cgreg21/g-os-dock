@@ -20,6 +20,27 @@ export class DockLayout {
         private isDestroyed: () => boolean,
     ) {}
 
+    availableSpace(vertical: boolean): number {
+        const edge = this.settings.get_int('edge-distance');
+        const border = this.settings.get_int('border-size') * 2;
+        const padding = vertical
+            ? this.settings.get_int('background-padding-top') +
+                this.settings.get_int('background-padding-bottom')
+            : this.settings.get_int('background-padding-left') +
+                this.settings.get_int('background-padding-right');
+        const panelBottom = this.getPanelBottom();
+        const usableTop = panelBottom === null
+            ? this.monitor.y
+            : Math.min(this.monitor.y + this.monitor.height, panelBottom + edge);
+
+        if (vertical) {
+            return this.monitor.y + this.monitor.height - usableTop -
+                edge - padding - border;
+        }
+
+        return this.monitor.width - edge * 2 - padding - border;
+    }
+
     position(): void {
         if (this.isDestroyed())
             return;
