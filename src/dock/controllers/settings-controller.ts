@@ -88,6 +88,8 @@ export class DockSettingsController {
             'hover-animation',
             'hover-animation-intensity',
             'hover-animation-duration',
+            'dock-magnification-enabled',
+            'dock-magnification-scale',
         ], () => {
             callbacks.refresh();
             callbacks.positionDock();
