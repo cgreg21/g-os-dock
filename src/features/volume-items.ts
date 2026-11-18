@@ -2,6 +2,7 @@ import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { DockDragDrop } from './drag-and-drop.js';
 import { DockTooltip } from './tooltip.js';
+import { getIconPaddingStyle } from './icon-padding.js';
 
 type DriveCategory = 'network' | 'usb' | 'system';
 
@@ -153,15 +154,7 @@ export class DockVolumeItems {
 
     /** Apply the same configurable icon box geometry as app, launcher and trash items. */
     private updateButtonPadding(button: St.Button): void {
-        const top = this.settings.get_int('icon-padding-top');
-        const right = this.settings.get_int('icon-padding-right');
-        const bottom = this.settings.get_int('icon-padding-bottom');
-        const left = this.settings.get_int('icon-padding-left');
-        button.set_style(
-            `padding: ${top}px ${right}px ${bottom}px ${left}px; ` +
-            `min-width: ${this.iconSize + left + right}px; ` +
-            `min-height: ${this.iconSize + top + bottom}px;`,
-        );
+        button.set_style(getIconPaddingStyle(this.settings, this.iconSize));
     }
 
     getCount(): number {
