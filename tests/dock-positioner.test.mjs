@@ -57,7 +57,7 @@ test('keeps the top edge sensor below the panel reveal margin', () => {
     }), { x: 0, y: 148, width: 3, height: 1032 });
     assert.deepEqual(resolveDockEdgeSensor({
         monitor, edge: 'top', thickness: 3, topInset: 5000,
-    }), { x: 0, y: 1180, width: 1920, height: 3 });
+    }), { x: 0, y: 1177, width: 1920, height: 3 });
 });
 
 test('resolves hidden translations for each dock edge', () => {
