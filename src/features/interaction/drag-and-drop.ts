@@ -58,6 +58,7 @@ export class DockDragDrop {
     private smokeActors = new Set<St.Widget>();
     private smokeSequence = 0;
     private previewInsertionIndex: number | null = null;
+    private folderTargetActor: St.Widget | null = null;
 
     constructor(
         private actor: St.Widget,
@@ -170,6 +171,13 @@ export class DockDragDrop {
             return DND.DragMotionResult.NO_DROP;
         }
         const targets = items.filter(item => item.id !== sourceId);
+        const folderTarget = this.getFolderDropTarget(targets, x, y);
+        if (folderTarget && dragged.onCreateFolder) {
+            this.setFolderTarget(folderTarget.actor);
+            this.previewSlot?.hide();
+            return DND.DragMotionResult.MOVE_DROP;
+        }
+        this.setFolderTarget(null);
         const index = this.getStableDropIndex(targets, x, y);
         if (index === null) {
             this.previewSlot?.hide();
@@ -259,6 +267,14 @@ export class DockDragDrop {
                 return item;
         }
         return null;
+    }
+
+    private setFolderTarget(actor: St.Widget | null): void {
+        if (this.folderTargetActor === actor)
+            return;
+        this.folderTargetActor?.remove_style_class_name('g-os-dock-folder-drop-target');
+        this.folderTargetActor = actor;
+        this.folderTargetActor?.add_style_class_name('g-os-dock-folder-drop-target');
     }
 
     private clearDragDelegate(actor: St.Widget): void {
@@ -369,6 +385,7 @@ export class DockDragDrop {
             return;
 
         actor.remove_style_class_name('dragging');
+        this.setFolderTarget(null);
         this.hideRemovalZone();
         this.endPreview();
     }
@@ -571,6 +588,7 @@ export class DockDragDrop {
             this.removingItemId = null;
         }
         this.hideRemovalZone();
+        this.setFolderTarget(null);
         this.endPreview();
         for (const actor of [...this.draggables.keys()]) {
             actor.remove_style_class_name('dragging');
