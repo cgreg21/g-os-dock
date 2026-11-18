@@ -20,7 +20,7 @@ import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
 import { DockItemsController } from '../features/dock-items-controller.js';
 import { DockFavoritesSeparatorController } from '../features/favorites-separator-controller.js';
-import { dockCache } from '../features/cache.js';
+import { DockItemOrderController } from '../features/dock-item-order-controller.js';
 import { SettingsObserver } from '../features/settings-observer.js';
 import { LifecycleScope } from '../features/lifecycle-scope.js';
 import { resolveApplicationOrder } from '../features/application-order.js';
@@ -61,6 +61,7 @@ export class DockView {
     private keyboard: DockKeyboardNavigation;
     private dockItems: DockItemsController;
     private favoritesSeparator: DockFavoritesSeparatorController;
+    private itemOrder: DockItemOrderController<DockDndItem>;
 
     constructor(index: number, monitor: MonitorGeometry, settings: Gio.Settings) {
         this.monitor = monitor;
@@ -182,6 +183,11 @@ export class DockView {
         this.favoritesSeparator = new DockFavoritesSeparatorController(
             this.content,
             this.settings,
+        );
+        this.itemOrder = new DockItemOrderController(
+            this.content,
+            this.settings,
+            () => this.getDndItems(),
         );
 
         try {
@@ -396,16 +402,8 @@ export class DockView {
         return this.dragDrop.acceptDrop(source, dragActor, x, y, time);
     }
 
-    /** Reuse the rank lookup while the persisted dock order stays unchanged. */
-    private getItemOrderRanks(ids: string[]): ReadonlyMap<string, number> {
-        const key = `dock-item-order-ranks:${JSON.stringify(ids)}`;
-        return dockCache.getOrCreate(key, () =>
-            new Map(ids.map((id, index) => [id, index])),
-        );
-    }
-
     private getApplications(): Shell.App[] {
-        const ranks = this.getItemOrderRanks(this.settings.get_strv('dock-item-order'));
+        const ranks = this.itemOrder.getRanks(this.settings.get_strv('dock-item-order'));
         return resolveApplicationOrder(
             this.favorites.getFavorites(),
             this.appSystem.get_running(),
@@ -501,48 +499,6 @@ export class DockView {
         }
     }
 
-    private applySavedItemOrder(): void {
-        const actors = this.getDndItems();
-        const saved = this.getSavedItemOrder(actors);
-        const rank = this.getItemOrderRanks(saved);
-        actors.sort((a, b) =>
-            (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
-            (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER),
-        );
-        const children = this.content.get_children();
-        for (const [index, item] of actors.entries()) {
-            const current = children.indexOf(item.actor);
-            if (current < 0 || current === index)
-                continue;
-
-            this.content.set_child_at_index(item.actor, index);
-            children.splice(current, 1);
-            children.splice(index, 0, item.actor);
-        }
-    }
-
-    private getSavedItemOrder(actors: DockDndItem[]): string[] {
-        const saved = this.settings.get_strv('dock-item-order');
-        if (saved.length > 0)
-            return saved;
-
-        // One-time migration from the old launcher-only position setting.
-        const legacy = actors
-            .filter(item => item.id !== 'system:launcher')
-            .map(item => item.id);
-        const launcherIndex = actors.findIndex(item => item.id === 'system:launcher');
-        if (launcherIndex >= 0) {
-            const target = Math.max(0, Math.min(
-                this.settings.get_int('system-icon-position'),
-                legacy.length,
-            ));
-            legacy.splice(target, 0, 'system:launcher');
-        }
-        if (legacy.length > 0)
-            this.settings.set_strv('dock-item-order', legacy);
-        return legacy;
-    }
-
     private getAvailableSpace(vertical: boolean): number {
         const edge = this.settings.get_int('edge-distance');
         const border = this.settings.get_int('border-size') * 2;
@@ -630,7 +586,7 @@ export class DockView {
 
         const structureChanged = this.syncApplicationItems(applications, size);
         const dockItemsChanged = this.dockItems.sync(size);
-        this.applySavedItemOrder();
+        this.itemOrder.apply();
         this.syncFavoritesSeparator(vertical);
 
         if (structureChanged || dockItemsChanged || volumeItemsChanged)
