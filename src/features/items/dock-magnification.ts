@@ -12,18 +12,18 @@ export function resolveMagnificationButtonSize(
     baseStyle: string,
     visualWidth: number,
     visualHeight: number,
-    scale: number,
+    scaleX: number,
+    scaleY: number,
 ): [number, number] {
     const widthMatch = baseStyle.match(/min-width:\s*([\d.]+)px/);
     const heightMatch = baseStyle.match(/min-height:\s*([\d.]+)px/);
-    if (![visualWidth, visualHeight, scale].every(Number.isFinite)
-        || visualWidth <= 0 || visualHeight <= 0 || scale < 1
+    if (![visualWidth, visualHeight, scaleX, scaleY].every(Number.isFinite)
+        || visualWidth <= 0 || visualHeight <= 0 || scaleX < 1 || scaleY < 1
         || !widthMatch || !heightMatch)
         return [0, 0];
-
     return [
-        Number(widthMatch[1]) + visualWidth * (scale - 1),
-        Number(heightMatch[1]) + visualHeight * (scale - 1),
+        Number(widthMatch[1]) + visualWidth * (scaleX - 1),
+        Number(heightMatch[1]) + visualHeight * (scaleY - 1),
     ];
 }
 
@@ -143,8 +143,8 @@ export function resolveMagnificationCrossAxisLayout(
 export class DockMagnificationController {
     private readonly items = new Map<St.Button, Clutter.Actor>();
     private readonly animationKeys = new Map<St.Button, string>();
-    private readonly buttonAnimationKeys = new Map<St.Button, string>();
     private readonly baseStyles = new Map<St.Button, string>();
+    private readonly visualScaleSignals = new Map<St.Button, number[]>();
     private readonly animations = new AnimationManager();
     private readonly cleanup = new CleanupManager();
     private readonly surface: Clutter.Actor;
@@ -217,10 +217,15 @@ export class DockMagnificationController {
         this.baseStyles.set(button, _baseStyle);
         const animationId = this.nextAnimationId++;
         this.animationKeys.set(button, `dock-magnification-visual-${animationId}`);
-        this.buttonAnimationKeys.set(button, `dock-magnification-button-${animationId}`);
+        const scaleSignals = [
+            visual.connect('notify::scale-x', () => this.syncButtonSize(button, visual)),
+            visual.connect('notify::scale-y', () => this.syncButtonSize(button, visual)),
+        ];
+        this.visualScaleSignals.set(button, scaleSignals);
         this.applyVisualAnchor(visual);
         visual.scale_x = 1;
         visual.scale_y = 1;
+        this.syncButtonSize(button, visual);
         this.applyMagnification();
     }
 
@@ -292,29 +297,30 @@ export class DockMagnificationController {
             this.animateItem(button, visual, scale);
     }
 
+    /** Keep the button allocation synchronized with the visual's live scale. */
+    private syncButtonSize(button: St.Button, visual: Clutter.Actor): void {
+        const baseStyle = this.baseStyles.get(button);
+        if (baseStyle === undefined)
+            return;
+        const [buttonWidth, buttonHeight] = resolveMagnificationButtonSize(
+            baseStyle, visual.width, visual.height, visual.scale_x, visual.scale_y,
+        );
+        if (buttonWidth <= 0 || buttonHeight <= 0)
+            return;
+        button.set_width(buttonWidth);
+        button.set_height(buttonHeight);
+        this.content.queue_relayout();
+    }
+
     private animateItem(button: St.Button, visual: Clutter.Actor, scale: number): void {
         const visualKey = this.animationKeys.get(button);
-        const buttonKey = this.buttonAnimationKeys.get(button);
-        const baseStyle = this.baseStyles.get(button);
-        if (!visualKey || !buttonKey || baseStyle === undefined)
+        if (!visualKey)
             return;
-
-        const [buttonWidth, buttonHeight] = resolveMagnificationButtonSize(
-            baseStyle, visual.width, visual.height, scale,
-        );
+        this.syncButtonSize(button, visual);
         this.animations.animate(
             visualKey,
             visual as unknown as AnimationTarget,
             { scaleX: scale, scaleY: scale },
-            {
-                durationMs: MAGNIFICATION_DURATION_MS,
-                mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
-            },
-        );
-        this.animations.animate(
-            buttonKey,
-            button as unknown as AnimationTarget,
-            { width: buttonWidth, height: buttonHeight },
             {
                 durationMs: MAGNIFICATION_DURATION_MS,
                 mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
@@ -326,11 +332,7 @@ export class DockMagnificationController {
         const key = this.animationKeys.get(button);
         if (key)
             this.animations.cancel(key);
-        const buttonKey = this.buttonAnimationKeys.get(button);
-        if (buttonKey)
-            this.animations.cancel(buttonKey);
         this.animationKeys.delete(button);
-        this.buttonAnimationKeys.delete(button);
         this.items.delete(button);
         this.baseStyles.delete(button);
         if (this.items.size === 0)
@@ -347,7 +349,7 @@ export class DockMagnificationController {
         this.surface.reactive = this.originalReactive;
         this.items.clear();
         this.animationKeys.clear();
-        this.buttonAnimationKeys.clear();
+        this.visualScaleSignals.clear();
         this.baseStyles.clear();
         this.onSurfaceExtentChanged?.(0, 0, false);
     }
