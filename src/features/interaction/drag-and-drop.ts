@@ -374,12 +374,44 @@ export class DockDragDrop {
     private showRemovalZone(): void {
         this.updateRemovalZoneGeometry();
         this.removalZone.reactive = true;
+        if (!this.removalZone.visible) {
+            this.removalZone.opacity = 0;
+            this.removalZone.scale_x = 0.97;
+            this.removalZone.scale_y = 0.97;
+        }
         this.removalZone.show();
+        this.animations.animate('removal-zone', this.removalZone as unknown as AnimationTarget, {
+            opacity: 255,
+            scaleX: 1,
+            scaleY: 1,
+        }, {
+            durationMs: 150,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
     }
 
     private hideRemovalZone(): void {
         this.removalZone.reactive = false;
-        this.removalZone.hide();
+        if (this.destroyed || !this.removalZone.visible) {
+            this.removalZone.hide();
+            return;
+        }
+        this.animations.animate('removal-zone', this.removalZone as unknown as AnimationTarget, {
+            opacity: 0,
+            scaleX: 0.97,
+            scaleY: 0.97,
+        }, {
+            durationMs: 120,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                if (!this.destroyed && !this.removalZone.reactive) {
+                    this.removalZone.hide();
+                    this.removalZone.opacity = 255;
+                    this.removalZone.scale_x = 1;
+                    this.removalZone.scale_y = 1;
+                }
+            },
+        });
     }
 
     private handleRemovalDragOver(source: DockDragSource): number {
