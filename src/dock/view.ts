@@ -551,12 +551,17 @@ export class DockView {
             vertical ? length : thickness,
             vertical ? thickness : length,
         );
+        const separatorWidth = vertical ? length : thickness;
+        const separatorHeight = vertical ? thickness : length;
+        this.favoritesSeparator.set_size(separatorWidth, separatorHeight);
         this.favoritesSeparator.set_style(
             `background-color: ${color}; opacity: ${opacity}; ` +
             `border-radius: ${Math.ceil(thickness / 2)}px; ` +
-            (vertical
-                ? `margin: 4px ${Math.max(2, Math.floor(size * 0.12))}px;`
-                : `margin: ${Math.max(2, Math.floor(size * 0.12))}px 4px;`),
+            `min-width: ${separatorWidth}px; max-width: ${separatorWidth}px; ` +
+            `min-height: ${separatorHeight}px; max-height: ${separatorHeight}px; ` +
+            // Keep spacing on the dock's main axis only. Cross-axis margins
+            // used to inflate the visible separator beyond its configured length.
+            (vertical ? 'margin: 4px 0;' : 'margin: 0 4px;'),
         );
 
         const targetIndex = this.content.get_children().indexOf(firstNonFavorite);
