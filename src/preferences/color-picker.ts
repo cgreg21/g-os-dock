@@ -2,6 +2,7 @@ import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
 import Gio from 'gi://Gio?version=2.0';
 import Gtk from 'gi://Gtk?version=4.0';
+import { SettingsBinding } from '../features/settings-binding.js';
 
 /** Add a color control that keeps its color and opacity settings synchronized. */
 export function addColorPicker(
@@ -28,7 +29,8 @@ export function addColorPicker(
         row.subtitle = color.toUpperCase();
     };
 
-    button.connect('color-set', () => {
+    const binding = new SettingsBinding(row);
+    binding.connect(button, 'color-set', () => {
         const rgba = button.get_rgba();
         const hex = [rgba.red, rgba.green, rgba.blue]
             .map(value => Math.round(value * 255).toString(16).padStart(2, '0'))
@@ -36,14 +38,7 @@ export function addColorPicker(
         settings.set_string(colorKey, `#${hex}`);
         settings.set_double(opacityKey, rgba.alpha);
     });
-    const colorSignal = settings.connect(`changed::${colorKey}`, sync);
-    const opacitySignal = settings.connect(`changed::${opacityKey}`, sync);
-    const rootSignal = row.connect('notify::root', () => {
-        if (row.get_root() !== null)
-            return;
-        settings.disconnect(colorSignal);
-        settings.disconnect(opacitySignal);
-        row.disconnect(rootSignal);
-    });
+    binding.watch(settings, colorKey, sync);
+    binding.watch(settings, opacityKey, sync);
     sync();
 }
