@@ -62,19 +62,20 @@ export class DockTrashItem {
         if (this.destroyed)
             return;
         let hasItems = false;
+        let enumerator: Gio.FileEnumerator | null = null;
         try {
             const trash = Gio.File.new_for_uri('trash:///');
-            const enumerator = trash.enumerate_children(
+            enumerator = trash.enumerate_children(
                 'standard::name',
                 Gio.FileQueryInfoFlags.NONE,
                 null,
             );
-            const first = enumerator.next_file(null);
-            hasItems = first !== null;
-            enumerator.close(null);
+            hasItems = enumerator.next_file(null) !== null;
         } catch {
             // Some minimal GVfs installations do not expose a trash backend.
             // Keep the empty-trash icon and leave the launcher usable.
+        } finally {
+            enumerator?.close(null);
         }
         this.icon.icon_name = hasItems ? 'user-trash-full' : 'user-trash';
         this.icon.icon_size = this.iconSize;
