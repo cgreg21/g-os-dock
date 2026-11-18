@@ -75,7 +75,7 @@ export class DockVolumeItems {
         for (const [id, entry] of visible) {
             const existing = this.items.get(id);
             if (existing) {
-                existing.item.setIconPadding(this.settings, this.iconSize);
+                existing.item.setIconPadding(this.settings, this.iconSize, existing.icon);
                 const name = entry.mount.get_name();
                 if (existing.name !== name) {
                     existing.name = name;
@@ -153,7 +153,7 @@ export class DockVolumeItems {
                 logError(error as Error, 'Unable to open mounted volume');
             }
         }));
-        item.setIconPadding(this.settings, this.iconSize);
+        item.setIconPadding(this.settings, this.iconSize, icon);
         this.items.set(entry.id, {
             button, item, icon, mount: entry.mount, name,
             iconKey: gicon.to_string() ?? '',
@@ -170,7 +170,7 @@ export class DockVolumeItems {
         this.iconSize = size;
         for (const item of this.items.values()) {
             item.icon.icon_size = size;
-            item.item.setIconPadding(this.settings, size);
+            item.item.setIconPadding(this.settings, size, item.icon);
         }
     }
 
