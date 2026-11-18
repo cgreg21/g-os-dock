@@ -22,7 +22,7 @@ import { DockItemsController } from '../features/dock-items-controller.js';
 import { DockFavoritesSeparatorController } from '../features/favorites-separator-controller.js';
 import { DockItemOrderController } from '../features/dock-item-order-controller.js';
 import { FavoriteOrderController } from '../features/favorite-order-controller.js';
-import { SettingsObserver } from '../features/settings-observer.js';
+import { DockSettingsController } from './settings-controller.js';
 import { LifecycleScope } from '../features/lifecycle-scope.js';
 import { resolveApplicationOrder } from '../features/application-order.js';
 
@@ -48,7 +48,7 @@ export class DockView {
     private favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
 
     private destroyed = false;
-    private settingsObserver = new SettingsObserver();
+    private settingsController: DockSettingsController;
     private contextMenu: AppContextMenu;
     private applicationItems!: DockApplicationItemsController;
     private previews: WindowPreviews;
@@ -197,6 +197,24 @@ export class DockView {
             moveFavoriteToPos: (id, position) => this.favorites.moveFavoriteToPos(id, position),
         });
 
+        this.settingsController = new DockSettingsController(
+            this.settings,
+            this.desktopSettings,
+            {
+                applyAppearance: () => this.appearance.apply(),
+                queueLayoutUpdate: () => this.queueLayoutUpdate(),
+                refresh: syncVolumes => this.refresh(syncVolumes),
+                positionDock: () => this.positionDock(),
+                getItemSize: () => this.itemSize,
+                getDockPosition: () => this.settings.get_string('dock-position'),
+                syncFavoritesSeparator: vertical => this.syncFavoritesSeparator(vertical),
+                applyVisibilitySettings: () => this.visibility.applySettings(),
+                syncEdgeSensor: () => this.syncEdgeSensor(),
+                applyDevelopmentStyle: () => this.applyDevelopmentStyle(),
+                updateIndicators: () => this.indicators.update(this.itemActors, false),
+            },
+        );
+
         try {
             this.addToStage();
             this.connectSignals();
@@ -271,13 +289,6 @@ export class DockView {
         ));
     }
 
-    private connectThemeSignal(): void {
-        this.settingsObserver.watch(this.desktopSettings, 'color-scheme', () => {
-            this.appearance.apply();
-            this.queueLayoutUpdate();
-        });
-    }
-
     private connectPointerSignals(): void {
         this.lifecycle.addSignal(this.actor, this.actor.connect(
             'notify::hover',
@@ -289,113 +300,11 @@ export class DockView {
         }));
     }
 
-    private connectSettingsSignals(): void {
-        this.settingsObserver.watchMany(this.settings, [
-            'theme',
-            'acrylic-enabled',
-            'background-color',
-            'background-opacity',
-            'border-color',
-            'border-opacity',
-            'border-size',
-            'radius-top-left',
-            'radius-top-right',
-            'radius-bottom-right',
-            'radius-bottom-left',
-            'background-padding-top',
-            'background-padding-right',
-            'background-padding-bottom',
-            'background-padding-left',
-            'dock-spacing',
-            'background-shadow-enabled',
-            'background-shadow-color',
-            'background-shadow-opacity',
-            'background-shadow-offset-x',
-            'background-shadow-offset-y',
-            'background-shadow-blur',
-            'background-shadow-spread',
-        ], () => this.appearance.apply());
-
-        this.settingsObserver.watchMany(this.settings, [
-            'show-system-icon',
-            'show-trash-icon',
-            'dock-position',
-            'icon-size',
-            'dock-spacing',
-            'border-size',
-            'background-padding-top',
-            'background-padding-right',
-            'background-padding-bottom',
-            'background-padding-left',
-            'edge-distance',
-            'icon-padding-top',
-            'icon-padding-right',
-            'icon-padding-bottom',
-            'icon-padding-left',
-            'dock-item-order',
-            'show-favorites-separator',
-            'favorites-separator-size',
-        ], () => {
-            this.refresh();
-            this.positionDock();
-        });
-
-        this.settingsObserver.watchMany(this.settings, [
-            'show-network-drives',
-            'show-system-drives',
-            'show-usb-drives',
-        ], () => {
-            this.refresh(true);
-            this.positionDock();
-        });
-
-        this.settingsObserver.watchMany(this.settings, [
-            'favorites-separator-color',
-            'favorites-separator-opacity',
-            'favorites-separator-length',
-        ], () => {
-            if (this.itemSize === 0)
-                return;
-            const position = this.settings.get_string('dock-position');
-            this.syncFavoritesSeparator(position === 'left' || position === 'right');
-            this.positionDock();
-        });
-
-        this.settingsObserver.watchMany(this.settings, [
-            'auto-hide',
-            'smart-hide',
-        ], () => {
-            this.visibility.applySettings();
-            this.syncEdgeSensor();
-        });
-
-        this.settingsObserver.watch(this.settings, 'dev-mode', () => {
-            this.applyDevelopmentStyle();
-        });
-
-        this.settingsObserver.watchMany(this.settings, [
-            'show-running-indicator',
-            'indicator-show-open',
-            'indicator-show-focused',
-            'indicator-show-minimized',
-            'show-window-count',
-            'indicator-mode',
-            'indicator-shape',
-            'indicator-color',
-            'indicator-opacity',
-            'indicator-bottom-offset',
-            'indicator-size',
-            'indicator-border-size',
-            'indicator-border-color',
-            'indicator-border-opacity',
-        ], () => this.indicators.update(this.itemActors, false));
-    }
-
     private connectSignals(): void {
-        this.connectThemeSignal();
+        this.settingsController.connectTheme();
         this.connectPanelGeometrySignals();
         this.connectPointerSignals();
-        this.connectSettingsSignals();
+        this.settingsController.connectSettings();
         this.connectApplicationSignals();
         this.connectWindowSignals();
         this.connectContentGeometrySignal();
@@ -679,7 +588,7 @@ export class DockView {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        this.settingsObserver.destroy();
+        this.settingsController.destroy();
         this.lifecycle.destroy();
         this.visibility.destroy();
         this.previews.destroy();
