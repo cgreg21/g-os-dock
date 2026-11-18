@@ -44,7 +44,7 @@ export class DockMagnificationController {
         private readonly content: St.BoxLayout,
         private readonly settings: Gio.Settings,
         private readonly dockPosition: () => string,
-        private readonly onSurfaceExtentChanged?: (leading: number, trailing: number) => void,
+        private readonly onSurfaceExtentChanged?: (leading: number, trailing: number, active?: boolean) => void,
     ) {
         this.surface = content.get_parent() ?? content;
         this.surface.reactive = true;
