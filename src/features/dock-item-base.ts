@@ -4,12 +4,12 @@ import { DockDragDrop, type DockDndItem } from './drag-and-drop.js';
 import { DockTooltip } from './tooltip.js';
 import { getIconPaddingStyle } from './icon-padding.js';
 import { CleanupManager } from './cleanup-manager.js';
+import { dockStyles } from './style-manager.js';
 
 /** Shared lifecycle and presentation primitives for interactive dock buttons. */
 export class DockItemBase {
     readonly cleanup = new CleanupManager();
     private tooltip: DockTooltip;
-    private paddingStyle = '';
     private destroyed = false;
 
     constructor(
@@ -34,10 +34,7 @@ export class DockItemBase {
 
     setIconPadding(settings: Gio.Settings, size: number): string {
         const style = getIconPaddingStyle(settings, size);
-        if (this.paddingStyle !== style) {
-            this.button.set_style(style);
-            this.paddingStyle = style;
-        }
+        dockStyles.apply(this.button, style);
         return style;
     }
 
@@ -47,6 +44,7 @@ export class DockItemBase {
         this.destroyed = true;
         this.cleanup.clear();
         this.dragDrop.unregisterItem(this.button);
+        dockStyles.forget(this.button);
         this.button.destroy();
     }
 }
