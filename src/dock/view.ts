@@ -188,16 +188,7 @@ export class DockView {
         });
     }
 
-    private connectSignals(): void {
-        this.desktopThemeSignal = this.desktopSettings.connect(
-            'changed::color-scheme',
-            () => {
-                this.appearance.apply();
-                this.queueLayoutUpdate();
-            },
-        );
-        // Recalculate available dock space when the top panel changes
-        // size or position (for example after a scale/theme/layout change).
+    private connectPanelGeometrySignals(): void {
         const panel = Main.panel as St.Widget;
         for (const property of ['x', 'y', 'width', 'height']) {
             this.panelGeometrySignals.push(panel.connect(
@@ -210,6 +201,17 @@ export class DockView {
                 },
             ));
         }
+    }
+
+    private connectSignals(): void {
+        this.desktopThemeSignal = this.desktopSettings.connect(
+            'changed::color-scheme',
+            () => {
+                this.appearance.apply();
+                this.queueLayoutUpdate();
+            },
+        );
+        this.connectPanelGeometrySignals();
         this.hoverSignal = this.actor.connect(
             'notify::hover',
             () => this.onPointerChanged(),
