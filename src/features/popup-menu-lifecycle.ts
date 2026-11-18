@@ -12,6 +12,9 @@ export class PopupMenuLifecycle {
             menu.destroy();
             return false;
         }
+        if (this.menus.has(menu))
+            return true;
+
         this.menus.add(menu);
         this.manager.addMenu(menu);
         menu.connect('open-state-changed', (_menu, open) => {
