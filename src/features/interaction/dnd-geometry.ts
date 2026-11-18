@@ -69,54 +69,40 @@ export interface DockDndZoneGeometry {
     height: number;
 }
 
-/** Place a compact removal target at the edge opposite the dock. */
+/** Restore the large two-thirds-screen removal drop area opposite the dock. */
 export function resolveDockRemovalZoneGeometry(
     monitor: DockDndMonitorGeometry,
     dockPosition: string,
-    zoneWidth = 148,
-    zoneHeight = 52,
-    inset = 12,
     topInset = 0,
 ): DockDndZoneGeometry {
-    const safeInset = Math.max(0, inset);
-    const width = Math.max(1, Math.min(zoneWidth, monitor.width - safeInset * 2));
-    const height = Math.max(1, Math.min(zoneHeight, monitor.height - safeInset * 2));
-    const centeredX = monitor.x + (monitor.width - width) / 2;
-    const centeredY = monitor.y + (monitor.height - height) / 2;
-    const topY = Math.min(
-        monitor.y + monitor.height - height - safeInset,
-        Math.max(monitor.y + safeInset, monitor.y + Math.max(0, topInset) + safeInset),
+    const verticalDock = dockPosition === 'left' || dockPosition === 'right';
+    const extent = Math.floor(
+        (verticalDock ? monitor.width : monitor.height) * 2 / 3,
     );
+    const safeTopInset = Math.max(0, topInset);
+    let x = monitor.x;
+    let y = monitor.y;
+    let width = monitor.width;
+    let height = monitor.height;
 
     switch (dockPosition) {
     case 'top':
-        return {
-            x: centeredX,
-            y: monitor.y + monitor.height - height - safeInset,
-            width,
-            height,
-        };
+        y += monitor.height - extent;
+        height = extent;
+        break;
     case 'left':
-        return {
-            x: monitor.x + monitor.width - width - safeInset,
-            y: centeredY,
-            width,
-            height,
-        };
+        x += monitor.width - extent;
+        width = extent;
+        break;
     case 'right':
-        return {
-            x: monitor.x + safeInset,
-            y: centeredY,
-            width,
-            height,
-        };
+        width = extent;
+        break;
     case 'bottom':
     default:
-        return {
-            x: centeredX,
-            y: topY,
-            width,
-            height,
-        };
+        y += safeTopInset;
+        height = Math.max(1, extent - safeTopInset);
+        break;
     }
+
+    return { x, y, width, height };
 }
