@@ -92,15 +92,18 @@ export class DockFoldersController {
             return;
         const remaining = folder.appIds.filter(id => id !== appId);
         const records = readFolders(this.settings).filter(candidate => candidate.id !== folderId);
+        const order = this.settings.get_strv('dock-item-order');
+        const index = order.indexOf(folderId);
+        const nextOrder = order.filter(id => id !== folderId);
         if (remaining.length >= 2) {
             records.push({ id: folderId, name: folder.name, appIds: remaining });
+            const folderIndex = index < 0 ? nextOrder.length : Math.min(index, nextOrder.length);
+            nextOrder.splice(folderIndex + 1, 0, `app:${appId}`);
         } else {
-            const order = this.settings.get_strv('dock-item-order');
-            const index = order.indexOf(folderId);
-            const nextOrder = order.filter(id => id !== folderId);
-            nextOrder.splice(index < 0 ? nextOrder.length : index, 0, ...remaining.map(id => `app:${id}`));
-            this.settings.set_strv('dock-item-order', nextOrder);
+            const restoredIds = [...remaining, appId].map(id => `app:${id}`);
+            nextOrder.splice(index < 0 ? nextOrder.length : Math.min(index, nextOrder.length), 0, ...restoredIds);
         }
+        this.settings.set_strv('dock-item-order', nextOrder);
         this.settings.set_strv('dock-folders', records.map(candidate => JSON.stringify(candidate)));
         this.onChanged();
     }
