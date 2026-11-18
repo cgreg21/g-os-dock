@@ -2,7 +2,7 @@ import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Gio from 'gi://Gio?version=2.0';
-import { DockPositioner } from './dock-positioner.js';
+import { DockPositioner, resolveDockEdgeSensor } from './dock-positioner.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -162,23 +162,25 @@ export class DockLayout {
             return;
 
         const position = this.settings.get_string('dock-position');
-        const sensorTop = panelBottom === null
-            ? this.monitor.y
-            : Math.min(this.monitor.y + this.monitor.height, panelBottom + 8);
-        const sensorHeight = Math.max(EDGE_THICKNESS, this.monitor.y + this.monitor.height - sensorTop);
-
-        if (position === 'top') {
-            this.edgeSensor.set_position(this.monitor.x, sensorTop);
-            this.edgeSensor.set_size(this.monitor.width, EDGE_THICKNESS);
-        } else if (position === 'left') {
-            this.edgeSensor.set_position(this.monitor.x, sensorTop);
-            this.edgeSensor.set_size(EDGE_THICKNESS, sensorHeight);
-        } else if (position === 'right') {
-            this.edgeSensor.set_position(this.monitor.x + this.monitor.width - EDGE_THICKNESS, sensorTop);
-            this.edgeSensor.set_size(EDGE_THICKNESS, sensorHeight);
-        } else {
-            this.edgeSensor.set_position(this.monitor.x, this.monitor.y + this.monitor.height - EDGE_THICKNESS);
-            this.edgeSensor.set_size(this.monitor.width, EDGE_THICKNESS);
-        }
+        const monitor = {
+            x: this.monitor.x,
+            y: this.monitor.y,
+            width: this.monitor.width,
+            height: this.monitor.height,
+        };
+        const topInset = panelBottom === null
+            ? 0
+            : Math.min(
+                this.monitor.y + this.monitor.height,
+                panelBottom + 8,
+            ) - this.monitor.y;
+        const sensor = resolveDockEdgeSensor({
+            monitor,
+            edge: position,
+            thickness: EDGE_THICKNESS,
+            topInset,
+        });
+        this.edgeSensor.set_position(sensor.x, sensor.y);
+        this.edgeSensor.set_size(sensor.width, sensor.height);
     }
 }
