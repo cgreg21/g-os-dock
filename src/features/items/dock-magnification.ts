@@ -7,6 +7,15 @@ import { CleanupManager } from '../../core/cleanup-manager.js';
 const MAGNIFICATION_DURATION_MS = 100;
 const INFLUENCE_RADIUS_FACTOR = 2.5;
 
+/** Scale the button allocation while leaving its CSS padding unchanged. */
+export function resolveMagnificationButtonStyle(baseStyle: string, scale: number): string {
+    if (!Number.isFinite(scale) || scale < 1)
+        return baseStyle;
+    return baseStyle
+        .replace(/min-width:\s*([\d.]+)px/, (_match, value: string) => `min-width: ${Number(value) * scale}px`)
+        .replace(/min-height:\s*([\d.]+)px/, (_match, value: string) => `min-height: ${Number(value) * scale}px`);
+}
+
 /**
  * Converts stage coordinates into the dock's main-axis coordinate.
  * Returns null when the pointer is outside the surface bounds.
@@ -123,6 +132,7 @@ export function resolveMagnificationCrossAxisLayout(
 export class DockMagnificationController {
     private readonly items = new Map<St.Button, Clutter.Actor>();
     private readonly animationKeys = new Map<St.Button, string>();
+    private readonly baseStyles = new Map<St.Button, string>();
     private readonly animations = new AnimationManager();
     private readonly cleanup = new CleanupManager();
     private readonly surface: Clutter.Actor;
@@ -135,7 +145,7 @@ export class DockMagnificationController {
         private readonly content: St.BoxLayout,
         private readonly settings: Gio.Settings,
         private readonly dockPosition: () => string,
-        _onSurfaceExtentChanged?: (leading: number, trailing: number, active?: boolean) => void,
+        private readonly onSurfaceExtentChanged?: (leading: number, trailing: number, active?: boolean) => void,
     ) {
         this.surface = content.get_parent() ?? content;
         this.originalReactive = this.surface.reactive;
@@ -151,6 +161,8 @@ export class DockMagnificationController {
         }));
         this.cleanup.addSignal(this.surface, this.surface.connect('leave-event', () => {
             this.pointerAxis = null;
+            this.resetButtonAllocations();
+            this.onSurfaceExtentChanged?.(0, 0, false);
             this.animateItemsToScale(1);
             log('[G-OS Dock] magnification pointer: left surface');
             return Clutter.EVENT_PROPAGATE;
@@ -191,6 +203,7 @@ export class DockMagnificationController {
         if (this.destroyed)
             return;
         this.items.set(button, visual);
+        this.baseStyles.set(button, _baseStyle);
         this.animationKeys.set(button, `dock-magnification-${this.nextAnimationId++}`);
         this.applyVisualAnchor(visual);
         visual.scale_x = 1;
@@ -244,8 +257,55 @@ export class DockMagnificationController {
         if (this.destroyed)
             return;
         const scales = this.getItemScales();
-        for (const [button, visual] of this.items)
-            this.animateItem(button, visual, scales.get(button) ?? 1);
+        for (const [button, visual] of this.items) {
+            const scale = scales.get(button) ?? 1;
+            const baseStyle = this.baseStyles.get(button);
+            if (baseStyle !== undefined)
+                button.set_style(resolveMagnificationButtonStyle(baseStyle, scale));
+            this.animateItem(button, visual, scale);
+        }
+        this.updateSurfaceInsets(scales);
+        this.content.queue_relayout();
+    }
+
+
+    private resetButtonAllocations(): void {
+        for (const [button, baseStyle] of this.baseStyles)
+            button.set_style(baseStyle);
+        this.content.queue_relayout();
+    }
+
+    /** Keep the backdrop wide enough for the enlarged button allocations. */
+    private updateSurfaceInsets(scales: ReadonlyMap<St.Button, number>): void {
+        if (!this.onSurfaceExtentChanged)
+            return;
+        const vertical = this.content.orientation === Clutter.Orientation.VERTICAL;
+        let leading = 0;
+        let trailing = 0;
+        if (vertical) {
+            let crossGrowth = 0;
+            for (const [button, scale] of scales) {
+                const baseStyle = this.baseStyles.get(button) ?? '';
+                const match = baseStyle.match(/min-width:\s*([\d.]+)px/);
+                if (match)
+                    crossGrowth = Math.max(crossGrowth, Number(match[1]) * (scale - 1));
+            }
+            if (this.dockPosition() === 'right')
+                leading = crossGrowth;
+            else
+                trailing = crossGrowth;
+        } else {
+            let totalGrowth = 0;
+            for (const [button, scale] of scales) {
+                const baseStyle = this.baseStyles.get(button) ?? '';
+                const match = baseStyle.match(/min-width:\s*([\d.]+)px/);
+                if (match)
+                    totalGrowth += Number(match[1]) * (scale - 1);
+            }
+            leading = totalGrowth / 2;
+            trailing = totalGrowth / 2;
+        }
+        this.onSurfaceExtentChanged(leading, trailing, this.pointerAxis !== null);
     }
 
     private animateItemsToScale(scale: number): void {
@@ -274,6 +334,7 @@ export class DockMagnificationController {
             this.animations.cancel(key);
         this.animationKeys.delete(button);
         this.items.delete(button);
+        this.baseStyles.delete(button);
         if (this.items.size === 0)
             this.destroy();
     }
@@ -288,6 +349,8 @@ export class DockMagnificationController {
         this.surface.reactive = this.originalReactive;
         this.items.clear();
         this.animationKeys.clear();
+        this.baseStyles.clear();
+        this.onSurfaceExtentChanged?.(0, 0, false);
     }
 
     get size(): number {
