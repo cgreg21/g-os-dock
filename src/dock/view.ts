@@ -203,6 +203,13 @@ export class DockView {
         }
     }
 
+    private connectContentGeometrySignal(): void {
+        // Coalesce allocation notifications into one geometry update.
+        this.contentGeometrySignals.push(
+            this.content.connect('notify::allocation', () => this.queueLayoutUpdate()),
+        );
+    }
+
     private connectSignals(): void {
         this.desktopThemeSignal = this.desktopSettings.connect(
             'changed::color-scheme',
@@ -251,15 +258,7 @@ export class DockView {
             'window-created',
             (_display: Meta.Display, window: Meta.Window) => this.windowTracker.track(window),
         );
-        // Recompute the dock's natural size whenever its content tree
-        // changes or Clutter reallocates it. The idle callback coalesces
-        // bursts of relayout notifications into one geometry update.
-        // Content changes made by refresh() already trigger a layout pass.
-        // Keep only the allocation notification here: actor-added/removed
-        // are not part of St.BoxLayout's typed signal signatures.
-        this.contentGeometrySignals.push(
-            this.content.connect('notify::allocation', () => this.queueLayoutUpdate()),
-        );
+        this.connectContentGeometrySignal();
     }
 
     handleDragOver(source: DockDragSource, dragActor: Clutter.Actor, x: number, y: number, time: number): number {
