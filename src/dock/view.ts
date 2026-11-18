@@ -372,6 +372,7 @@ export class DockView {
         // Application reconciliation may change the effective icon size.
         // Sync folders afterwards so they inherit the exact same current slot size.
         this.folders.sync();
+        this.positionDock();
     }
 
     private syncFavoritesSeparator(vertical: boolean): void {
