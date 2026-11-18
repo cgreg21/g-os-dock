@@ -4,6 +4,7 @@ import { DockLayout } from '../features/layout.js';
 import { DockItemsController } from '../features/dock-items-controller.js';
 import { calculateDockIconSize } from '../features/icon-sizing.js';
 import { FAVORITES_SEPARATOR_MARGIN } from '../features/favorites-separator.js';
+import { getIconPaddingExtent } from '../features/icon-padding.js';
 
 /** Coordinates item reconciliation, sizing and post-refresh layout updates. */
 export interface DockRefreshCallbacks {
@@ -40,9 +41,7 @@ export class DockRefreshController {
         const vertical = position === 'left' || position === 'right';
         const available = this.layout.availableSpace(vertical);
         const favoriteIds = new Set(this.getFavoriteIds());
-        const iconPadding = vertical
-            ? this.settings.get_int('icon-padding-top') + this.settings.get_int('icon-padding-bottom')
-            : this.settings.get_int('icon-padding-left') + this.settings.get_int('icon-padding-right');
+        const iconPadding = getIconPaddingExtent(this.settings, vertical);
         const size = calculateDockIconSize({
             applicationIds: applications.map(app => app.get_id()),
             favoriteIds,
