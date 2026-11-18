@@ -437,6 +437,7 @@ export class DockView {
         this.runtimeSignals.destroy();
         this.settingsController.destroy();
         this.refreshController.destroy();
+        this.layout.destroy();
         this.lifecycle.destroy();
         this.visibility.destroy();
         this.previews.destroy();
