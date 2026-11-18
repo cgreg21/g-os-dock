@@ -7,6 +7,7 @@ import { DockDragDrop } from './drag-and-drop.js';
 import { WindowPreviews } from './window-previews/index.js';
 import { AppContextMenu } from './context-menu/index.js';
 import { DockTooltip } from './tooltip.js';
+import { getIconPaddingStyle } from './icon-padding.js';
 
 export type DockAppButton = St.Button & {
     _gOsDockApp: Shell.App;
@@ -75,14 +76,7 @@ export class DockAppItemFactory {
             y_expand: false,
         }) as DockAppButton;
         const settings = this.dependencies.settings;
-        const padTop = settings.get_int('icon-padding-top');
-        const padRight = settings.get_int('icon-padding-right');
-        const padBottom = settings.get_int('icon-padding-bottom');
-        const padLeft = settings.get_int('icon-padding-left');
-        item._gOsDockPaddingStyle =
-            `padding: ${padTop}px ${padRight}px ${padBottom}px ${padLeft}px; ` +
-            `min-width: ${size + padLeft + padRight}px; ` +
-            `min-height: ${size + padTop + padBottom}px;`;
+        item._gOsDockPaddingStyle = getIconPaddingStyle(settings, size);
         item.set_style(item._gOsDockPaddingStyle);
         new DockTooltip(item, app.get_name(), this.dependencies.dockPosition);
 
