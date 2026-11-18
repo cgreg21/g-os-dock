@@ -5,7 +5,7 @@ export class CleanupManager {
 
     add(cleanup: () => void): void {
         if (this.cleared) {
-            cleanup();
+            this.runCleanup(cleanup);
             return;
         }
         this.cleanups.push(cleanup);
@@ -20,12 +20,15 @@ export class CleanupManager {
             return;
         this.cleared = true;
         const cleanups = this.cleanups.splice(0);
-        for (let index = cleanups.length - 1; index >= 0; index--) {
-            try {
-                cleanups[index]!();
-            } catch (error) {
-                logError(error as Error, 'Unable to release dock resource');
-            }
+        for (let index = cleanups.length - 1; index >= 0; index--)
+            this.runCleanup(cleanups[index]!);
+    }
+
+    private runCleanup(cleanup: () => void): void {
+        try {
+            cleanup();
+        } catch (error) {
+            logError(error as Error, 'Unable to release dock resource');
         }
     }
 
