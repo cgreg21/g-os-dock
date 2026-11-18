@@ -662,11 +662,10 @@ export class DockView {
             (vertical ? 'margin: 4px 0;' : 'margin: 0 4px;'),
         );
 
-        const targetIndex = this.content.get_children().indexOf(firstNonFavorite);
-        if (targetIndex >= 0 &&
-            this.content.get_children()[targetIndex - 1] !== this.favoritesSeparator) {
+        const children = this.content.get_children();
+        const targetIndex = children.indexOf(firstNonFavorite);
+        if (targetIndex >= 0 && children[targetIndex - 1] !== this.favoritesSeparator)
             this.content.set_child_at_index(this.favoritesSeparator, targetIndex);
-        }
     }
 
     private removeFavoritesSeparator(): void {
