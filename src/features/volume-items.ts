@@ -1,6 +1,7 @@
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { DockDragDrop } from './drag-and-drop.js';
+import { DockTooltip } from './tooltip.js';
 
 type DriveCategory = 'network' | 'usb' | 'system';
 
@@ -23,6 +24,7 @@ export class DockVolumeItems {
         private dragDrop: DockDragDrop,
         private iconSize: number,
         private onChanged: () => void,
+        private dockPosition: () => string,
     ) {
         this.monitor = Gio.VolumeMonitor.get();
         this.signals.push(
@@ -128,6 +130,7 @@ export class DockVolumeItems {
                 logError(error as Error, 'Unable to open mounted volume');
             }
         });
+        new DockTooltip(button, entry.mount.get_name(), this.dockPosition());
         this.content.add_child(button);
         this.updateButtonPadding(button);
         this.items.set(entry.id, { button, icon, mount: entry.mount });
