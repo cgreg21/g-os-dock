@@ -3,6 +3,7 @@ import St from 'gi://St?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { TaskScheduler } from './task-scheduler.js';
 import { ChromeActorManager } from './chrome-actor-manager.js';
+import { DockPositioner } from './dock-positioner.js';
 
 /** Displays an application name after the pointer has rested on its dock item. */
 export class DockTooltip {
@@ -66,27 +67,15 @@ export class DockTooltip {
         this.actor.opacity = 255;
         this.actor.set_position(0, 0);
         const [, , tooltipWidth, tooltipHeight] = this.actor.get_preferred_size();
-        let left = x + (width - tooltipWidth) / 2;
-        let top = y + (height - tooltipHeight) / 2;
-
-        switch (this.position()) {
-            case 'top':
-                top = y + height + 8;
-                break;
-            case 'bottom':
-                top = y - tooltipHeight - 8;
-                break;
-            case 'left':
-                left = x + width + 8;
-                break;
-            case 'right':
-                left = x - tooltipWidth - 8;
-                break;
-        }
-
-        left = Math.max(8, Math.min(left, global.stage.width - tooltipWidth - 8));
-        top = Math.max(8, Math.min(top, global.stage.height - tooltipHeight - 8));
-        this.actor.set_position(Math.round(left), Math.round(top));
+        const point = DockPositioner.placeFloating(
+            { x, y, width, height },
+            { width: tooltipWidth, height: tooltipHeight },
+            this.position() as 'top' | 'right' | 'bottom' | 'left',
+            8,
+            { x: 0, y: 0, width: global.stage.width, height: global.stage.height },
+            8,
+        );
+        this.actor.set_position(point.x, point.y);
     }
 
     private hide(): void {
