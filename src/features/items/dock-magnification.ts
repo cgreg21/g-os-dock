@@ -32,6 +32,7 @@ export class DockMagnificationController {
     private static readonly CURSOR_TAU = 0.045;
     private static readonly SPRING_OMEGA = 20;
     private static readonly MAX_FRAME_DT = 1 / 30;
+    private static readonly GAP_COMPRESSION = 0.35;
 
     constructor(
         private readonly content: St.BoxLayout,
@@ -232,8 +233,21 @@ export class DockMagnificationController {
         bounds[count] = entries[count - 1]!.end;
 
         expanded[0] = bounds[0]!;
-        for (let i = 0; i < count; i++)
-            expanded[i + 1] = expanded[i]! + (bounds[i + 1]! - bounds[i]!) * entries[i]!.scale;
+        for (let i = 0; i < count; i++) {
+            const entry = entries[i]!;
+            const slotSize = bounds[i + 1]! - bounds[i]!;
+            const iconSize = entry.end - entry.start;
+            const flexibleGap = Math.max(0, slotSize - iconSize);
+            const magnification = maximum > 1
+                ? Math.max(0, Math.min(1, (entry.scale - 1) / (maximum - 1)))
+                : 0;
+            // Enlarge the icon while compressing part of the surrounding
+            // flexible gap, instead of magnifying the gap along with the icon.
+            const compressedSlot = slotSize * entry.scale -
+                flexibleGap * DockMagnificationController.GAP_COMPRESSION *
+                magnification * this.envelope;
+            expanded[i + 1] = expanded[i]! + Math.max(iconSize * entry.scale, compressedSlot);
+        }
 
         // Keep the pointer's location stable while the neighboring slots expand.
         let shift = 0;
