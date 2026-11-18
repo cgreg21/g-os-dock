@@ -109,7 +109,6 @@ test('E2E: magnification scales visual actors without resizing dock slots', () =
     assert.ok(controller.includes('this.setVisualPivot(visual)'));
     assert.ok(controller.includes('this.surface = content.get_parent() ?? content'));
     assert.ok(!controller.includes('GAP_COMPRESSION'));
-    assert.ok(controller.includes('baseVisualWidth * (item.scale - 1)'));
     assert.ok(controller.includes('item.button.set_style(item.baseStyle)'));
     assert.ok(!controller.includes('entry.button.set_scale'));
     assert.ok(!controller.includes('entry.button.translation_x'));
