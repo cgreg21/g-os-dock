@@ -5,7 +5,11 @@ export class WindowTracker {
     private tracked = new Map<Meta.Window, number[]>();
     private destroyed = false;
 
-    constructor(private display: Meta.Display, private onChange: () => void) {}
+    constructor(
+        private display: Meta.Display,
+        private onChange: () => void,
+        private onWindowStateChange: () => void,
+    ) {}
 
     trackExisting(): void {
         if (this.destroyed)
@@ -27,14 +31,24 @@ export class WindowTracker {
                 connect: (signal: string, callback: () => void) => number;
             }
         ).connect.bind(window);
-        for (const signal of ['position-changed', 'size-changed', 'unmanaged']) {
+        for (const signal of [
+            'position-changed',
+            'size-changed',
+            'unmanaged',
+            'notify::minimized',
+        ]) {
             try {
                 signals.push(connectWindowSignal(signal, () => {
                     if (this.destroyed)
                         return;
-                    if (signal === 'unmanaged')
+                    if (signal === 'unmanaged') {
                         this.untrack(window);
-                    this.onChange();
+                        this.onChange();
+                    } else if (signal === 'notify::minimized') {
+                        this.onWindowStateChange();
+                    } else {
+                        this.onChange();
+                    }
                 }));
             } catch (_error) {
                 // Special window types may not expose every geometry signal.
