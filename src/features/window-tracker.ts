@@ -1,8 +1,14 @@
 import Meta from 'gi://Meta?version=51';
+import { CleanupManager } from './cleanup-manager.js';
+
+interface WindowSignalEmitter {
+    connect(signal: string, callback: () => void): number;
+    disconnect(id: number): void;
+}
 
 /** Tracks window geometry and lifetime signals for smart-hide updates. */
 export class WindowTracker {
-    private tracked = new Map<Meta.Window, number[]>();
+    private tracked = new Map<Meta.Window, CleanupManager>();
     private destroyed = false;
 
     constructor(
@@ -24,13 +30,9 @@ export class WindowTracker {
         if (this.destroyed || !window || this.tracked.has(window))
             return;
 
-        const signals: number[] = [];
+        const cleanup = new CleanupManager();
         // Meta.Window's GIR declarations omit these runtime GObject signals.
-        const connectWindowSignal = (
-            window as unknown as {
-                connect: (signal: string, callback: () => void) => number;
-            }
-        ).connect.bind(window);
+        const emitter = window as unknown as WindowSignalEmitter;
         for (const signal of [
             'position-changed',
             'size-changed',
@@ -38,7 +40,7 @@ export class WindowTracker {
             'notify::minimized',
         ]) {
             try {
-                signals.push(connectWindowSignal(signal, () => {
+                cleanup.addSignal(emitter, emitter.connect(signal, () => {
                     if (this.destroyed)
                         return;
                     if (signal === 'unmanaged') {
@@ -55,7 +57,7 @@ export class WindowTracker {
             }
         }
 
-        this.tracked.set(window, signals);
+        this.tracked.set(window, cleanup);
     }
 
     destroy(): void {
@@ -68,17 +70,11 @@ export class WindowTracker {
     }
 
     private untrack(window: Meta.Window): void {
-        const signals = this.tracked.get(window);
-        if (!signals)
+        const cleanup = this.tracked.get(window);
+        if (!cleanup)
             return;
 
         this.tracked.delete(window);
-        for (const signal of signals) {
-            try {
-                window.disconnect(signal);
-            } catch (_error) {
-                // Window may already have been disposed by Mutter.
-            }
-        }
+        cleanup.clear();
     }
 }
