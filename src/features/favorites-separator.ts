@@ -53,5 +53,5 @@ export function resolveFavoritesSeparatorTarget<T extends IdentifiedDockItem>(
         applications.map(application => application.get_id()),
         favoriteIds,
     );
-    return index >= 0 ? applications[index] : null;
+    return index >= 0 ? applications[index] ?? null : null;
 }
