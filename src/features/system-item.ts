@@ -6,6 +6,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { DockDragDrop } from './drag-and-drop.js';
 import { DockTooltip } from './tooltip.js';
+import { getDockMenuSide } from './menu-position.js';
 
 /** Configurable app-grid launcher and GNOME system actions. */
 export class DockSystemItem {
@@ -66,9 +67,7 @@ export class DockSystemItem {
             this.menuManager.removeMenu(this.menu);
             this.menu.destroy();
         }
-        const position = this.dockPosition();
-        const side = position === 'top' ? St.Side.BOTTOM : position === 'bottom' ? St.Side.TOP :
-            position === 'left' ? St.Side.RIGHT : St.Side.LEFT;
+        const side = getDockMenuSide(this.dockPosition());
         const menu = new PopupMenu.PopupMenu(this.button, 0.5, side);
         this.menu = menu;
         Main.uiGroup.add_child(menu.actor);
