@@ -38,10 +38,11 @@ export interface DockEdgeSensorOptions {
 /** Resolve the screen-space rectangle of the dock's edge reveal sensor. */
 export function resolveDockEdgeSensor(options: DockEdgeSensorOptions): DockRectangle {
     const { monitor, edge, thickness } = options;
-    const top = Math.min(
-        monitor.y + monitor.height,
-        monitor.y + Math.max(0, options.topInset ?? 0),
+    const safeTopInset = Math.min(
+        Math.max(0, options.topInset ?? 0),
+        Math.max(0, monitor.height - thickness),
     );
+    const top = monitor.y + safeTopInset;
     const height = Math.max(thickness, monitor.y + monitor.height - top);
 
     switch (edge) {
