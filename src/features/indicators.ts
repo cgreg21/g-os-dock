@@ -3,6 +3,7 @@ import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import type { DockAppButton } from './app-item.js';
 import { dockCache } from './cache.js';
+import { dockStyles } from './style-manager.js';
 
 /** Updates configurable open, focused and minimized application indicators. */
 export class DockIndicators {
@@ -61,7 +62,7 @@ export class DockIndicators {
                 const signature = [markerCount, length, thickness, radius, color, opacity,
                     borderSize, borderColor, borderOpacity].join(':');
                 if (this.markerSignatures.get(item) !== signature) {
-                    item._gOsDockIndicator.set_style(dockCache.getOrCreate(
+                    dockStyles.apply(item._gOsDockIndicator, dockCache.getOrCreate(
                         'indicator-marker-container-style',
                         () => 'spacing: 2px; width: auto; height: auto; background-color: transparent;',
                     ));
@@ -77,7 +78,7 @@ export class DockIndicators {
                                 `border-radius: ${radius}; background-color: rgba(${color}, ${opacity}); ` +
                                 `border: ${borderSize}px solid rgba(${borderColor}, ${borderOpacity});`,
                         );
-                        marker.set_style(markerStyle);
+                        dockStyles.apply(marker, markerStyle);
                         item._gOsDockIndicator.add_child(marker);
                     }
                     this.markerSignatures.set(item, signature);
