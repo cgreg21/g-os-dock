@@ -522,6 +522,7 @@ export class DockView {
         const pending: DockAppButton[] = [];
         const sizeChanged = this.itemSize !== 0 && this.itemSize !== size;
         const previousById = new Map<string, DockAppButton>();
+        const existingItems = new Set(this.itemActors);
 
         if (!sizeChanged) {
             for (const item of this.itemActors) {
@@ -550,7 +551,7 @@ export class DockView {
             }
         } catch (error) {
             for (const item of pending) {
-                if (!this.itemActors.includes(item))
+                if (!existingItems.has(item))
                     this.destroyAppItem(item);
             }
             throw error;
