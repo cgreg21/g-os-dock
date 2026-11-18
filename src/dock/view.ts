@@ -196,7 +196,6 @@ export class DockView {
                     if (this.destroyed)
                         return;
                     this.positionDock();
-                    this.layout.positionSensor();
                 },
             ));
         }
@@ -967,7 +966,6 @@ export class DockView {
             this.layoutIdleSource = 0;
             if (!this.destroyed) {
                 this.positionDock();
-                this.layout.positionSensor();
             }
             return GLib.SOURCE_REMOVE;
         });
