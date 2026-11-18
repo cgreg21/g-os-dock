@@ -51,23 +51,32 @@ export class DockAppearance {
             ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px ${shadowSpread}px ${this.rgba(shadowColor, shadowOpacity)};`
             : 'box-shadow: none;';
 
-        const backgroundStyle =
-            `background-color: ${this.rgba(backgroundColor, backgroundOpacity)}; ` +
-            `border: ${borderSize}px solid ${this.rgba(borderColor, borderOpacity)}; ` +
-            `border-radius: ${radius}; ` +
-            boxShadow;
+        const backgroundStyle = dockCache.getOrCreate(
+            `appearance-background-style:${backgroundColor}:${backgroundOpacity}:${borderSize}:${borderColor}:${borderOpacity}:${radius}:${boxShadow}`,
+            () =>
+                `background-color: ${this.rgba(backgroundColor, backgroundOpacity)}; ` +
+                `border: ${borderSize}px solid ${this.rgba(borderColor, borderOpacity)}; ` +
+                `border-radius: ${radius}; ` +
+                boxShadow,
+        );
         if (this.backgroundStyle !== backgroundStyle) {
             this.background.set_style(backgroundStyle);
             this.backgroundStyle = backgroundStyle;
         }
 
-        const actorStyle = `padding: ${top}px ${right}px ${bottom}px ${left}px;`;
+        const actorStyle = dockCache.getOrCreate(
+            `appearance-actor-style:${top}:${right}:${bottom}:${left}`,
+            () => `padding: ${top}px ${right}px ${bottom}px ${left}px;`,
+        );
         if (this.actorStyle !== actorStyle) {
             this.actor.set_style(actorStyle);
             this.actorStyle = actorStyle;
         }
 
-        const contentStyle = `spacing: ${spacing}px; color: ${defaultForeground};`;
+        const contentStyle = dockCache.getOrCreate(
+            `appearance-content-style:${spacing}:${defaultForeground}`,
+            () => `spacing: ${spacing}px; color: ${defaultForeground};`,
+        );
         if (this.contentStyle !== contentStyle) {
             this.content.set_style(contentStyle);
             this.contentStyle = contentStyle;
