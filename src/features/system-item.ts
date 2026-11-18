@@ -8,13 +8,14 @@ import { DockDragDrop } from './drag-and-drop.js';
 import { DockTooltip } from './tooltip.js';
 import { getDockMenuSide } from './menu-position.js';
 import { getIconPaddingStyle } from './icon-padding.js';
+import { CleanupManager } from './cleanup-manager.js';
 
 /** Configurable app-grid launcher and GNOME system actions. */
 export class DockSystemItem {
     private button: St.Button;
     private menuManager: PopupMenu.PopupMenuManager;
     private menu: PopupMenu.PopupMenu | null = null;
-    private iconSignal = 0;
+    private cleanup = new CleanupManager();
     private destroyed = false;
     private paddingStyle = '';
 
@@ -39,7 +40,8 @@ export class DockSystemItem {
             this.showMenu();
             return Clutter.EVENT_STOP;
         });
-        this.iconSignal = settings.connect('changed::system-icon-name', () => this.updateIcon());
+        const iconSignal = settings.connect('changed::system-icon-name', () => this.updateIcon());
+        this.cleanup.add(() => settings.disconnect(iconSignal));
         this.menuManager = new PopupMenu.PopupMenuManager(this.button);
         // Register only after parenting: GNOME's draggable setup expects the
         // source actor to belong to the live dock hierarchy.
@@ -144,7 +146,7 @@ export class DockSystemItem {
     destroy(): void {
         if (this.destroyed) return;
         this.destroyed = true;
-        if (this.iconSignal) this.settings.disconnect(this.iconSignal);
+        this.cleanup.clear();
         this.dragDrop.unregisterItem(this.button);
         this.closeMenu();
         this.button.destroy();
