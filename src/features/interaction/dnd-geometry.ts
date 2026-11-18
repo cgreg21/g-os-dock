@@ -73,13 +73,13 @@ export interface DockDndZoneGeometry {
 export function resolveDockRemovalZoneGeometry(
     monitor: DockDndMonitorGeometry,
     dockPosition: string,
-    topInset = 0,
+    topInset?: number,
 ): DockDndZoneGeometry {
     const verticalDock = dockPosition === 'left' || dockPosition === 'right';
     const extent = Math.floor(
         (verticalDock ? monitor.width : monitor.height) * 2 / 3,
     );
-    const safeTopInset = Math.max(0, topInset);
+    const safeTopInset = Math.max(0, topInset ?? 32);
     let x = monitor.x;
     let y = monitor.y;
     let width = monitor.width;
@@ -100,7 +100,7 @@ export function resolveDockRemovalZoneGeometry(
     case 'bottom':
     default:
         y += safeTopInset;
-        height = Math.max(1, extent - safeTopInset);
+        height = Math.max(1, extent - (topInset === undefined ? 0 : safeTopInset));
         break;
     }
 
