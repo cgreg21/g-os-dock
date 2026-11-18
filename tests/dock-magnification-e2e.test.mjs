@@ -26,7 +26,7 @@ test('E2E: magnification uses a frame-driven raised-cosine wave with smoothed po
     assert.ok(controller.includes('MAX_FRAME_DT = 1 / 30'));
 });
 
-test('E2E: magnification reflows neighboring slots and keeps the pointer anchored', () => {
+test('E2E: magnification keeps dock slots fixed while tracking the pointer wave', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
     assert.ok(controller.includes('item.button.get_allocation_box()'));
@@ -58,7 +58,7 @@ test('E2E: magnification is shared by all dock items and frame resources are cle
     assert.ok(base.includes('magnification.unregister(this.button)'));
     assert.ok(controller.includes('this.stopTimeline()'));
     assert.ok(controller.includes('this.cleanup.clear()'));
-    assert.ok(controller.includes('this.resetAllActors()'));
+    assert.ok(controller.includes('this.resetAllVisuals()'));
 });
 
 test('E2E: every interactive dock item type joins the shared magnification wave', () => {
@@ -69,7 +69,7 @@ test('E2E: every interactive dock item type joins the shared magnification wave'
     const trash = read('../src/features/items/trash-item.ts');
     const volumes = read('../src/features/items/volume-items.ts');
 
-    assert.ok(base.includes('controller.register(this.button)'));
+    assert.ok(base.includes('controller.register(this.button, visualActor ?? this.button.get_child() ?? this.button)'));
     assert.ok(applications.includes('new DockItemBase('));
     assert.ok(folders.includes('new DockItemBase(\n            this.content,'));
     assert.ok(system.includes('new DockItemBase(\n            this.content,'));
@@ -123,7 +123,7 @@ test('E2E: dock backdrop blur is configurable and updates with appearance settin
 });
 
 
-test('E2E: magnification compresses flexible gaps without clipping enlarged icons', () => {
+test('E2E: magnification scales visual actors without resizing dock slots', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
     assert.ok(controller.includes('item.button.get_allocation_box()'));
