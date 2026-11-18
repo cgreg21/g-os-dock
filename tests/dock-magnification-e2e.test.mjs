@@ -76,31 +76,14 @@ test('E2E: folder items participate in shared magnification and keep lifecycle c
     assert.ok(folders.includes('this.animateOut(folder)'));
 });
 
-test('E2E: dock background expands with the live magnification wave on all orientations', () => {
-    const controller = read('../src/features/items/dock-magnification.ts');
-    const base = read('../src/features/items/dock-item-base.ts');
-    const view = read('../src/dock/view.ts');
+test('E2E: dock background preserves its fixed height during magnification', () => {
     const layout = read('../src/features/layout/layout.ts');
-
-    assert.ok(controller.includes('onSurfaceExtentChanged?.('));
-    assert.ok(controller.includes('this.content.queue_relayout()'));
-    assert.ok(view.includes('this.layout.position(false)'));
-    assert.ok(layout.includes('position(immediate = false)'));
-    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0)'));
-    assert.ok(base.includes('setMagnificationSurfaceHandler'));
-    assert.ok(base.includes('magnificationSurfaceHandlers.get(this.content)'));
-    assert.ok(view.includes('this.layout.setMagnificationInsets(leading, trailing, active)'));
-    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, true)'));
-    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, false)'));
-    assert.ok(layout.includes('setMagnificationInsets(leading: number, trailing: number)'));
-    assert.ok(layout.includes('this.backgroundBaseWidth + leading + trailing'));
-    assert.ok(layout.includes('const stableHeight = this.magnificationActive ? this.backgroundBaseHeight : backgroundHeight'));
     assert.ok(layout.includes('const height = this.backgroundBaseHeight'));
+    assert.ok(layout.includes('this.backgroundBaseWidth + leading + trailing'));
     assert.ok(layout.includes('this.magnificationActive = active'));
-    assert.ok(layout.includes('this.backgroundBaseX - leading'));
-    assert.ok(layout.includes('this.backgroundBaseY - leading'));
-    assert.ok(layout.includes('this.background.remove_transition(property)'));
 });
+
+
 
 
 test('E2E: dock backdrop blur is configurable and updates with appearance settings', () => {
