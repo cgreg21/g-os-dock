@@ -1,7 +1,7 @@
 import Adw from 'gi://Adw?version=1';
 import Gio from 'gi://Gio?version=2.0';
 import { addColorPicker } from './color-picker.js';
-import { addSpin, addSwitch } from './settings-controls.js';
+import { addCombo, addSpin, addSwitch } from './settings-controls.js';
 
 export function addBackgroundPreferences(page: Adw.PreferencesPage, settings: Gio.Settings): void {
     const base = new Adw.PreferencesGroup({ title: 'Background and border' });
@@ -59,13 +59,4 @@ export function addIndicatorPreferences(page: Adw.PreferencesPage, settings: Gio
     addSwitch(group, settings, 'indicator-show-open', 'Show when application is open');
     addSwitch(group, settings, 'indicator-show-focused', 'Show when application is focused');
     addSwitch(group, settings, 'indicator-show-minimized', 'Show when all windows are minimized');
-}
-
-function addCombo(group: Adw.PreferencesGroup, settings: Gio.Settings, key: string, title: string, labels: string[], values: string[]): void {
-    const row = new Adw.ComboRow({ title, model: new Gtk.StringList({ strings: labels }) });
-    const sync = () => { const index = values.indexOf(settings.get_string(key)); row.selected = index >= 0 ? index : 0; };
-    sync();
-    row.connect('notify::selected', () => { const value = values[row.selected]; if (value) settings.set_string(key, value); });
-    settings.connect(`changed::${key}`, sync);
-    group.add(row);
 }
