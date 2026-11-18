@@ -139,6 +139,17 @@ test('E2E: reactive state is restored and signal resources are released', () => 
     assert.ok(controller.includes('this.pointerAxis = null'));
 });
 
+test('E2E: every registered visual uses its transformed geometry without mutation', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    assert.ok(controller.includes('private readonly items = new Map<St.Button, Clutter.Actor>()'));
+    assert.ok(controller.includes('this.items.set(button, visual)'));
+    assert.ok(controller.includes('getItemScales(influenceRadiusFactor = 2.5, maxScale = 4)'));
+    assert.ok(controller.includes('visual.get_transformed_position()'));
+    assert.ok(controller.includes('visual.get_transformed_size()'));
+    assert.ok(controller.includes('resolveMagnificationItemScale('));
+    assert.ok(controller.includes('return scales'));
+});
+
 test('E2E: pointer observation does not animate, scale, resize, or relayout items', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(!controller.includes('Clutter.Timeline'));
