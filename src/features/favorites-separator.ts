@@ -1,3 +1,5 @@
+export const FAVORITES_SEPARATOR_MARGIN = 4;
+
 export interface IdentifiedDockItem {
     get_id(): string | null;
 }
