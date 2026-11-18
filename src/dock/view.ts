@@ -486,12 +486,16 @@ export class DockView {
         const favoriteIds = new Set(
             this.favorites.getFavorites().map(app => app.get_id()),
         );
-        const hasFavorites = applications.some(app =>
-            favoriteIds.has(app.get_id()),
-        );
-        const hasRunningApps = applications.some(app =>
-            !favoriteIds.has(app.get_id()),
-        );
+        let hasFavorites = false;
+        let hasRunningApps = false;
+        for (const app of applications) {
+            if (favoriteIds.has(app.get_id()))
+                hasFavorites = true;
+            else
+                hasRunningApps = true;
+            if (hasFavorites && hasRunningApps)
+                break;
+        }
         const separatorSpace = this.settings.get_boolean('show-favorites-separator') &&
             hasFavorites && hasRunningApps
             ? this.settings.get_int('favorites-separator-size') + spacing
