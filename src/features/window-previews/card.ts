@@ -2,6 +2,7 @@ import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import Meta from 'gi://Meta?version=51';
 import Shell from 'gi://Shell?version=51';
+import { dockCache } from '../cache.js';
 
 /** Builds a single window preview card and its window actions. */
 export function createWindowPreviewCard(
@@ -19,7 +20,10 @@ export function createWindowPreviewCard(
         x_expand: false,
         y_expand: false,
     });
-    card.set_style('spacing: 5px; padding: 6px; border-radius: 9px; background-color: rgba(255,255,255,0.07);');
+    card.set_style(dockCache.getOrCreate(
+        'preview-card-style',
+        () => 'spacing: 5px; padding: 6px; border-radius: 9px; background-color: rgba(255,255,255,0.07);',
+    ));
 
     const previewButton = new St.Button({
         style_class: 'g-os-dock-preview-open',
@@ -29,12 +33,18 @@ export function createWindowPreviewCard(
         x_expand: false,
         y_expand: false,
     });
-    previewButton.set_style('padding: 0; background-color: transparent;');
+    previewButton.set_style(dockCache.getOrCreate(
+        'preview-open-button-style',
+        () => 'padding: 0; background-color: transparent;',
+    ));
 
     const content = new St.BoxLayout({
         orientation: Clutter.Orientation.VERTICAL,
     });
-    content.set_style('spacing: 5px;');
+    content.set_style(dockCache.getOrCreate(
+        'preview-card-content-style',
+        () => 'spacing: 5px;',
+    ));
     let compositorActor: Clutter.Actor | null = null;
     try {
         compositorActor = window.get_compositor_private();
