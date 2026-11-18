@@ -33,6 +33,9 @@ test('expires entries lazily and supports a zero TTL', () => {
         assert.equal(cache.has('short-lived'), false);
         cache.set('immediate', 'value', 0);
         assert.equal(cache.get('immediate'), undefined);
+        cache.set('not-a-duration', 'value', Number.NaN);
+        assert.equal(cache.has('not-a-duration'), false);
+        assert.equal(cache.get('not-a-duration'), undefined);
     } finally {
         Date.now = originalNow;
     }
