@@ -6,6 +6,7 @@ import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { dockCache } from '../../core/cache.js';
 import { ChromeActorManager } from '../../core/chrome-actor-manager.js';
+import { AnimationManager, type AnimationTarget } from '../../core/animation-manager.js';
 import {
     canDropDockItemAtIndex,
     isDockDndFavoriteBoundaryInsertion,
@@ -46,6 +47,7 @@ export class DockDragDrop {
     private removingItemId: string | null = null;
     private removingActor: St.Widget | null = null;
     private destroyed = false;
+    private animations = new AnimationManager();
     private chromeActors = new ChromeActorManager<St.Widget>(
         (actor, options) => Main.layoutManager.addChrome(actor, options),
         actor => Main.layoutManager.removeChrome(actor),
@@ -153,7 +155,7 @@ export class DockDragDrop {
         if (itemId && this.removingItemId === itemId) {
             this.removingItemId = null;
             this.removingActor = null;
-            actor.remove_all_transitions();
+            this.animations.cancel(`remove:${itemId}`);
             actor.opacity = 255;
             actor.scale_x = 1;
             actor.scale_y = 1;
@@ -397,11 +399,12 @@ export class DockDragDrop {
             return false;
         this.removingItemId = item.id;
         this.removingActor = item.actor;
-        item.actor.ease({
+        this.animations.animate(`remove:${item.id}`, item.actor as unknown as AnimationTarget, {
             opacity: 0,
             scaleX: 0.08,
             scaleY: 0.08,
-            duration: 240,
+        }, {
+            durationMs: 240,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => {
                 if (this.destroyed || this.removingItemId !== item.id ||
@@ -439,8 +442,8 @@ export class DockDragDrop {
         if (this.destroyed)
             return;
         this.destroyed = true;
+        this.animations.destroy();
         if (this.removingActor) {
-            this.removingActor.remove_all_transitions();
             this.removingActor = null;
             this.removingItemId = null;
         }
