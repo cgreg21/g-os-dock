@@ -1,0 +1,42 @@
+export interface IndicatorMarkerStyleOptions {
+    length: number;
+    thickness: number;
+    radius: string;
+    color: string;
+    opacity: number;
+    borderSize: number;
+    borderColor: string;
+    borderOpacity: number;
+}
+
+/** Convert a validated hexadecimal color into an RGB CSS tuple. */
+export function resolveIndicatorColor(value: string): string {
+    const normalized = /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#e6e6f0';
+    const hex = normalized.slice(1);
+    return `${parseInt(hex.slice(0, 2), 16)}, ${parseInt(hex.slice(2, 4), 16)}, ${parseInt(hex.slice(4, 6), 16)}`;
+}
+
+/** Stable cache key for a marker's complete visual configuration. */
+export function createIndicatorMarkerSignature(
+    markerCount: number,
+    options: IndicatorMarkerStyleOptions,
+): string {
+    return [
+        markerCount,
+        options.length,
+        options.thickness,
+        options.radius,
+        options.color,
+        options.opacity,
+        options.borderSize,
+        options.borderColor,
+        options.borderOpacity,
+    ].join(':');
+}
+
+/** Build the CSS used by one visual marker without depending on GNOME actors. */
+export function createIndicatorMarkerStyle(options: IndicatorMarkerStyleOptions): string {
+    return `width: ${options.length}px; height: ${options.thickness}px; ` +
+        `border-radius: ${options.radius}; background-color: rgba(${options.color}, ${options.opacity}); ` +
+        `border: ${options.borderSize}px solid rgba(${options.borderColor}, ${options.borderOpacity});`;
+}
