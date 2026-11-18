@@ -54,7 +54,8 @@ export class DockIndicators {
             );
 
             if (item._gOsDockIndicator) {
-                item._gOsDockIndicator.visible = shouldShow;
+                if (item._gOsDockIndicator.visible !== shouldShow)
+                    item._gOsDockIndicator.visible = shouldShow;
                 const markerCount = multiple ? Math.max(1, windows.length) : 1;
                 const length = shape === 'line' ? indicatorSize * 2 : indicatorSize;
                 const thickness = indicatorSize;
@@ -83,11 +84,14 @@ export class DockIndicators {
                 if (iconContainer) {
                     const spacing = 2;
                     const totalWidth = markerCount * length + Math.max(0, markerCount - 1) * spacing;
-                    item._gOsDockIndicator.set_size(totalWidth, thickness);
-                    item._gOsDockIndicator.set_position(
-                        Math.max(0, (iconContainer.width - totalWidth) / 2),
-                        iconContainer.height - thickness - bottomOffset,
-                    );
+                    if (item._gOsDockIndicator.width !== totalWidth ||
+                        item._gOsDockIndicator.height !== thickness)
+                        item._gOsDockIndicator.set_size(totalWidth, thickness);
+                    const x = Math.max(0, (iconContainer.width - totalWidth) / 2);
+                    const y = iconContainer.height - thickness - bottomOffset;
+                    const [currentX, currentY] = item._gOsDockIndicator.get_position();
+                    if (currentX !== x || currentY !== y)
+                        item._gOsDockIndicator.set_position(x, y);
                 }
             }
 
@@ -107,7 +111,9 @@ export class DockIndicators {
                 const badgeText = showCount && count > 1 ? String(count) : '';
                 if (item._gOsDockBadge.text !== badgeText)
                     item._gOsDockBadge.text = badgeText;
-                item._gOsDockBadge.visible = badgeText !== '';
+                const badgeVisible = badgeText !== '';
+                if (item._gOsDockBadge.visible !== badgeVisible)
+                    item._gOsDockBadge.visible = badgeVisible;
             }
 
         }
