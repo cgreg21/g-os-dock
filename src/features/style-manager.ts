@@ -1,10 +1,13 @@
-import St from 'gi://St?version=51';
+/** Minimal actor contract keeps style management independent of GNOME APIs. */
+export interface StyledActor {
+    set_style(style: string): void;
+}
 
 /** Avoids redundant GTK/Clutter style recalculation for unchanged styles. */
 export class DockStyleManager {
-    private styles = new WeakMap<St.Widget, string>();
+    private styles = new WeakMap<StyledActor, string>();
 
-    apply(actor: St.Widget, style: string): boolean {
+    apply(actor: StyledActor, style: string): boolean {
         if (this.styles.get(actor) === style)
             return false;
         actor.set_style(style);
@@ -12,7 +15,7 @@ export class DockStyleManager {
         return true;
     }
 
-    forget(actor: St.Widget): void {
+    forget(actor: StyledActor): void {
         this.styles.delete(actor);
     }
 }
