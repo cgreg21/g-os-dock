@@ -252,6 +252,9 @@ export class DockDragDrop {
     }
 
     private finishDrag(actor: St.Widget): void {
+        if (this.draggedItem?.actor !== actor)
+            return;
+
         actor.remove_style_class_name('dragging');
         this.hideRemovalZone();
         this.endPreview();
