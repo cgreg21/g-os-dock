@@ -27,6 +27,23 @@ test('runs callbacks added after clearing immediately', () => {
     assert.equal(manager.size, 0);
 });
 
+test('contains failures from callbacks registered after clearing', () => {
+    const manager = new CleanupManager();
+    const calls = [];
+    const originalLogError = globalThis.logError;
+    globalThis.logError = () => {};
+    try {
+        manager.clear();
+        manager.add(() => { throw new Error('late cleanup failure'); });
+        manager.add(() => calls.push('released'));
+    } finally {
+        globalThis.logError = originalLogError;
+    }
+
+    assert.deepEqual(calls, ['released']);
+    assert.equal(manager.size, 0);
+});
+
 test('continues releasing resources when one cleanup callback fails', () => {
     const manager = new CleanupManager();
     const calls = [];
