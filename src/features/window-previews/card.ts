@@ -119,9 +119,8 @@ export function createWindowPreviewCard(
             onClose();
         });
         actions.add_child(switchWorkspace);
+        card.add_child(actions);
     }
-
-    card.add_child(actions);
 
     return { card, previewButton };
 }
