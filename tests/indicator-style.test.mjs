@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
     createIndicatorMarkerSignature,
+    createIndicatorMarkerStyleKey,
     createIndicatorMarkerStyle,
     resolveIndicatorColor,
 } from '../dist/features/indicator-style.js';
@@ -42,5 +43,20 @@ test('builds marker CSS from the supplied style options', () => {
         'width: 12px; height: 4px; border-radius: 999px; ' +
         'background-color: rgba(230, 230, 240, 0.8); ' +
         'border: 1px solid rgba(10, 20, 30, 0.5);',
+    );
+});
+
+test('creates a reusable style cache key independent of marker count', () => {
+    assert.equal(
+        createIndicatorMarkerStyleKey(options),
+        '12:4:999px:230, 230, 240:0.8:1:10, 20, 30:0.5',
+    );
+    assert.equal(
+        createIndicatorMarkerSignature(2, options).slice(2),
+        createIndicatorMarkerStyleKey(options),
+    );
+    assert.equal(
+        createIndicatorMarkerSignature(5, options).slice(2),
+        createIndicatorMarkerStyleKey(options),
     );
 });
