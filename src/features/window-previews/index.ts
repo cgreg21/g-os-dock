@@ -12,6 +12,7 @@ import { dockCache } from '../cache.js';
 import { SettingsObserver } from '../settings-observer.js';
 import { TaskScheduler } from '../task-scheduler.js';
 import { ChromeActorManager } from '../chrome-actor-manager.js';
+import { DockPositioner } from '../dock-positioner.js';
 
 /**
  * Owns the lifecycle and rendering of application window previews.
@@ -139,21 +140,20 @@ export class WindowPreviews {
         const [previewMinHeight, previewNaturalHeight] = previews.get_preferred_height(-1);
         const previewWidth = Math.max(previewMinWidth, previewNaturalWidth);
         const previewHeight = Math.max(previewMinHeight, previewNaturalHeight);
-        const position = dockPosition;
-        let x = itemX + itemWidth / 2 - previewWidth / 2;
-        let y = itemY - previewHeight - 12;
-        if (position === 'top')
-            y = itemY + itemHeight + 12;
-        else if (position === 'left') {
-            x = itemX + itemWidth + 12;
-            y = itemY + itemHeight / 2 - previewHeight / 2;
-        } else if (position === 'right') {
-            x = itemX - previewWidth - 12;
-            y = itemY + itemHeight / 2 - previewHeight / 2;
-        }
-        x = Math.max(this.monitor.x + 8, Math.min(x, this.monitor.x + this.monitor.width - previewWidth - 8));
-        y = Math.max(this.monitor.y + 8, Math.min(y, this.monitor.y + this.monitor.height - previewHeight - 8));
-        previews.set_position(Math.round(x), Math.round(y));
+        const point = DockPositioner.placeFloating(
+            { x: itemX, y: itemY, width: itemWidth, height: itemHeight },
+            { width: previewWidth, height: previewHeight },
+            dockPosition as 'top' | 'right' | 'bottom' | 'left',
+            12,
+            {
+                x: this.monitor.x,
+                y: this.monitor.y,
+                width: this.monitor.width,
+                height: this.monitor.height,
+            },
+            8,
+        );
+        previews.set_position(point.x, point.y);
         previews.show();
         if (focusFirst)
             firstPreviewButton?.grab_key_focus();
