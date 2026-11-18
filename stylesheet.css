@@ -170,3 +170,50 @@
   background-color: rgba(53, 132, 228, 0.28);
   border: 2px solid rgba(120, 169, 255, 0.9);
 }
+
+
+.g-os-dock-folder-view-item {
+  padding: 10px;
+}
+
+.g-os-dock-folder-grid {
+  spacing: 8px;
+  padding: 4px;
+}
+
+.g-os-dock-folder-grid-row {
+  spacing: 8px;
+}
+
+.g-os-dock-folder-app {
+  min-width: 68px;
+  min-height: 76px;
+  padding: 5px;
+  border-radius: 10px;
+  transition-duration: 120ms;
+}
+
+.g-os-dock-folder-app:hover,
+.g-os-dock-folder-app:focus {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.g-os-dock-folder-app-content {
+  spacing: 4px;
+}
+
+.g-os-dock-folder-app-label {
+  max-width: 76px;
+  font-size: 10px;
+}
+
+.g-os-dock-folder-stack {
+  padding: 4px;
+}
+
+.g-os-dock-folder-stack .g-os-dock-folder-app {
+  background-color: rgba(48, 52, 62, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+}
