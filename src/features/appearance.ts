@@ -2,7 +2,7 @@ import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { dockCache } from './cache.js';
 import { dockStyles } from './style-manager.js';
-import { createRgbaColor, normalizeHexColor } from './color-utils.js';
+import { createRgbaColor, normalizeHexColor, normalizeUnitInterval } from './color-utils.js';
 
 /** Applies the user-configurable dock surface and spacing. */
 export class DockAppearance {
@@ -80,7 +80,7 @@ export class DockAppearance {
     }
 
     private rgba(hex: string, opacity: number): string {
-        const normalizedOpacity = Math.max(0, Math.min(1, opacity));
+        const normalizedOpacity = normalizeUnitInterval(opacity);
         return dockCache.getOrCreate(`rgba:${hex}:${normalizedOpacity}`, () =>
             createRgbaColor(hex, normalizedOpacity),
         );
