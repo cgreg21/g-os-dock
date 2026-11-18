@@ -25,6 +25,29 @@ export function resolveMagnificationPointerAxis(
 }
 
 /**
+ * Computes a smooth, symmetric magnification influence for one item.
+ * The cosine falloff reaches maxScale at the pointer and returns to 1 at
+ * influenceRadius. This is a pure calculation; it does not alter any actor.
+ */
+export function resolveMagnificationScale(
+    pointerAxis: number,
+    itemCenter: number,
+    influenceRadius: number,
+    maxScale: number,
+): number {
+    if (![pointerAxis, itemCenter, influenceRadius, maxScale].every(Number.isFinite)
+        || influenceRadius <= 0 || maxScale < 1)
+        return 1;
+
+    const normalizedDistance = Math.abs(pointerAxis - itemCenter) / influenceRadius;
+    if (normalizedDistance >= 1)
+        return 1;
+
+    const influence = (1 + Math.cos(Math.PI * normalizedDistance)) / 2;
+    return 1 + (maxScale - 1) * influence;
+}
+
+/**
  * Pointer observation only: no animation, scaling, button resizing, or layout.
  */
 export class DockMagnificationController {
