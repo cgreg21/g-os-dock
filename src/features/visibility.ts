@@ -85,6 +85,10 @@ export class DockVisibility {
         if (this.isInactive() || !this.initialized || this.actor.visible)
             return;
 
+        this.setHiddenPosition();
+    }
+
+    private setHiddenPosition(): void {
         const position = this.settings.get_string('dock-position');
         const distanceX = position === 'left'
             ? -Math.max(this.actor.width, this.background.width)
@@ -218,6 +222,9 @@ export class DockVisibility {
             ...transition,
             onComplete: () => {
                 if (!this.isInactive()) {
+                    // The dock may have changed size while the slide was
+                    // running. Recalculate its final offset before hiding it.
+                    this.setHiddenPosition();
                     this.actor.reactive = false;
                     this.actor.hide();
                     this.background.hide();
