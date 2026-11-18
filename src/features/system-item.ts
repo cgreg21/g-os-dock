@@ -131,6 +131,7 @@ export class DockSystemItem {
         if (this.destroyed) return;
         this.destroyed = true;
         this.closeMenu();
+        this.menuLifecycle.destroy();
         this.item.destroy();
     }
 }
