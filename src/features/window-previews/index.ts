@@ -12,7 +12,7 @@ import { dockCache } from '../cache.js';
 import { SettingsObserver } from '../settings-observer.js';
 import { TaskScheduler } from '../task-scheduler.js';
 import { ChromeActorManager } from '../chrome-actor-manager.js';
-import { DockPositioner } from '../dock-positioner.js';
+import { DockPositioner, isVerticalDockPosition } from '../dock-positioner.js';
 
 /**
  * Owns the lifecycle and rendering of application window previews.
@@ -85,7 +85,7 @@ export class WindowPreviews {
         const dockPosition = this.settings.get_string('dock-position');
         const verticalDock = dockCache.getOrCreate(
             `preview-vertical-dock:${dockPosition}`,
-            () => dockPosition === 'left' || dockPosition === 'right',
+            () => isVerticalDockPosition(dockPosition),
         );
         const previews = new St.BoxLayout({
             style_class: 'g-os-dock-previews',
