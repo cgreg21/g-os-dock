@@ -231,12 +231,12 @@ test('E2E: invalid button layout geometry safely preserves the original slot', a
 
 async function loadButtonStyleResolver() {
     const source = read('../src/features/items/dock-magnification.ts');
-    const match = source.match(/export function resolveMagnificationButtonStyle\\([\\s\\S]*?\\n}\\n/);
+    const match = source.match(/export function resolveMagnificationButtonStyle\([\s\S]*?\n}\n/);
     assert.ok(match, 'the button style resolver must be present');
     const javascript = match[0]
         .replace('export function', 'function')
         .replace(/:\\s*(?:string|number)/g, '');
-    const moduleSource = javascript + '\\nexport { resolveMagnificationButtonStyle };\\n';
+    const moduleSource = javascript + '\nexport { resolveMagnificationButtonStyle };\n';
     const encoded = Buffer.from(moduleSource).toString('base64');
     return import('data:text/javascript;base64,' + encoded);
 }
