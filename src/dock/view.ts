@@ -22,6 +22,7 @@ import { DockTrashItem } from '../features/trash-item.js';
 import { DockVolumeItems } from '../features/volume-items.js';
 import { dockCache } from '../features/cache.js';
 import { CleanupManager } from '../features/cleanup-manager.js';
+import { SettingsObserver } from '../features/settings-observer.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -40,6 +41,7 @@ export class DockView {
 
     private destroyed = false;
     private cleanup = new CleanupManager();
+    private settingsObserver = new SettingsObserver();
     private contextMenu: AppContextMenu;
     private itemActors: DockAppButton[] = [];
     private itemSize = 0;
@@ -242,13 +244,10 @@ export class DockView {
     }
 
     private connectThemeSignal(): void {
-        this.cleanup.addSignal(this.desktopSettings, this.desktopSettings.connect(
-            'changed::color-scheme',
-            () => {
-                this.appearance.apply();
-                this.queueLayoutUpdate();
-            },
-        ));
+        this.settingsObserver.watch(this.desktopSettings, 'color-scheme', () => {
+            this.appearance.apply();
+            this.queueLayoutUpdate();
+        });
     }
 
     private connectPointerSignals(): void {
@@ -263,10 +262,7 @@ export class DockView {
     }
 
     private connectSettingsSignal(): void {
-        this.cleanup.addSignal(this.settings, this.settings.connect(
-            'changed',
-            () => this.applySettings(),
-        ));
+        this.settingsObserver.watchAll(this.settings, () => this.applySettings());
     }
 
     private connectSignals(): void {
@@ -887,6 +883,7 @@ export class DockView {
             GLib.Source.remove(this.layoutIdleSource);
             this.layoutIdleSource = 0;
         }
+        this.settingsObserver.destroy();
         this.cleanup.clear();
         this.visibility.destroy();
         this.previews.destroy();
