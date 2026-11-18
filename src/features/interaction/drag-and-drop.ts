@@ -85,11 +85,7 @@ export class DockDragDrop {
 
         this.setDragDelegate(item);
         const registration = {
-            draggable: DND.makeDraggable(actor, {
-                dragActorOpacity: 210,
-                // Require a deliberate press before a pointer movement starts a drag.
-                timeoutThreshold: 160,
-            }),
+            draggable: DND.makeDraggable(actor, { dragActorOpacity: 210 }),
             signals: [] as number[],
             item,
             onStart,
