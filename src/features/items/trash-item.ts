@@ -86,7 +86,7 @@ export class DockTrashItem {
         }
         if (this.icon.icon_size !== this.iconSize)
             this.icon.icon_size = this.iconSize;
-        this.item.setIconPadding(this.settings, this.iconSize);
+        this.item.setIconPadding(this.settings, this.iconSize, this.icon);
     }
 
     getActor(): St.Button {
