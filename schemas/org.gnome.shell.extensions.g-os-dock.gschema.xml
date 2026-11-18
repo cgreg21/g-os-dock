@@ -30,6 +30,8 @@
     <key name="hover-animation" type="s"><default>'scale'</default><summary>Dock item hover animation: none, scale, lift, bounce or glow</summary></key>
     <key name="hover-animation-intensity" type="i"><range min="1" max="8"/><default>5</default><summary>Dock item hover animation intensity</summary></key>
     <key name="hover-animation-duration" type="i"><range min="80" max="300"/><default>130</default><summary>Dock item hover animation duration in milliseconds</summary></key>
+    <key name="dock-magnification-enabled" type="b"><default>true</default><summary>Enable smooth pointer-based dock icon magnification</summary></key>
+    <key name="dock-magnification-scale" type="i"><range min="100" max="400"/><default>400</default><summary>Maximum dock icon magnification percentage</summary></key>
     <key name="theme" type="s"><default>'dark'</default><summary>Dock theme: dark, light or system</summary></key>
     <key name="smart-hide" type="b"><default>false</default><summary>Hide the dock when a normal window overlaps it</summary></key>
     <key name="background-color" type="s"><default>'#20232d'</default><summary>Dock background color in hexadecimal</summary></key>
