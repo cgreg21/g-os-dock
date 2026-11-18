@@ -1,12 +1,10 @@
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { dockCache } from './cache.js';
+import { dockStyles } from './style-manager.js';
 
 /** Applies the user-configurable dock surface and spacing. */
 export class DockAppearance {
-    private backgroundStyle = '';
-    private actorStyle = '';
-    private contentStyle = '';
 
     constructor(
         private background: St.Widget,
@@ -59,28 +57,19 @@ export class DockAppearance {
                 `border-radius: ${radius}; ` +
                 boxShadow,
         );
-        if (this.backgroundStyle !== backgroundStyle) {
-            this.background.set_style(backgroundStyle);
-            this.backgroundStyle = backgroundStyle;
-        }
+        dockStyles.apply(this.background, backgroundStyle);
 
         const actorStyle = dockCache.getOrCreate(
             `appearance-actor-style:${top}:${right}:${bottom}:${left}`,
             () => `padding: ${top}px ${right}px ${bottom}px ${left}px;`,
         );
-        if (this.actorStyle !== actorStyle) {
-            this.actor.set_style(actorStyle);
-            this.actorStyle = actorStyle;
-        }
+        dockStyles.apply(this.actor, actorStyle);
 
         const contentStyle = dockCache.getOrCreate(
             `appearance-content-style:${spacing}:${defaultForeground}`,
             () => `spacing: ${spacing}px; color: ${defaultForeground};`,
         );
-        if (this.contentStyle !== contentStyle) {
-            this.content.set_style(contentStyle);
-            this.contentStyle = contentStyle;
-        }
+        dockStyles.apply(this.content, contentStyle);
     }
 
     private color(value: string, fallback: string): string {
