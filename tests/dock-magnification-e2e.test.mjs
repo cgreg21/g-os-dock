@@ -69,7 +69,7 @@ test('E2E: every interactive dock item type joins the shared magnification wave'
     const trash = read('../src/features/items/trash-item.ts');
     const volumes = read('../src/features/items/volume-items.ts');
 
-    assert.ok(base.includes('controller.register(this.button, visualActor ?? this.button.get_child() ?? this.button)'));
+    assert.ok(base.includes('controller.register(this.button, visualActor ?? this.button.get_first_child() ?? this.button)'));
     assert.ok(applications.includes('new DockItemBase('));
     assert.ok(folders.includes('new DockItemBase(\n            this.content,'));
     assert.ok(system.includes('new DockItemBase(\n            this.content,'));
@@ -153,5 +153,5 @@ test('E2E: only visual icons scale; button padding and dock gaps remain fixed', 
     assert.ok(system.includes('this.item.setIconPadding(this.settings, this.iconSize, icon)'));
     assert.ok(trash.includes('this.item.setIconPadding(this.settings, this.iconSize, this.icon)'));
     assert.ok(volumes.includes('item.item.setIconPadding(this.settings, size, item.icon)'));
-    assert.ok(folders.includes('folder.actor.get_child() ?? folder.actor'));
+    assert.ok(folders.includes('folder.actor.get_first_child() ?? folder.actor'));
 });
