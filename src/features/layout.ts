@@ -2,7 +2,7 @@ import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Gio from 'gi://Gio?version=2.0';
-import { DockPositioner, resolveDockEdgeSensor } from './dock-positioner.js';
+import { DockPositioner, resolveDockEdgeSensor, type DockEdge } from './dock-positioner.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -176,7 +176,7 @@ export class DockLayout {
             ) - this.monitor.y;
         const sensor = resolveDockEdgeSensor({
             monitor,
-            edge: position,
+            edge: position as DockEdge,
             thickness: EDGE_THICKNESS,
             topInset,
         });
