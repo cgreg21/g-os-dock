@@ -4,7 +4,10 @@ import Gio from 'gi://Gio?version=2.0';
 import type { DockAppButton } from './app-item.js';
 import { dockCache } from './cache.js';
 import { dockStyles } from './style-manager.js';
-import { resolveWindowIndicatorState } from './window-indicator-state.js';
+import {
+    resolveWindowIndicatorState,
+    type WindowIndicatorState,
+} from './window-indicator-state.js';
 import {
     createIndicatorMarkerSignature,
     createIndicatorMarkerStyle,
@@ -23,12 +26,7 @@ import { resolveActiveIndicatorTransition } from './active-indicator-state.js';
 export class DockIndicators {
     private markerSignatures = new WeakMap<DockAppButton, string>();
     private activeStates = new WeakMap<DockAppButton, boolean>();
-    private windowStates = new WeakMap<DockAppButton, {
-        count: number;
-        running: boolean;
-        active: boolean;
-        minimized: boolean;
-    }>();
+    private windowStates = new WeakMap<DockAppButton, WindowIndicatorState>();
 
     constructor(private settings: Gio.Settings, private isDestroyed: () => boolean) {}
 
