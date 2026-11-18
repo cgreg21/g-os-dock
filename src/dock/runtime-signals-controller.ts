@@ -18,25 +18,37 @@ export class DockRuntimeSignalsController {
     private readonly cleanup = new CleanupManager();
     private destroyed = false;
 
-    constructor(
-        appSystem: SignalEmitter,
-        favorites: SignalEmitter,
-        display: SignalEmitter,
-        workspaceManager: SignalEmitter,
-        private readonly callbacks: DockRuntimeSignalCallbacks,
-    ) {
-        this.connect(appSystem, 'app-state-changed', () => this.run(() => callbacks.refresh()));
-        this.connect(favorites, 'changed', () => this.run(() => callbacks.refresh()));
+    private connected = false;
 
-        this.connect(display, 'notify::focus-window', () => this.run(() => {
-            callbacks.updateIndicators();
-            callbacks.queueSmartHideCheck();
+    constructor(
+        private readonly appSystem: SignalEmitter,
+        private readonly favorites: SignalEmitter,
+        private readonly display: SignalEmitter,
+        private readonly workspaceManager: SignalEmitter,
+        private readonly callbacks: DockRuntimeSignalCallbacks,
+    ) {}
+
+    connect(): void {
+        if (this.destroyed || this.connected)
+            return;
+        this.connected = true;
+
+        this.connectSignal(this.appSystem, 'app-state-changed',
+            () => this.run(() => this.callbacks.refresh()));
+        this.connectSignal(this.favorites, 'changed',
+            () => this.run(() => this.callbacks.refresh()));
+
+        this.connectSignal(this.display, 'notify::focus-window', () => this.run(() => {
+            this.callbacks.updateIndicators();
+            this.callbacks.queueSmartHideCheck();
         }));
-        this.connect(display, 'restacked', () => this.run(() => callbacks.queueSmartHideCheck()));
-        this.connect(workspaceManager, 'active-workspace-changed',
-            () => this.run(() => callbacks.queueSmartHideCheck()));
-        this.connect(display, 'window-created',
-            (_display: Meta.Display, window: Meta.Window) => this.run(() => callbacks.trackWindow(window)));
+        this.connectSignal(this.display, 'restacked',
+            () => this.run(() => this.callbacks.queueSmartHideCheck()));
+        this.connectSignal(this.workspaceManager, 'active-workspace-changed',
+            () => this.run(() => this.callbacks.queueSmartHideCheck()));
+        this.connectSignal(this.display, 'window-created',
+            (_display: Meta.Display, window: Meta.Window) =>
+                this.run(() => this.callbacks.trackWindow(window)));
     }
 
     destroy(): void {
@@ -46,7 +58,7 @@ export class DockRuntimeSignalsController {
         this.cleanup.clear();
     }
 
-    private connect(source: SignalEmitter, signal: string, callback: (...args: any[]) => void): void {
+    private connectSignal(source: SignalEmitter, signal: string, callback: (...args: any[]) => void): void {
         this.cleanup.addSignal(source, source.connect(signal, callback));
     }
 
