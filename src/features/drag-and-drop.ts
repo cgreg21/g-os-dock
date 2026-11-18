@@ -326,8 +326,12 @@ export class DockDragDrop {
                 item.actor.opacity = 255;
                 item.actor.scale_x = 1;
                 item.actor.scale_y = 1;
-                item.onRemove?.();
-                this.removingItemId = null;
+                try {
+                    item.onRemove?.();
+                } finally {
+                    if (this.removingItemId === item.id)
+                        this.removingItemId = null;
+                }
             },
         });
         return true;
