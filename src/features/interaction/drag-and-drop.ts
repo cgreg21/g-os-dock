@@ -11,6 +11,7 @@ import {
     isDockDndFavoriteBoundaryInsertion,
     resolveDockDndInsertionIndex,
     resolveDockDndPreviewChildIndex,
+    resolveDockRemovalZoneGeometry,
 } from './dnd-geometry.js';
 
 export interface DockDndItem {
@@ -49,7 +50,7 @@ export class DockDragDrop {
         (actor, options) => Main.layoutManager.addChrome(actor, options),
         actor => Main.layoutManager.removeChrome(actor),
     );
-    private removalZone: St.Widget;
+    private removalZone: St.BoxLayout;
     private removalZoneDelegate: {
         handleDragOver: (source: DockDragSource) => number;
         acceptDrop: (source: DockDragSource) => boolean;
@@ -63,11 +64,19 @@ export class DockDragDrop {
         private persistOrder: (ids: string[]) => void,
         private monitor: { x: number; y: number; width: number; height: number },
     ) {
-        this.removalZone = new St.Widget({
+        this.removalZone = new St.BoxLayout({
             style_class: 'g-os-dock-removal-zone',
+            orientation: Clutter.Orientation.HORIZONTAL,
             reactive: false,
             can_focus: false,
+            x_expand: false,
+            y_expand: false,
         });
+        this.removalZone.add_child(new St.Icon({
+            icon_name: 'user-trash-symbolic',
+            icon_size: 18,
+        }));
+        this.removalZone.add_child(new St.Label({ text: 'Remove' }));
         this.removalZoneDelegate = {
             handleDragOver: source => this.handleRemovalDragOver(source),
             acceptDrop: source => this.acceptRemovalDrop(source),
@@ -356,18 +365,12 @@ export class DockDragDrop {
     }
 
     private updateRemovalZoneGeometry(): void {
-        const extent = Math.floor((this.isVertical() ? this.monitor.width : this.monitor.height) * 2 / 3);
-        const position = this.settings.get_string('dock-position');
-        let x = this.monitor.x;
-        let y = this.monitor.y;
-        let width = this.monitor.width;
-        let height = this.monitor.height;
-        if (position === 'bottom') height = extent;
-        else if (position === 'top') { y += this.monitor.height - extent; height = extent; }
-        else if (position === 'left') { x += this.monitor.width - extent; width = extent; }
-        else width = extent;
-        this.removalZone.set_position(x, y);
-        this.removalZone.set_size(width, height);
+        const geometry = resolveDockRemovalZoneGeometry(
+            this.monitor,
+            this.settings.get_string('dock-position'),
+        );
+        this.removalZone.set_position(geometry.x, geometry.y);
+        this.removalZone.set_size(geometry.width, geometry.height);
     }
 
     private showRemovalZone(): void {

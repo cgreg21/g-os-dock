@@ -5,6 +5,7 @@ import {
     isDockDndFavoriteBoundaryInsertion,
     resolveDockDndInsertionIndex,
     resolveDockDndPreviewChildIndex,
+    resolveDockRemovalZoneGeometry,
 } from '../dist/features/interaction/dnd-geometry.js';
 
 test('resolves insertion before the first item, including the first midpoint', () => {
@@ -64,4 +65,32 @@ test('does not move the separator when a favorite is inserted before another fav
 
 test('uses the end slot when no registered target actor is mounted', () => {
     assert.equal(resolveDockDndPreviewChildIndex(-1, 4, 8, false), 8);
+});
+
+test('positions the removal target opposite a bottom or top dock', () => {
+    const monitor = { x: 100, y: 50, width: 1200, height: 800 };
+    assert.deepEqual(resolveDockRemovalZoneGeometry(monitor, 'bottom'), {
+        x: 626, y: 62, width: 148, height: 52,
+    });
+    assert.deepEqual(resolveDockRemovalZoneGeometry(monitor, 'top'), {
+        x: 626, y: 786, width: 148, height: 52,
+    });
+});
+
+test('positions the removal target opposite a left or right dock', () => {
+    const monitor = { x: 100, y: 50, width: 1200, height: 800 };
+    assert.deepEqual(resolveDockRemovalZoneGeometry(monitor, 'left'), {
+        x: 1140, y: 424, width: 148, height: 52,
+    });
+    assert.deepEqual(resolveDockRemovalZoneGeometry(monitor, 'right'), {
+        x: 112, y: 424, width: 148, height: 52,
+    });
+});
+
+test('keeps the removal target within small non-origin monitors', () => {
+    const zone = resolveDockRemovalZoneGeometry(
+        { x: 20, y: 30, width: 100, height: 70 },
+        'bottom',
+    );
+    assert.deepEqual(zone, { x: 32, y: 42, width: 76, height: 46 });
 });

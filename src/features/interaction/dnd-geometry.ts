@@ -54,3 +54,64 @@ export function isDockDndFavoriteBoundaryInsertion(
     return draggedIsFavorite && !referenceIsFavorite &&
         applicationsBefore === favoriteCount;
 }
+
+export interface DockDndMonitorGeometry {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+export interface DockDndZoneGeometry {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+/** Place a compact removal target at the edge opposite the dock. */
+export function resolveDockRemovalZoneGeometry(
+    monitor: DockDndMonitorGeometry,
+    dockPosition: string,
+    zoneWidth = 148,
+    zoneHeight = 52,
+    inset = 12,
+): DockDndZoneGeometry {
+    const safeInset = Math.max(0, inset);
+    const width = Math.max(1, Math.min(zoneWidth, monitor.width - safeInset * 2));
+    const height = Math.max(1, Math.min(zoneHeight, monitor.height - safeInset * 2));
+    const centeredX = monitor.x + (monitor.width - width) / 2;
+    const centeredY = monitor.y + (monitor.height - height) / 2;
+
+    switch (dockPosition) {
+    case 'top':
+        return {
+            x: centeredX,
+            y: monitor.y + monitor.height - height - safeInset,
+            width,
+            height,
+        };
+    case 'left':
+        return {
+            x: monitor.x + monitor.width - width - safeInset,
+            y: centeredY,
+            width,
+            height,
+        };
+    case 'right':
+        return {
+            x: monitor.x + safeInset,
+            y: centeredY,
+            width,
+            height,
+        };
+    case 'bottom':
+    default:
+        return {
+            x: centeredX,
+            y: monitor.y + safeInset,
+            width,
+            height,
+        };
+    }
+}
