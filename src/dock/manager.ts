@@ -3,13 +3,13 @@ import Clutter from 'gi://Clutter?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { DockView } from './view.js';
 import { dockCache } from '../features/cache.js';
+import { CleanupManager } from '../features/cleanup-manager.js';
 
 /** Owns one dock view per selected monitor and their GNOME signal lifecycle. */
 export class DockManager {
     private settings: Gio.Settings;
     private views: DockView[] = [];
-    private monitorSignal = 0;
-    private settingsSignal = 0;
+    private signalCleanup: CleanupManager | null = null;
     private enabled = false;
     private overviewDashParent: Clutter.Actor | null = null;
     private overviewDashIndex = -1;
@@ -37,12 +37,14 @@ export class DockManager {
             this.overviewDashIndex = parent.get_children().indexOf(dash);
             parent.remove_child(dash);
             this.rebuild();
-            this.monitorSignal = (Main.layoutManager as unknown as {
-                connect: (signal: string, callback: () => void) => number;
-            }).connect('monitors-changed', () => this.rebuild());
-            this.settingsSignal = this.settings.connect(
-                'changed::show-on-all-monitors',
-                () => this.rebuild(),
+            this.signalCleanup = new CleanupManager();
+            this.signalCleanup.addSignal(
+                Main.layoutManager,
+                Main.layoutManager.connect('monitors-changed', () => this.rebuild()),
+            );
+            this.signalCleanup.addSignal(
+                this.settings,
+                this.settings.connect('changed::show-on-all-monitors', () => this.rebuild()),
             );
         } catch (error) {
             this.disable();
@@ -80,12 +82,8 @@ export class DockManager {
 
         this.enabled = false;
         this.restoreOverviewDash();
-        if (this.monitorSignal)
-            Main.layoutManager.disconnect(this.monitorSignal);
-        if (this.settingsSignal)
-            this.settings.disconnect(this.settingsSignal);
-        this.monitorSignal = 0;
-        this.settingsSignal = 0;
+        this.signalCleanup?.clear();
+        this.signalCleanup = null;
         this.destroyViews();
         dockCache.clear();
     }
