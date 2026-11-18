@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolveFavoritesSeparatorTarget } from '../dist/features/favorites-separator.js';
+import {
+    calculateFavoritesSeparatorSpace,
+    hasFavoritesSeparatorTarget,
+    resolveFavoritesSeparatorTarget,
+} from '../dist/features/favorites-separator.js';
 
 const app = id => ({ get_id: () => id });
 
@@ -59,4 +63,28 @@ test('does not return an item before the first favorite', () => {
         ),
         null,
     );
+});
+
+test('shares separator visibility detection with sizing', () => {
+    assert.equal(hasFavoritesSeparatorTarget(
+        ['favorite-a', 'running-a'],
+        new Set(['favorite-a']),
+    ), true);
+    assert.equal(hasFavoritesSeparatorTarget(
+        ['favorite-a', 'favorite-b'],
+        new Set(['favorite-a', 'favorite-b']),
+    ), false);
+    assert.equal(hasFavoritesSeparatorTarget(
+        ['running-a', 'favorite-a'],
+        new Set(['favorite-a']),
+    ), false);
+});
+
+test('calculates the exact main-axis separator cost', () => {
+    assert.equal(calculateFavoritesSeparatorSpace(true, 2, 4, 6), 16);
+    assert.equal(calculateFavoritesSeparatorSpace(false, 2, 4, 6), 0);
+});
+
+test('normalizes negative separator dimensions to zero', () => {
+    assert.equal(calculateFavoritesSeparatorSpace(true, -2, -4, -6), 0);
 });
