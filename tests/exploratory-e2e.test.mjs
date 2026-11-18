@@ -239,7 +239,8 @@ test('Exploratory E2E: randomized folder removal conserves application membershi
         assert.ok(state, label);
         const restoredIds = state.folders.length
             ? state.folders[0].appIds
-            : state.order.filter(id => id.startsWith('app:')).map(id => id.slice(4));
+            : state.order.filter(id => id.startsWith('app:') && id !== 'app:' + removed)
+                .map(id => id.slice(4));
         const allMembers = [...restoredIds, removed].sort();
         assert.deepEqual(allMembers, [...appIds].sort(), label);
         assert.equal(new Set(state.order).size, state.order.length, label);
