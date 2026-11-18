@@ -203,8 +203,8 @@ test('E2E: magnified main-axis slots preserve gaps and keep the group centered',
     const first = resolveMagnificationMainAxisLayout(10, 40, 2, 0, 60);
     const second = resolveMagnificationMainAxisLayout(56, 40, 1.5, 40, 60);
     assert.deepEqual(first, [-20, 80]);
-    assert.deepEqual(second, [56, 60]);
-    assert.equal(second[0] - (first[0] + first[1]), -4);
+    assert.deepEqual(second, [66, 60]);
+    assert.equal(second[0] - (first[0] + first[1]), 6);
     const originalCenter = (10 + 96) / 2;
     const targetCenter = (first[0] + second[0] + second[1]) / 2;
     assert.equal(targetCenter, originalCenter);
