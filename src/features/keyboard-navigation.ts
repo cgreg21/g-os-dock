@@ -18,9 +18,8 @@ export class DockKeyboardNavigation {
     handle(item: DockAppButton, event: Clutter.Event): boolean {
         const key = event.get_key_symbol();
         const items = this.dependencies.getItems();
-        const vertical = ['left', 'right'].includes(
-            this.dependencies.settings.get_string('dock-position'),
-        );
+        const position = this.dependencies.settings.get_string('dock-position');
+        const vertical = position === 'left' || position === 'right';
         const previousKey = vertical ? Clutter.KEY_Up : Clutter.KEY_Left;
         const nextKey = vertical ? Clutter.KEY_Down : Clutter.KEY_Right;
         const index = items.indexOf(item);
@@ -29,19 +28,18 @@ export class DockKeyboardNavigation {
             return Clutter.EVENT_PROPAGATE;
 
         if (key === previousKey)
-            return this.focusItem(index - 1);
+            return this.focusItem(index - 1, items);
         if (key === nextKey)
-            return this.focusItem(index + 1);
+            return this.focusItem(index + 1, items);
 
-        const inwardKey = this.getInwardKey();
-        if (key === inwardKey) {
+        if (key === this.getInwardKey(position)) {
             this.dependencies.showPreviews(item._gOsDockApp, item, true);
             return Clutter.EVENT_STOP;
         }
         if (key === Clutter.KEY_Home)
-            return this.focusItem(0);
+            return this.focusItem(0, items);
         if (key === Clutter.KEY_End)
-            return this.focusItem(items.length - 1);
+            return this.focusItem(items.length - 1, items);
         if (key === Clutter.KEY_Escape) {
             this.dependencies.hidePreviews();
             item.grab_key_focus();
@@ -51,8 +49,7 @@ export class DockKeyboardNavigation {
         return Clutter.EVENT_PROPAGATE;
     }
 
-    private focusItem(index: number): boolean {
-        const items = this.dependencies.getItems();
+    private focusItem(index: number, items: DockAppButton[]): boolean {
         if (items.length === 0)
             return Clutter.EVENT_PROPAGATE;
 
@@ -66,8 +63,8 @@ export class DockKeyboardNavigation {
         return Clutter.EVENT_STOP;
     }
 
-    private getInwardKey(): number {
-        switch (this.dependencies.settings.get_string('dock-position')) {
+    private getInwardKey(position: string): number {
+        switch (position) {
         case 'top':
             return Clutter.KEY_Down;
         case 'bottom':
