@@ -144,7 +144,10 @@ export class DockView {
         this.windowTracker = new WindowTracker(
             global.display,
             () => this.visibility.queueSmartHideCheck(),
-            () => this.indicators.update(this.itemActors),
+            () => {
+                this.indicators.update(this.itemActors);
+                this.visibility.queueSmartHideCheck();
+            },
         );
         this.keyboard = new DockKeyboardNavigation({
             settings: this.settings,
