@@ -30,7 +30,7 @@ test('E2E: magnification keeps dock slots fixed while tracking the pointer wave'
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
     assert.ok(controller.includes('item.button.get_allocation_box()'));
-    assert.ok(controller.includes('item.button.set_size_request(Math.ceil(requestedWidth), Math.ceil(requestedHeight))'));
+    assert.ok(controller.includes('(item.button as unknown as St.Widget).set_size_request(Math.ceil(requestedWidth), Math.ceil(requestedHeight))'));
     assert.ok(controller.includes('this.content.queue_relayout()'));
     assert.ok(!controller.includes('GAP_COMPRESSION'));
     assert.ok(!controller.includes('expanded[i + 1]'));
@@ -133,7 +133,7 @@ test('E2E: magnification scales visual actors without resizing dock slots', () =
     assert.ok(controller.includes('this.surface = content.get_parent() ?? content'));
     assert.ok(!controller.includes('GAP_COMPRESSION'));
     assert.ok(controller.includes('baseVisualWidth * (item.scale - 1)'));
-    assert.ok(controller.includes('item.button.set_size_request(-1, -1)'));
+    assert.ok(controller.includes('(item.button as unknown as St.Widget).set_size_request(-1, -1)'));
     assert.ok(!controller.includes('entry.button.set_scale'));
     assert.ok(!controller.includes('entry.button.translation_x'));
     assert.ok(!controller.includes('entry.button.translation_y'));
@@ -169,8 +169,8 @@ test('E2E: magnification resizes button slots and the dock surface without chang
     const view = read('../src/dock/view.ts');
     const padding = read('../src/features/layout/icon-padding.ts');
 
-    assert.ok(controller.includes('item.button.set_size_request(Math.ceil(requestedWidth), Math.ceil(requestedHeight))'));
-    assert.ok(controller.includes('item.button.set_size_request(-1, -1)'));
+    assert.ok(controller.includes('(item.button as unknown as St.Widget).set_size_request(Math.ceil(requestedWidth), Math.ceil(requestedHeight))'));
+    assert.ok(controller.includes('(item.button as unknown as St.Widget).set_size_request(-1, -1)'));
     assert.ok(controller.includes('this.content.queue_relayout()'));
     assert.ok(view.includes('this.layout.position(false)'));
     assert.ok(layout.includes('position(immediate = false)'));
