@@ -56,6 +56,7 @@ export interface DockSizingMetricsOptions {
     additionalItemCount: number;
     showFavoritesSeparator: boolean;
     separatorSize: number;
+    separatorMargin: number;
     spacing: number;
 }
 
@@ -69,6 +70,7 @@ export function resolveDockSizingMetrics(
         additionalItemCount,
         showFavoritesSeparator,
         separatorSize,
+        separatorMargin,
         spacing,
     } = options;
     let hasFavorites = false;
@@ -85,7 +87,7 @@ export function resolveDockSizingMetrics(
     return {
         itemCount: applicationIds.length + Math.max(0, additionalItemCount),
         separatorSpace: showFavoritesSeparator && hasFavorites && hasRunningApps
-            ? separatorSize + spacing
+            ? separatorSize + separatorMargin * 2 + spacing
             : 0,
     };
 }
