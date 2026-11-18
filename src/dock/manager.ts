@@ -2,6 +2,7 @@ import Gio from 'gi://Gio?version=2.0';
 import Clutter from 'gi://Clutter?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { DockView } from './view.js';
+import { dockCache } from '../features/cache.js';
 
 /** Owns one dock view per selected monitor and their GNOME signal lifecycle. */
 export class DockManager {
@@ -36,7 +37,6 @@ export class DockManager {
             this.overviewDashIndex = parent.get_children().indexOf(dash);
             parent.remove_child(dash);
             this.rebuild();
-            // GNOME Shell emits this JS-level signal; it is not exposed in the generated GIR type.
             this.monitorSignal = (Main.layoutManager as unknown as {
                 connect: (signal: string, callback: () => void) => number;
             }).connect('monitors-changed', () => this.rebuild());
@@ -87,6 +87,7 @@ export class DockManager {
         this.monitorSignal = 0;
         this.settingsSignal = 0;
         this.destroyViews();
+        dockCache.clear();
     }
 
     private restoreOverviewDash(): void {
