@@ -16,6 +16,7 @@ export class DockSystemItem {
     private menu: PopupMenu.PopupMenu | null = null;
     private iconSignal = 0;
     private destroyed = false;
+    private paddingStyle = '';
 
     constructor(private content: St.BoxLayout, private settings: Gio.Settings,
         private iconSize: number, private dockPosition: () => string,
@@ -50,7 +51,11 @@ export class DockSystemItem {
         const name = this.settings.get_string('system-icon-name') || 'view-app-grid-symbolic';
         this.button.set_child(new St.Icon({ icon_name: name, icon_size: this.iconSize,
             style_class: 'g-os-dock-system-icon' }));
-        this.button.set_style(getIconPaddingStyle(this.settings, this.iconSize));
+        const paddingStyle = getIconPaddingStyle(this.settings, this.iconSize);
+        if (this.paddingStyle !== paddingStyle) {
+            this.button.set_style(paddingStyle);
+            this.paddingStyle = paddingStyle;
+        }
     }
 
     private showMenu(): void {
