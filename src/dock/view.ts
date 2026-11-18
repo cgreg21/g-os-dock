@@ -15,6 +15,7 @@ import { DockLayout } from '../features/layout.js';
 import { DockIndicators } from '../features/indicators.js';
 import { WindowTracker } from '../features/window-tracker.js';
 import { DockAppItemFactory, type DockAppButton } from '../features/app-item.js';
+import { DockApplicationItemsController } from '../features/application-items-controller.js';
 import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
 import { DockSystemItem } from '../features/system-item.js';
@@ -49,8 +50,7 @@ export class DockView {
     private destroyed = false;
     private settingsObserver = new SettingsObserver();
     private contextMenu: AppContextMenu;
-    private itemActors: DockAppButton[] = [];
-    private itemSize = 0;
+    private applicationItems!: DockApplicationItemsController;
     private previews: WindowPreviews;
     private dragDrop: DockDragDrop;
     private visibility: DockVisibility;
@@ -172,6 +172,11 @@ export class DockView {
             dockPosition: () => this.settings.get_string('dock-position'),
             settings: this.settings,
         });
+        this.applicationItems = new DockApplicationItemsController(
+            this.content,
+            this.appItemFactory,
+            this.settings,
+        );
 
         try {
             this.addToStage();
@@ -402,6 +407,14 @@ export class DockView {
         );
     }
 
+    private get itemActors(): DockAppButton[] {
+        return this.applicationItems.items;
+    }
+
+    private get itemSize(): number {
+        return this.applicationItems.size;
+    }
+
     private getDndItems(): DockDndItem[] {
         const items: DockDndItem[] = this.itemActors.map(item =>
             this.createAppDndItem(item),
@@ -600,65 +613,7 @@ export class DockView {
     }
 
     private syncApplicationItems(applications: Shell.App[], size: number): boolean {
-        const pending: DockAppButton[] = [];
-        const sizeChanged = this.itemSize !== 0 && this.itemSize !== size;
-        const previousById = new Map<string, DockAppButton>();
-        const existingItems = new Set(this.itemActors);
-
-        if (!sizeChanged) {
-            for (const item of this.itemActors) {
-                const id = item._gOsDockApp?.get_id();
-                if (id)
-                    previousById.set(id, item);
-            }
-        }
-
-        try {
-            for (const app of applications) {
-                const id = app.get_id();
-                let item: DockAppButton | undefined;
-                if (id) {
-                    item = previousById.get(id);
-                    if (item)
-                        previousById.delete(id);
-                }
-                if (!item)
-                    item = this.appItemFactory.create(app, size);
-
-                item._gOsDockBase.setIconPadding(this.settings, size);
-                if (item.get_parent() !== this.content)
-                    this.content.add_child(item);
-                pending.push(item);
-            }
-        } catch (error) {
-            for (const item of pending) {
-                if (!existingItems.has(item))
-                    this.destroyAppItem(item);
-            }
-            throw error;
-        }
-
-        const structureChanged = sizeChanged ||
-            this.itemActors.length !== pending.length ||
-            this.itemActors.some((item, index) =>
-                item._gOsDockApp.get_id() !== pending[index]?._gOsDockApp.get_id(),
-            );
-        const retained = new Set(pending);
-
-        for (const item of this.itemActors) {
-            if (retained.has(item))
-                continue;
-            this.destroyAppItem(item);
-        }
-
-        this.itemActors = pending;
-        this.itemSize = size;
-        return structureChanged;
-    }
-
-    private destroyAppItem(item: DockAppButton): void {
-        item.get_parent()?.remove_child(item);
-        item._gOsDockBase.destroy();
+        return this.applicationItems.sync(applications, size);
     }
 
     private refresh(syncVolumes = false): void {
@@ -703,7 +658,8 @@ export class DockView {
         }
 
         if (!enabled || !hasFavorite || !firstNonFavorite) {
-            this.removeFavoritesSeparator();
+            this.applicationItems.destroy();
+        this.removeFavoritesSeparator();
             return;
         }
 
