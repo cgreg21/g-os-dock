@@ -106,3 +106,26 @@ export function resolveDockRemovalZoneGeometry(
 
     return { x, y, width, height };
 }
+
+/** Keep the preview slot stable near boundaries to prevent pointer jitter. */
+export function resolveDockDndInsertionIndexWithHysteresis(
+    midpoints: readonly (number | null)[],
+    coordinate: number,
+    currentIndex: number | null,
+    hysteresis = 10,
+): number | null {
+    if (!Number.isFinite(coordinate) || !Number.isFinite(hysteresis) || hysteresis < 0 ||
+        midpoints.some(midpoint => midpoint === null || !Number.isFinite(midpoint)))
+        return null;
+
+    if (currentIndex === null || !Number.isInteger(currentIndex) ||
+        currentIndex < 0 || currentIndex > midpoints.length)
+        return resolveDockDndInsertionIndex(midpoints, coordinate);
+
+    let index = currentIndex;
+    while (index < midpoints.length && coordinate > midpoints[index]! + hysteresis)
+        index++;
+    while (index > 0 && coordinate < midpoints[index - 1]! - hysteresis)
+        index--;
+    return index;
+}
