@@ -168,7 +168,7 @@ export class DockView {
         DockItemBase.setMagnificationSurfaceHandler(
             this.content,
             (leading, trailing) => {
-                this.layout.setMagnificationInsets(leading, trailing);
+                this.layout.setMagnificationInsets(leading, trailing, active);
                 this.layout.position(false);
             },
         );
