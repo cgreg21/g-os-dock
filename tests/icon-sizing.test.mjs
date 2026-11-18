@@ -12,6 +12,7 @@ const defaults = {
     separatorSize: 2,
     separatorMargin: 4,
     additionalItemCount: 2,
+    windowCountBadgeCount: 0,
     iconPadding: 0,
     vertical: false,
 };
@@ -32,6 +33,43 @@ test('does not reserve separator space without both favorite and running apps', 
         availableSpace: 80,
     });
     assert.equal(result, 17);
+});
+
+
+test('does not reserve vertical badge space when no count badge is visible', () => {
+    assert.equal(calculateDockIconSize({
+        ...defaults,
+        applicationIds: ['one', 'two'],
+        additionalItemCount: 0,
+        availableSpace: 200,
+        configuredSize: 100,
+        vertical: true,
+    }), 100);
+});
+
+test('reserves one badge height for each application showing a window count', () => {
+    const options = {
+        ...defaults,
+        applicationIds: ['one', 'two'],
+        additionalItemCount: 0,
+        availableSpace: 200,
+        configuredSize: 100,
+        vertical: true,
+    };
+    assert.equal(calculateDockIconSize({ ...options, windowCountBadgeCount: 1 }), 87);
+    assert.equal(calculateDockIconSize({ ...options, windowCountBadgeCount: 2 }), 75);
+});
+
+test('does not add vertical badge space to horizontal dock length', () => {
+    assert.equal(calculateDockIconSize({
+        ...defaults,
+        applicationIds: ['one', 'two'],
+        additionalItemCount: 0,
+        availableSpace: 200,
+        configuredSize: 100,
+        windowCountBadgeCount: 2,
+        vertical: false,
+    }), 96);
 });
 
 test('uses vertical overhead and respects minimum icon size', () => {
