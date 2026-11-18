@@ -9,6 +9,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 import { createWindowPreviewCard } from './card.js';
 import { dockCache } from '../cache.js';
+import { SettingsObserver } from '../settings-observer.js';
 
 /**
  * Owns the lifecycle and rendering of application window previews.
@@ -21,7 +22,7 @@ export class WindowPreviews {
     private hoverSignal = 0;
     private keySignal = 0;
     private destroyed = false;
-    private settingsSignal = 0;
+    private settingsObserver = new SettingsObserver();
     private windowManagerSettings = new Gio.Settings({
         schema_id: 'org.gnome.desktop.wm.preferences',
     });
@@ -32,13 +33,10 @@ export class WindowPreviews {
         private dockActor: St.Widget,
         private isDestroyed: () => boolean,
     ) {
-        this.settingsSignal = this.settings.connect(
-            'changed::show-window-previews',
-            () => {
+        this.settingsObserver.watch(this.settings, 'show-window-previews', () => {
                 if (!this.settings.get_boolean('show-window-previews'))
                     this.hide();
-            },
-        );
+        });
     }
 
     cancelPending(): void {
@@ -195,8 +193,7 @@ export class WindowPreviews {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        this.settings.disconnect(this.settingsSignal);
-        this.settingsSignal = 0;
+        this.settingsObserver.destroy();
         this.hide();
     }
 
