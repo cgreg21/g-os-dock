@@ -1,6 +1,6 @@
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
-import { dockCache } from './cache.js';
+import { dockCache } from '../../core/cache.js';
 import {
     createItemOrderRanks,
     resolveSavedItemOrder,

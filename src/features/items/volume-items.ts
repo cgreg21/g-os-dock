@@ -1,7 +1,7 @@
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { DockDragDrop } from '../interaction/drag-and-drop.js';
-import { CleanupManager } from './cleanup-manager.js';
+import { CleanupManager } from '../../core/cleanup-manager.js';
 import { DockItemBase } from './dock-item-base.js';
 
 type DriveCategory = 'network' | 'usb' | 'system';

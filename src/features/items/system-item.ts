@@ -5,9 +5,9 @@ import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { DockDragDrop } from '../interaction/drag-and-drop.js';
-import { getDockMenuSide } from './menu-position.js';
+import { getDockMenuSide } from '../layout/menu-position.js';
 import { DockItemBase } from './dock-item-base.js';
-import { PopupMenuLifecycle } from './popup-menu-lifecycle.js';
+import { PopupMenuLifecycle } from '../interaction/popup-menu-lifecycle.js';
 
 /** Configurable app-grid launcher and GNOME system actions. */
 export class DockSystemItem {
