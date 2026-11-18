@@ -258,8 +258,6 @@ export class DockView {
         this.contentGeometrySignals.push(
             this.content.connect('notify::allocation', () => this.queueLayoutUpdate()),
         );
-        this.windowTracker.trackExisting();
-        this.applySettings();
     }
 
     handleDragOver(source: DockDragSource, dragActor: Clutter.Actor, x: number, y: number, time: number): number {
