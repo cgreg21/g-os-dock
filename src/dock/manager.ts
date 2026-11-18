@@ -38,9 +38,13 @@ export class DockManager {
             parent.remove_child(dash);
             this.rebuild();
             this.signalCleanup = new CleanupManager();
+            const layoutSignals = Main.layoutManager as unknown as {
+                connect(signal: string, callback: () => void): number;
+                disconnect(id: number): void;
+            };
             this.signalCleanup.addSignal(
-                Main.layoutManager,
-                Main.layoutManager.connect('monitors-changed', () => this.rebuild()),
+                layoutSignals,
+                layoutSignals.connect('monitors-changed', () => this.rebuild()),
             );
             this.signalCleanup.addSignal(
                 this.settings,
