@@ -3,6 +3,10 @@ import Clutter from 'gi://Clutter?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { CleanupManager } from '../../core/cleanup-manager.js';
 
+type ButtonWithSizeRequest = St.Button & {
+    set_size_request(width: number, height: number): void;
+};
+
 interface MagnifiedItem {
     button: St.Button;
     visual: Clutter.Actor;
@@ -132,7 +136,7 @@ export class DockMagnificationController {
             return;
         this.items.delete(button);
         this.resetVisual(item.visual);
-        (item.button as unknown as St.Widget).set_size_request(-1, -1);
+        (item.button as unknown as ButtonWithSizeRequest).set_size_request(-1, -1);
         if (this.items.size === 0)
             this.destroy();
         else if (this.envelope > 0)
@@ -235,7 +239,27 @@ export class DockMagnificationController {
             item.visual.set_scale(item.scale, item.scale);
             const requestedWidth = item.baseButtonWidth + item.baseVisualWidth * (item.scale - 1);
             const requestedHeight = item.baseButtonHeight + item.baseVisualHeight * (item.scale - 1);
-            (item.button as unknown as St.Widget).set_size_request(Math.ceil(requestedWidth), Math.ceil(requestedHeight));
+            (item.button as unknown as ButtonWithSizeRequest).set_size_request(Math.ceil(requestedWidth), Math.ceil(requestedHeight));
+
+            // StButton centers its child in the enlarged slot. Counter that
+            // centering shift so the icon stays pinned to the screen-facing edge.
+            const mainAxisGrowth = vertical
+                ? requestedHeight - item.baseButtonHeight
+                : requestedWidth - item.baseButtonWidth;
+            switch (this.dockPosition()) {
+            case 'top':
+                item.visual.translation_y = -mainAxisGrowth / 2;
+                break;
+            case 'left':
+                item.visual.translation_x = -mainAxisGrowth / 2;
+                break;
+            case 'right':
+                item.visual.translation_x = mainAxisGrowth / 2;
+                break;
+            default:
+                item.visual.translation_y = mainAxisGrowth / 2;
+                break;
+            }
         }
 
         // Re-measure the content and reposition the dock on its fixed screen edge.
@@ -255,7 +279,7 @@ export class DockMagnificationController {
     private resetAllVisuals(): void {
         for (const item of this.items.values()) {
             this.resetVisual(item.visual);
-            (item.button as unknown as St.Widget).set_size_request(-1, -1);
+            (item.button as unknown as ButtonWithSizeRequest).set_size_request(-1, -1);
             item.baseButtonWidth = null;
             item.baseButtonHeight = null;
             item.baseVisualWidth = null;
