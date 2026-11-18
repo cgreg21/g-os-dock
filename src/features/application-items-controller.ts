@@ -51,10 +51,12 @@ export class DockApplicationItemsController {
                 if (!item)
                     item = this.factory.create(app, size);
 
+                // Register newly created actors before any operation that can
+                // throw, so the rollback also covers padding and parenting.
+                pending.push(item);
                 item._gOsDockBase.setIconPadding(this.settings, size);
                 if (item.get_parent() !== this.content)
                     this.content.add_child(item);
-                pending.push(item);
             }
         } catch (error) {
             for (const item of pending) {
