@@ -232,6 +232,17 @@ export class DockView {
         );
     }
 
+    private connectApplicationSignals(): void {
+        this.appStateSignal = this.appSystem.connect(
+            'app-state-changed',
+            () => this.refresh(),
+        );
+        this.favoritesSignal = this.favorites.connect(
+            'changed',
+            () => this.refresh(),
+        );
+    }
+
     private connectSignals(): void {
         this.desktopThemeSignal = this.desktopSettings.connect(
             'changed::color-scheme',
@@ -253,14 +264,7 @@ export class DockView {
             'changed',
             () => this.applySettings(),
         );
-        this.appStateSignal = this.appSystem.connect(
-            'app-state-changed',
-            () => this.refresh(),
-        );
-        this.favoritesSignal = this.favorites.connect(
-            'changed',
-            () => this.refresh(),
-        );
+        this.connectApplicationSignals();
         this.connectWindowSignals();
         this.connectContentGeometrySignal();
     }
