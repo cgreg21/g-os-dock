@@ -857,6 +857,17 @@ export class DockView {
         this.visibility.onPointerChanged();
     }
 
+    private disconnectGeometrySignals(): void {
+        const panel = Main.panel as St.Widget;
+        for (const signal of this.panelGeometrySignals)
+            panel.disconnect(signal);
+        this.panelGeometrySignals = [];
+
+        for (const signal of this.contentGeometrySignals)
+            this.content.disconnect(signal);
+        this.contentGeometrySignals = [];
+    }
+
     private disconnectSignals(): void {
         if (this.hoverSignal) this.actor.disconnect(this.hoverSignal);
         if (this.sensorHoverSignal) this.edgeSensor.disconnect(this.sensorHoverSignal);
@@ -869,14 +880,7 @@ export class DockView {
         if (this.workspaceSignal) global.workspace_manager.disconnect(this.workspaceSignal);
         if (this.windowCreatedSignal) global.display.disconnect(this.windowCreatedSignal);
 
-        const panel = Main.panel as St.Widget;
-        for (const signal of this.panelGeometrySignals)
-            panel.disconnect(signal);
-        this.panelGeometrySignals = [];
-
-        for (const signal of this.contentGeometrySignals)
-            this.content.disconnect(signal);
-        this.contentGeometrySignals = [];
+        this.disconnectGeometrySignals();
     }
 
     destroy(): void {
