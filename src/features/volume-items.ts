@@ -5,6 +5,10 @@ import { DockTooltip } from './tooltip.js';
 
 type DriveCategory = 'network' | 'usb' | 'system';
 
+const NETWORK_SCHEMES = new Set([
+    'smb', 'sftp', 'ssh', 'ftp', 'ftps', 'dav', 'davs', 'nfs', 'afp',
+]);
+
 interface MountedDrive {
     id: string;
     mount: Gio.Mount;
@@ -83,10 +87,7 @@ export class DockVolumeItems {
         const scheme = root.get_uri_scheme()?.toLowerCase() ?? '';
         const volume = mount.get_volume();
         const drive = volume?.get_drive() ?? null;
-        const networkSchemes = new Set([
-            'smb', 'sftp', 'ssh', 'ftp', 'ftps', 'dav', 'davs', 'nfs', 'afp',
-        ]);
-        const network = !root.is_native() || networkSchemes.has(scheme);
+        const network = !root.is_native() || NETWORK_SCHEMES.has(scheme);
         const removable = !!drive && (drive.is_removable() || drive.is_media_removable());
         const category: DriveCategory = network ? 'network' : removable ? 'usb' : 'system';
         const uuid = mount.get_uuid();
