@@ -86,6 +86,13 @@ export class DockDragDrop {
 
     unregisterItem(actor: St.Widget): void {
         this.draggables.delete(actor);
+
+        const draggableActor = actor as St.Widget & {
+            _delegate?: { actor?: St.Widget };
+        };
+        if (draggableActor._delegate?.actor === actor)
+            draggableActor._delegate = undefined;
+
         if (this.draggedItem?.actor === actor)
             this.endPreview();
     }
