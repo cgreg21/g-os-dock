@@ -60,7 +60,7 @@ export class DockItemBase {
         this.button.accessible_name = text;
     }
 
-    setIconPadding(settings: Gio.Settings, size: number): string {
+    setIconPadding(settings: Gio.Settings, size: number, visualActor?: Clutter.Actor): string {
         const style = getIconPaddingStyle(settings, size);
         dockStyles.apply(this.button, style);
         this.settings = settings;
@@ -73,7 +73,7 @@ export class DockItemBase {
                 );
                 DockItemBase.magnificationControllers.set(this.content, controller);
             }
-            controller.register(this.button);
+            controller.register(this.button, visualActor ?? this.button.get_child() ?? this.button);
             this.magnification = controller;
         }
         if (this.observedSettings !== settings) {
