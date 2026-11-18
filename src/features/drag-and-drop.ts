@@ -31,6 +31,7 @@ export class DockDragDrop {
     private previewSlot: St.Widget | null = null;
     private draggables = new Map<St.Widget, { draggable: DND.Draggable; signals: number[] }>();
     private removingItemId: string | null = null;
+    private destroyed = false;
     private removalZone: St.Widget;
     private removalZoneDelegate: {
         handleDragOver: (source: DockDragSource) => number;
@@ -64,6 +65,8 @@ export class DockDragDrop {
     }
 
     registerItem(item: DockDndItem, onStart: () => void = () => {}): void {
+        if (this.destroyed)
+            return;
         const actor = item.actor;
         if (this.draggables.has(actor))
             this.unregisterItem(actor);
@@ -358,6 +361,9 @@ export class DockDragDrop {
     }
 
     destroy(): void {
+        if (this.destroyed)
+            return;
+        this.destroyed = true;
         this.hideRemovalZone();
         this.endPreview();
         for (const actor of [...this.draggables.keys()]) {
