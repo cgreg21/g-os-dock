@@ -276,37 +276,13 @@ export class DockMagnificationController {
         this.content.queue_relayout();
     }
 
-    /** Keep the backdrop wide enough for the enlarged button allocations. */
-    private updateSurfaceInsets(scales: ReadonlyMap<St.Button, number>): void {
-        if (!this.onSurfaceExtentChanged)
-            return;
-        const vertical = this.content.orientation === Clutter.Orientation.VERTICAL;
-        let leading = 0;
-        let trailing = 0;
-        if (vertical) {
-            let crossGrowth = 0;
-            for (const [button, scale] of scales) {
-                const baseStyle = this.baseStyles.get(button) ?? '';
-                const match = baseStyle.match(/min-width:\s*([\d.]+)px/);
-                if (match)
-                    crossGrowth = Math.max(crossGrowth, Number(match[1]) * (scale - 1));
-            }
-            if (this.dockPosition() === 'right')
-                leading = crossGrowth;
-            else
-                trailing = crossGrowth;
-        } else {
-            let totalGrowth = 0;
-            for (const [button, scale] of scales) {
-                const baseStyle = this.baseStyles.get(button) ?? '';
-                const match = baseStyle.match(/min-width:\s*([\d.]+)px/);
-                if (match)
-                    totalGrowth += Number(match[1]) * (scale - 1);
-            }
-            leading = totalGrowth / 2;
-            trailing = totalGrowth / 2;
-        }
-        this.onSurfaceExtentChanged(leading, trailing, this.pointerAxis !== null);
+    /**
+     * The buttons now contribute their enlarged preferred size to the content
+     * allocation. Ask the layout to remeasure it, but do not add extra insets:
+     * doing so would count the same growth twice in the backdrop width.
+     */
+    private updateSurfaceInsets(_scales: ReadonlyMap<St.Button, number>): void {
+        this.onSurfaceExtentChanged?.(0, 0, this.pointerAxis !== null);
     }
 
     private animateItemsToScale(scale: number): void {
