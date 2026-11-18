@@ -96,16 +96,17 @@ export class DockDragDrop {
         const sourceId = source?.dockItemId;
         if (!sourceId)
             return DND.DragMotionResult.NO_DROP;
-        const targets = this.getItems().filter(item => item.id !== sourceId);
-        const coordinate = this.isVertical() ? y : x;
+        const items = this.getItems();
+        const dragged = items.find(item => item.id === sourceId);
+        const targets = items.filter(item => item.id !== sourceId);
         const vertical = this.isVertical();
+        const coordinate = vertical ? y : x;
         let index = 0;
         for (const item of targets) {
             const midpoint = this.getItemMidpoint(item.actor, vertical);
             if (midpoint !== null && coordinate > midpoint)
                 index++;
         }
-        const dragged = this.getItems().find(item => item.id === sourceId);
         const favoriteCount = targets.filter(item =>
             item.app && this.isFavorite(item),
         ).length;
