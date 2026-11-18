@@ -37,6 +37,7 @@ export class DockMagnificationController {
         private readonly content: St.BoxLayout,
         private readonly settings: Gio.Settings,
         private readonly dockPosition: () => string,
+        private readonly onSurfaceExtentChanged?: (leading: number, trailing: number) => void,
     ) {
         this.content.reactive = true;
         this.cleanup.addSignal(content, content.connect('motion-event', (_actor, event) => {
@@ -167,6 +168,7 @@ export class DockMagnificationController {
             this.envelope = 0;
             this.envelopeVelocity = 0;
             this.resetAllActors();
+            this.onSurfaceExtentChanged?.(0, 0);
             this.stopTimeline();
             return;
         }
@@ -246,6 +248,13 @@ export class DockMagnificationController {
             shift = bounds[count]! - expanded[count]!;
         }
 
+        const expandedStart = expanded[0]! + shift;
+        const expandedEnd = expanded[count]! + shift;
+        this.onSurfaceExtentChanged?.(
+            Math.max(0, bounds[0]! - expandedStart),
+            Math.max(0, expandedEnd - bounds[count]!),
+        );
+
         for (let i = 0; i < count; i++) {
             const entry = entries[i]!;
             const mappedCenter = expanded[i]! +
@@ -281,6 +290,7 @@ export class DockMagnificationController {
         this.rawPointer = null;
         this.cursor = null;
         this.resetAllActors();
+        this.onSurfaceExtentChanged?.(0, 0);
         this.items.clear();
     }
 
