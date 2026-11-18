@@ -24,6 +24,7 @@ import { dockCache } from '../features/cache.js';
 import { CleanupManager } from '../features/cleanup-manager.js';
 import { SettingsObserver } from '../features/settings-observer.js';
 import { TaskScheduler } from '../features/task-scheduler.js';
+import { ChromeActorManager } from '../features/chrome-actor-manager.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -36,6 +37,10 @@ export class DockView {
     private monitorIndex: number;
     private settings: Gio.Settings;
     private desktopSettings: Gio.Settings;
+    private chromeActors = new ChromeActorManager<St.Widget>(
+        (actor, options) => Main.layoutManager.addChrome(actor, options),
+        actor => Main.layoutManager.removeChrome(actor),
+    );
     private scheduler = new TaskScheduler({
         timeout: (delay, callback) => GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, callback),
         idle: callback => GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, callback),
@@ -185,18 +190,10 @@ export class DockView {
 
 
     private addToStage(): void {
-        Main.layoutManager.addChrome(this.background, {
-            affectsStruts: false,
-            trackFullscreen: false,
-        });
-        Main.layoutManager.addChrome(this.actor, {
-            affectsStruts: false,
-            trackFullscreen: false,
-        });
-        Main.layoutManager.addChrome(this.edgeSensor, {
-            affectsStruts: false,
-            trackFullscreen: false,
-        });
+        const options = { affectsStruts: false, trackFullscreen: false };
+        this.chromeActors.add(this.background, options);
+        this.chromeActors.add(this.actor, options);
+        this.chromeActors.add(this.edgeSensor, options);
     }
 
     private connectPanelGeometrySignals(): void {
@@ -999,9 +996,7 @@ export class DockView {
         this.volumeItems?.destroy();
         this.volumeItems = null;
         this.dragDrop.destroy();
-        Main.layoutManager.removeChrome(this.actor);
-        Main.layoutManager.removeChrome(this.background);
-        Main.layoutManager.removeChrome(this.edgeSensor);
+        this.chromeActors.destroy();
         this.actor.destroy();
         this.background.destroy();
         this.edgeSensor.destroy();
