@@ -9,27 +9,37 @@ export class PopupMenuLifecycle {
 
     track(menu: PopupMenu.PopupMenu): boolean {
         if (this.destroyed) {
-            menu.destroy();
+            this.runCleanup(() => menu.destroy());
             return false;
         }
         if (this.menus.has(menu))
             return true;
 
-        this.menus.add(menu);
-        this.manager.addMenu(menu);
-        menu.connect('open-state-changed', (_menu, open) => {
-            if (!open)
-                this.dispose(menu);
-        });
-        return true;
+        let registered = false;
+        try {
+            this.manager.addMenu(menu);
+            registered = true;
+            this.menus.add(menu);
+            menu.connect('open-state-changed', (_menu, open) => {
+                if (!open)
+                    this.dispose(menu);
+            });
+            return true;
+        } catch (error) {
+            this.menus.delete(menu);
+            if (registered)
+                this.runCleanup(() => this.manager.removeMenu(menu));
+            this.runCleanup(() => menu.destroy());
+            throw error;
+        }
     }
 
     dispose(menu: PopupMenu.PopupMenu): void {
         if (!this.menus.delete(menu))
             return;
-        this.manager.removeMenu(menu);
-        menu.close();
-        menu.destroy();
+        this.runCleanup(() => this.manager.removeMenu(menu));
+        this.runCleanup(() => menu.close());
+        this.runCleanup(() => menu.destroy());
     }
 
     destroy(): void {
@@ -42,5 +52,13 @@ export class PopupMenuLifecycle {
 
     get size(): number {
         return this.menus.size;
+    }
+
+    private runCleanup(cleanup: () => void): void {
+        try {
+            cleanup();
+        } catch (error) {
+            logError(error as Error, 'Unable to release dock popup menu');
+        }
     }
 }
