@@ -219,11 +219,7 @@
 }
 
 
-/* A folder occupies exactly one regular dock-item slot; its four previews form a 2x2 grid. */
-.g-os-dock-folder {
-  padding: 2px;
-}
-
+/* Folder previews occupy the same icon slot and inherit item padding from settings. */
 .g-os-dock-folder-preview {
   spacing: 2px;
   padding: 0;
