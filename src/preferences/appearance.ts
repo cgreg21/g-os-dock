@@ -7,6 +7,7 @@ export function addBackgroundPreferences(page: Adw.PreferencesPage, settings: Gi
     const base = new Adw.PreferencesGroup({ title: 'Background and border' });
     page.add(base);
     addSwitch(base, settings, 'acrylic-enabled', 'Enable translucent background');
+    addSpin(base, settings, 'background-blur', 'Background blur radius (px)', 0, 64, 1);
     addColorPicker(base, settings, 'background-color', 'background-opacity', 'Background color');
     addColorPicker(base, settings, 'border-color', 'border-opacity', 'Border color');
     addSpin(base, settings, 'border-size', 'Border thickness', 0, 12, 1);
