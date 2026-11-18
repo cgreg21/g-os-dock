@@ -217,3 +217,25 @@
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
 }
+
+
+/* A folder occupies exactly one regular dock-item slot; its four previews form a 2x2 grid. */
+.g-os-dock-folder {
+  padding: 2px;
+}
+
+.g-os-dock-folder-preview {
+  spacing: 2px;
+  padding: 0;
+}
+
+.g-os-dock-folder-preview-row {
+  spacing: 2px;
+  min-height: 0;
+  padding: 0;
+}
+
+.g-os-dock-folder-preview-row > StWidget {
+  padding: 0;
+  margin: 0;
+}
