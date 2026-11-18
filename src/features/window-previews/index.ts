@@ -109,7 +109,10 @@ export class WindowPreviews {
             x_expand: false,
             y_expand: false,
         });
-        previews.set_style('spacing: 8px; padding: 8px; border-radius: 14px; background-color: rgba(24,26,33,0.96); border: 1px solid rgba(255,255,255,0.18);');
+        previews.set_style(dockCache.getOrCreate(
+            'preview-container-style',
+            () => 'spacing: 8px; padding: 8px; border-radius: 14px; background-color: rgba(24,26,33,0.96); border: 1px solid rgba(255,255,255,0.18);',
+        ));
         if (this.settings.get_boolean('dev-mode'))
             previews.add_style_class_name('g-os-dock-dev');
         const buttonLayout = this.windowManagerSettings.get_string('button-layout');
