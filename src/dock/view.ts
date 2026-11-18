@@ -24,6 +24,7 @@ import { DockItemOrderController } from '../features/dock-item-order-controller.
 import { FavoriteOrderController } from '../features/favorite-order-controller.js';
 import { DockSettingsController } from './settings-controller.js';
 import { DockRuntimeSignalsController } from './runtime-signals-controller.js';
+import { DockActorSignalsController } from './actor-signals-controller.js';
 import { LifecycleScope } from '../features/lifecycle-scope.js';
 import { resolveApplicationOrder } from '../features/application-order.js';
 
@@ -51,6 +52,7 @@ export class DockView {
     private destroyed = false;
     private settingsController: DockSettingsController;
     private runtimeSignals: DockRuntimeSignalsController;
+    private actorSignals: DockActorSignalsController;
     private contextMenu: AppContextMenu;
     private applicationItems!: DockApplicationItemsController;
     private previews: WindowPreviews;
@@ -228,6 +230,21 @@ export class DockView {
                 trackWindow: window => this.windowTracker.track(window),
             },
         );
+        this.actorSignals = new DockActorSignalsController(
+            Main.panel,
+            this.actor,
+            this.content,
+            this.edgeSensor,
+            {
+                positionDock: () => this.positionDock(),
+                queueLayoutUpdate: () => this.queueLayoutUpdate(),
+                onDockPointerChanged: () => this.visibility.onPointerChanged(),
+                onEdgeSensorHoverChanged: hovered => {
+                    if (hovered)
+                        this.visibility.show();
+                },
+            },
+        );
 
         try {
             this.addToStage();
@@ -248,43 +265,9 @@ export class DockView {
         this.lifecycle.chrome.add(this.edgeSensor, options);
     }
 
-    private connectPanelGeometrySignals(): void {
-        const panel = Main.panel as St.Widget;
-        for (const property of ['x', 'y', 'width', 'height']) {
-            this.lifecycle.addSignal(panel, panel.connect(
-                `notify::${property}`,
-                () => {
-                    if (this.destroyed)
-                        return;
-                    this.positionDock();
-                },
-            ));
-        }
-    }
-
-    private connectContentGeometrySignal(): void {
-        // Coalesce allocation notifications into one geometry update.
-        this.lifecycle.addSignal(
-            this.content,
-            this.content.connect('notify::allocation', () => this.queueLayoutUpdate()),
-        );
-    }
-
-    private connectPointerSignals(): void {
-        this.lifecycle.addSignal(this.actor, this.actor.connect(
-            'notify::hover',
-            () => this.visibility.onPointerChanged(),
-        ));
-        this.lifecycle.addSignal(this.edgeSensor, this.edgeSensor.connect('notify::hover', () => {
-            if (this.edgeSensor.hover)
-                this.visibility.show();
-        }));
-    }
-
     private connectSignals(): void {
         this.settingsController.connectTheme();
-        this.connectPanelGeometrySignals();
-        this.connectPointerSignals();
+        this.actorSignals.connect();
         this.settingsController.connectSettings();
         this.runtimeSignals.connect();
         this.connectContentGeometrySignal();
@@ -568,6 +551,7 @@ export class DockView {
         if (this.destroyed)
             return;
         this.destroyed = true;
+        this.actorSignals.destroy();
         this.runtimeSignals.destroy();
         this.settingsController.destroy();
         this.lifecycle.destroy();
