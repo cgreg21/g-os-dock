@@ -1,17 +1,14 @@
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { DockDragDrop } from './drag-and-drop.js';
-import { DockTooltip } from './tooltip.js';
-import { getIconPaddingStyle } from './icon-padding.js';
-import { CleanupManager } from './cleanup-manager.js';
+import { DockItemBase } from './dock-item-base.js';
 
 /** Trash launcher with an icon reflecting whether the trash contains files. */
 export class DockTrashItem {
     private button: St.Button;
     private icon: St.Icon;
     private monitor: Gio.FileMonitor | null = null;
-    private cleanup = new CleanupManager();
+    private item: DockItemBase;
     private destroyed = false;
     private hasItems: boolean | null = null;
     private paddingStyle = '';
@@ -45,9 +42,9 @@ export class DockTrashItem {
                 logError(error as Error, 'Unable to open Trash');
             }
         });
-        new DockTooltip(this.button, 'Corbeille', dockPosition);
-        this.content.add_child(this.button);
-        this.dragDrop.registerItem({ id: 'system:trash', actor: this.button });
+        this.item = new DockItemBase(
+            this.content, this.button, 'Corbeille', dockPosition, this.dragDrop, 'system:trash',
+        );
         this.watchTrash();
         this.updateIcon();
     }
@@ -57,9 +54,9 @@ export class DockTrashItem {
             const trash = Gio.File.new_for_uri('trash:///');
             this.monitor = trash.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, null);
             const monitor = this.monitor;
-            this.cleanup.add(() => monitor.cancel());
+            this.item.cleanup.add(() => monitor.cancel());
             const signal = monitor.connect('changed', () => this.updateIcon());
-            this.cleanup.addSignal(monitor, signal);
+            this.item.cleanup.addSignal(monitor, signal);
         } catch (error) {
             logError(error as Error, 'Unable to monitor Trash');
         }
@@ -90,11 +87,7 @@ export class DockTrashItem {
         }
         if (this.icon.icon_size !== this.iconSize)
             this.icon.icon_size = this.iconSize;
-        const paddingStyle = getIconPaddingStyle(this.settings, this.iconSize);
-        if (this.paddingStyle !== paddingStyle) {
-            this.button.set_style(paddingStyle);
-            this.paddingStyle = paddingStyle;
-        }
+        this.item.setIconPadding(this.settings, this.iconSize);
     }
 
     getActor(): St.Button {
@@ -112,9 +105,7 @@ export class DockTrashItem {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        this.cleanup.clear();
         this.monitor = null;
-        this.dragDrop.unregisterItem(this.button);
-        this.button.destroy();
+        this.item.destroy();
     }
 }
