@@ -3,6 +3,7 @@ import Gio from 'gi://Gio?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { DockDragDrop } from './drag-and-drop.js';
 import { DockTooltip } from './tooltip.js';
+import { getIconPaddingStyle } from './icon-padding.js';
 
 /** Trash launcher with an icon reflecting whether the trash contains files. */
 export class DockTrashItem {
@@ -79,15 +80,7 @@ export class DockTrashItem {
         }
         this.icon.icon_name = hasItems ? 'user-trash-full' : 'user-trash';
         this.icon.icon_size = this.iconSize;
-        const top = this.settings.get_int('icon-padding-top');
-        const right = this.settings.get_int('icon-padding-right');
-        const bottom = this.settings.get_int('icon-padding-bottom');
-        const left = this.settings.get_int('icon-padding-left');
-        this.button.set_style(
-            `padding: ${top}px ${right}px ${bottom}px ${left}px; ` +
-            `min-width: ${this.iconSize + left + right}px; ` +
-            `min-height: ${this.iconSize + top + bottom}px;`,
-        );
+        this.button.set_style(getIconPaddingStyle(this.settings, this.iconSize));
     }
 
     getActor(): St.Button {
