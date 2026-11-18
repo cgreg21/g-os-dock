@@ -173,6 +173,8 @@ export class DockVolumeItems {
     }
 
     setIconSize(size: number): void {
+        if (this.iconSize === size)
+            return;
         this.iconSize = size;
         for (const item of this.items.values()) {
             item.icon.icon_size = size;
