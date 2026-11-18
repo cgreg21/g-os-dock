@@ -91,7 +91,7 @@ export class DockDragDrop {
             _delegate?: { actor?: St.Widget };
         };
         if (draggableActor._delegate?.actor === actor)
-            draggableActor._delegate = undefined;
+            delete draggableActor._delegate;
 
         if (this.draggedItem?.actor === actor)
             this.endPreview();
