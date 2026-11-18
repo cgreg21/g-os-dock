@@ -325,7 +325,7 @@ export class DockFoldersController {
                     y_expand: false,
                 });
                 if (app) {
-                    const icon = app.create_icon_texture(iconSize);
+                    const icon = app.create_icon_texture(iconSize * 4);
                     icon.set_size(iconSize, iconSize);
                     cell.add_child(icon);
                 }
