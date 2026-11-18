@@ -3,6 +3,7 @@ import Clutter from 'gi://Clutter?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { AnimationManager, type AnimationTarget } from '../../core/animation-manager.js';
 import { CleanupManager } from '../../core/cleanup-manager.js';
+import { dockStyles } from '../../core/style-manager.js';
 
 const MAGNIFICATION_DURATION_MS = 100;
 const INFLUENCE_RADIUS_FACTOR = 2.5;
@@ -261,7 +262,7 @@ export class DockMagnificationController {
             const scale = scales.get(button) ?? 1;
             const baseStyle = this.baseStyles.get(button);
             if (baseStyle !== undefined)
-                button.set_style(resolveMagnificationButtonStyle(baseStyle, scale));
+                dockStyles.apply(button, resolveMagnificationButtonStyle(baseStyle, scale));
             this.animateItem(button, visual, scale);
         }
         this.updateSurfaceInsets(scales);
@@ -271,7 +272,7 @@ export class DockMagnificationController {
 
     private resetButtonAllocations(): void {
         for (const [button, baseStyle] of this.baseStyles)
-            button.set_style(baseStyle);
+            dockStyles.apply(button, baseStyle);
         this.content.queue_relayout();
     }
 
