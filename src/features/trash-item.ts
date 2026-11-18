@@ -12,6 +12,8 @@ export class DockTrashItem {
     private monitor: Gio.FileMonitor | null = null;
     private monitorSignal = 0;
     private destroyed = false;
+    private hasItems: boolean | null = null;
+    private paddingStyle = '';
 
     constructor(
         private content: St.BoxLayout,
@@ -78,9 +80,16 @@ export class DockTrashItem {
         } finally {
             enumerator?.close(null);
         }
-        this.icon.icon_name = hasItems ? 'user-trash-full' : 'user-trash';
+        if (this.hasItems !== hasItems) {
+            this.icon.icon_name = hasItems ? 'user-trash-full' : 'user-trash';
+            this.hasItems = hasItems;
+        }
         this.icon.icon_size = this.iconSize;
-        this.button.set_style(getIconPaddingStyle(this.settings, this.iconSize));
+        const paddingStyle = getIconPaddingStyle(this.settings, this.iconSize);
+        if (this.paddingStyle !== paddingStyle) {
+            this.button.set_style(paddingStyle);
+            this.paddingStyle = paddingStyle;
+        }
     }
 
     getActor(): St.Button {
