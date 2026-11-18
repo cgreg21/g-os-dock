@@ -2,6 +2,7 @@ import Adw from 'gi://Adw?version=1';
 import Gio from 'gi://Gio?version=2.0';
 import Gdk from 'gi://Gdk?version=4.0';
 import Gtk from 'gi://Gtk?version=4.0';
+import { addColorPicker } from './color-picker.js';
 
 export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.Settings): void {
     const group = new Adw.PreferencesGroup({ title: 'Dock behavior' });
@@ -45,7 +46,7 @@ export function addItemPreferences(page: Adw.PreferencesPage, settings: Gio.Sett
     const separator = new Adw.PreferencesGroup({ title: 'Favorites separator' });
     page.add(separator);
     addSwitch(separator, settings, 'show-favorites-separator', 'Show separator between favorites and running apps');
-    addSeparatorColorPicker(separator, settings);
+    addColorPicker(separator, settings, 'favorites-separator-color', 'favorites-separator-opacity', 'Color and opacity');
     addSpin(separator, settings, 'favorites-separator-size', 'Thickness (px)', 1, 8);
     addSpin(separator, settings, 'favorites-separator-length', 'Length (px)', 1, 512);
 }
@@ -115,31 +116,6 @@ function addIconThemeSelector(group: Adw.PreferencesGroup, settings: Gio.Setting
     });
     settings.connect('changed::system-icon-name', sync);
     group.add(row);
-    sync();
-}
-
-function addSeparatorColorPicker(group: Adw.PreferencesGroup, settings: Gio.Settings): void {
-    const row = new Adw.ActionRow({ title: 'Color and opacity' });
-    const button = new Gtk.ColorButton({ use_alpha: true });
-    button.valign = Gtk.Align.CENTER;
-    button.tooltip_text = 'Choose separator color and opacity';
-    row.add_suffix(button);
-    group.add(row);
-    const sync = () => {
-        const rgba = new Gdk.RGBA();
-        if (!rgba.parse(settings.get_string('favorites-separator-color'))) rgba.parse('#ffffff');
-        rgba.alpha = settings.get_double('favorites-separator-opacity');
-        button.set_rgba(rgba);
-        row.subtitle = settings.get_string('favorites-separator-color').toUpperCase();
-    };
-    button.connect('color-set', () => {
-        const rgba = button.get_rgba();
-        const hex = [rgba.red, rgba.green, rgba.blue].map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
-        settings.set_string('favorites-separator-color', `#${hex}`);
-        settings.set_double('favorites-separator-opacity', rgba.alpha);
-    });
-    settings.connect('changed::favorites-separator-color', sync);
-    settings.connect('changed::favorites-separator-opacity', sync);
     sync();
 }
 
