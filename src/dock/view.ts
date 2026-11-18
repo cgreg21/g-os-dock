@@ -539,28 +539,28 @@ export class DockView {
                 can_focus: false,
                 x_expand: false,
                 y_expand: false,
+                // BoxLayout otherwise fills children across its cross axis,
+                // making a short separator occupy the full dock width/height.
+                x_align: Clutter.ActorAlign.CENTER,
+                y_align: Clutter.ActorAlign.CENTER,
             });
             this.content.add_child(this.favoritesSeparator);
         }
 
-        const thickness = this.settings.get_int('favorites-separator-size');
+        const thickness = Math.max(1, this.settings.get_int('favorites-separator-size'));
         const length = Math.max(1, this.settings.get_int('favorites-separator-length'));
         const color = this.settings.get_string('favorites-separator-color');
         const opacity = this.settings.get_double('favorites-separator-opacity');
-        this.favoritesSeparator.set_size(
-            vertical ? length : thickness,
-            vertical ? thickness : length,
-        );
+        // In a vertical dock the separator is horizontal (length = width);
+        // in a horizontal dock it is vertical (length = height).
         const separatorWidth = vertical ? length : thickness;
         const separatorHeight = vertical ? thickness : length;
         this.favoritesSeparator.set_size(separatorWidth, separatorHeight);
         this.favoritesSeparator.set_style(
             `background-color: ${color}; opacity: ${opacity}; ` +
             `border-radius: ${Math.ceil(thickness / 2)}px; ` +
-            `min-width: ${separatorWidth}px; max-width: ${separatorWidth}px; ` +
-            `min-height: ${separatorHeight}px; max-height: ${separatorHeight}px; ` +
-            // Keep spacing on the dock's main axis only. Cross-axis margins
-            // used to inflate the visible separator beyond its configured length.
+            `width: ${separatorWidth}px; min-width: ${separatorWidth}px; max-width: ${separatorWidth}px; ` +
+            `height: ${separatorHeight}px; min-height: ${separatorHeight}px; max-height: ${separatorHeight}px; ` +
             (vertical ? 'margin: 4px 0;' : 'margin: 0 4px;'),
         );
 
