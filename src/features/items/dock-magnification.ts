@@ -72,6 +72,53 @@ export function resolveMagnificationItemScale(
     return resolveMagnificationScale(pointerAxis, itemCenter, influenceRadius, maxScale);
 }
 
+
+/**
+ * Resolves one button's main-axis slot while preserving the gaps between
+ * buttons. The total growth is distributed equally at both ends so the
+ * magnified row or column remains centered around its original allocation.
+ *
+ * precedingGrowth is the sum of the size increases of all preceding buttons.
+ */
+export function resolveMagnificationMainAxisLayout(
+    itemStart: number,
+    itemExtent: number,
+    itemScale: number,
+    precedingGrowth: number,
+    totalGrowth: number,
+): [number, number] {
+    if (![itemStart, itemExtent, itemScale, precedingGrowth, totalGrowth].every(Number.isFinite)
+        || itemExtent <= 0 || itemScale < 1 || precedingGrowth < 0 || totalGrowth < precedingGrowth)
+        return [itemStart, itemExtent];
+
+    return [
+        itemStart - totalGrowth / 2 + precedingGrowth,
+        itemExtent * itemScale,
+    ];
+}
+
+/**
+ * Resolves the cross-axis slot while keeping the dock's outer edge fixed.
+ * For bottom/right docks anchorEnd is true; top/left docks grow inward from
+ * their leading edge.
+ */
+export function resolveMagnificationCrossAxisLayout(
+    itemStart: number,
+    itemExtent: number,
+    itemScale: number,
+    anchorEnd: boolean,
+): [number, number] {
+    if (![itemStart, itemExtent, itemScale].every(Number.isFinite)
+        || itemExtent <= 0 || itemScale < 1)
+        return [itemStart, itemExtent];
+
+    const targetExtent = itemExtent * itemScale;
+    return [
+        anchorEnd ? itemStart + itemExtent - targetExtent : itemStart,
+        targetExtent,
+    ];
+}
+
 /** Applies pointer-driven scale transitions to the registered visual actors. */
 export class DockMagnificationController {
     private readonly items = new Map<St.Button, Clutter.Actor>();
