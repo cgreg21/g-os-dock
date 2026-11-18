@@ -803,14 +803,19 @@ export class DockView {
         this.layout.position();
         this.visibility.applySettings();
 
-        const autoHide = this.settings.get_boolean('auto-hide');
-        const smartHide = this.settings.get_boolean('smart-hide');
-        if (autoHide || smartHide) {
-            this.edgeSensor.show();
-            this.layout.positionSensor();
-        } else {
+        this.syncEdgeSensor();
+    }
+
+    private syncEdgeSensor(): void {
+        const shouldShow = this.settings.get_boolean('auto-hide') ||
+            this.settings.get_boolean('smart-hide');
+        if (!shouldShow) {
             this.edgeSensor.hide();
+            return;
         }
+
+        this.edgeSensor.show();
+        this.layout.positionSensor();
     }
 
     private queueLayoutUpdate(): void {
