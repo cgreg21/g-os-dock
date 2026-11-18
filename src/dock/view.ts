@@ -27,7 +27,7 @@ import { DockRuntimeSignalsController } from './runtime-signals-controller.js';
 import { DockActorSignalsController } from './actor-signals-controller.js';
 import { LifecycleScope } from '../features/lifecycle-scope.js';
 import { resolveApplicationOrder } from '../features/application-order.js';
-import { calculateDockIconSize } from '../features/icon-sizing.js';
+import { DockRefreshController } from './refresh-controller.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -69,6 +69,7 @@ export class DockView {
     private favoritesSeparator: DockFavoritesSeparatorController;
     private itemOrder: DockItemOrderController<DockDndItem>;
     private favoriteOrder: FavoriteOrderController;
+    private refreshController: DockRefreshController;
 
     constructor(index: number, monitor: MonitorGeometry, settings: Gio.Settings) {
         this.monitor = monitor;
@@ -202,6 +203,22 @@ export class DockView {
             moveFavoriteToPos: (id, position) => this.favorites.moveFavoriteToPos(id, position),
         });
 
+        this.refreshController = new DockRefreshController(
+            this.settings,
+            this.layout,
+            this.dockItems,
+            () => this.favorites.getFavorites().map(app => app.get_id()),
+            {
+                getApplications: () => this.getApplications(),
+                syncApplications: (applications, size) => this.syncApplicationItems(applications, size),
+                applyItemOrder: () => this.itemOrder.apply(),
+                syncFavoritesSeparator: vertical => this.syncFavoritesSeparator(vertical),
+                positionDock: () => this.positionDock(),
+                updateIndicators: () => this.indicators.update(this.itemActors),
+                queueSmartHideCheck: () => this.visibility.queueSmartHideCheck(),
+            },
+        );
+
         this.settingsController = new DockSettingsController(
             this.settings,
             this.desktopSettings,
@@ -328,36 +345,6 @@ export class DockView {
         this.favoriteOrder.persist(ids);
     }
 
-    private getIconSize(
-        applications: Shell.App[],
-        available: number,
-        vertical: boolean,
-        configuredSize: number,
-    ): number {
-        const favoriteIds = new Set(
-            this.favorites.getFavorites().map(app => app.get_id()),
-        );
-        const iconPadding = vertical
-            ? this.settings.get_int('icon-padding-top') + this.settings.get_int('icon-padding-bottom')
-            : this.settings.get_int('icon-padding-left') + this.settings.get_int('icon-padding-right');
-
-        return calculateDockIconSize({
-            applicationIds: applications.map(app => app.get_id()),
-            favoriteIds,
-            availableSpace: available,
-            configuredSize,
-            spacing: this.settings.get_int('dock-spacing'),
-            showFavoritesSeparator: this.settings.get_boolean('show-favorites-separator'),
-            separatorSize: this.settings.get_int('favorites-separator-size'),
-            additionalItemCount:
-                Number(this.settings.get_boolean('show-system-icon')) +
-                Number(this.settings.get_boolean('show-trash-icon')) +
-                this.dockItems.volumeCount,
-            iconPadding,
-            vertical,
-        });
-    }
-
     private syncApplicationItems(applications: Shell.App[], size: number): boolean {
         return this.applicationItems.sync(applications, size);
     }
@@ -365,24 +352,7 @@ export class DockView {
     private refresh(syncVolumes = false): void {
         if (this.destroyed)
             return;
-
-        const applications = this.getApplications();
-        const configuredSize = this.settings.get_int('icon-size');
-        const volumeItemsChanged = syncVolumes ? this.dockItems.syncVolumes(configuredSize) : false;
-        const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
-        const available = this.layout.availableSpace(vertical);
-        const size = this.getIconSize(applications, available, vertical, configuredSize);
-
-        const structureChanged = this.syncApplicationItems(applications, size);
-        const dockItemsChanged = this.dockItems.sync(size);
-        this.itemOrder.apply();
-        this.syncFavoritesSeparator(vertical);
-
-        if (structureChanged || dockItemsChanged || volumeItemsChanged)
-            this.positionDock();
-
-        this.indicators.update(this.itemActors);
-        this.visibility.queueSmartHideCheck();
+        this.refreshController.refresh(syncVolumes);
     }
 
     private syncFavoritesSeparator(vertical: boolean): void {
@@ -514,6 +484,7 @@ export class DockView {
         this.actorSignals.destroy();
         this.runtimeSignals.destroy();
         this.settingsController.destroy();
+        this.refreshController.destroy();
         this.lifecycle.destroy();
         this.visibility.destroy();
         this.previews.destroy();
