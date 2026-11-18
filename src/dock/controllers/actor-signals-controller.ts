@@ -1,5 +1,5 @@
 import St from 'gi://St?version=51';
-import { ManagedSignalController, type SignalEmitter } from '../features/managed-signal-controller.js';
+import { ManagedSignalController, type SignalEmitter } from '../../features/managed-signal-controller.js';
 
 export interface DockActorSignalCallbacks {
     positionDock(): void;

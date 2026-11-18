@@ -1,5 +1,5 @@
 import Gio from 'gi://Gio?version=2.0';
-import { SettingsObserver } from '../features/settings-observer.js';
+import { SettingsObserver } from '../../features/settings-observer.js';
 
 export interface DockSettingsCallbacks {
     applyAppearance(): void;

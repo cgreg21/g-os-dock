@@ -1,12 +1,12 @@
 import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
-import { DockLayout } from '../features/layout.js';
-import { DockItemsController } from '../features/dock-items-controller.js';
-import { calculateDockIconSize } from '../features/icon-sizing.js';
-import { FAVORITES_SEPARATOR_MARGIN } from '../features/favorites-separator.js';
-import { getIconPaddingExtent } from '../features/icon-padding.js';
-import { countVisibleWindowBadges } from '../features/window-count-badge.js';
-import { isVerticalDockPosition } from '../features/dock-positioner.js';
+import { DockLayout } from '../../features/layout.js';
+import { DockItemsController } from '../../features/dock-items-controller.js';
+import { calculateDockIconSize } from '../../features/icon-sizing.js';
+import { FAVORITES_SEPARATOR_MARGIN } from '../../features/favorites-separator.js';
+import { getIconPaddingExtent } from '../../features/icon-padding.js';
+import { countVisibleWindowBadges } from '../../features/window-count-badge.js';
+import { isVerticalDockPosition } from '../../features/dock-positioner.js';
 
 /** Coordinates item reconciliation, sizing and post-refresh layout updates. */
 export interface DockRefreshCallbacks {
