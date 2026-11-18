@@ -92,7 +92,7 @@ export class DockAppItemFactory {
                 () => this.dependencies.previews.hide(),
             );
             item._gOsDockBase = base;
-            item._gOsDockPaddingStyle = base.setIconPadding(this.dependencies.settings, size);
+            base.setIconPadding(this.dependencies.settings, size);
 
             base.cleanup.addSignal(item, item.connect('clicked', () => this.dependencies.activateApp(app)));
             base.cleanup.addSignal(item, item.connect('key-press-event', (_actor: St.Button, event: Clutter.Event) =>
