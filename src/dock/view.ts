@@ -574,7 +574,7 @@ export class DockView {
                 if (!item)
                     item = this.appItemFactory.create(app, size);
 
-                this.updateItemPadding(item, size);
+                item._gOsDockBase.setIconPadding(this.settings, size);
                 if (item.get_parent() !== this.content)
                     this.content.add_child(item);
                 pending.push(item);
@@ -782,11 +782,6 @@ export class DockView {
         );
         this.trashItem = result.item;
         return result.changed;
-    }
-
-    /** Update per-side icon padding on retained actors when preferences change. */
-    private updateItemPadding(item: DockAppButton, size: number): void {
-        item._gOsDockPaddingStyle = item._gOsDockBase.setIconPadding(this.settings, size);
     }
 
     private activateApp(app: Shell.App): void {
