@@ -270,7 +270,6 @@ export class DockView {
         this.actorSignals.connect();
         this.settingsController.connectSettings();
         this.runtimeSignals.connect();
-        this.connectContentGeometrySignal();
     }
 
     handleDragOver(source: DockDragSource, dragActor: Clutter.Actor, x: number, y: number, time: number): number {
