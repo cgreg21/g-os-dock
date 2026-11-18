@@ -80,6 +80,28 @@ export class DockVisibility {
             this.queueSmartHideCheck();
     }
 
+    /** Keep a hidden dock fully outside the screen after its size changes. */
+    syncHiddenPosition(): void {
+        if (this.isInactive() || !this.initialized || this.actor.visible)
+            return;
+
+        const position = this.settings.get_string('dock-position');
+        const distanceX = position === 'left'
+            ? -Math.max(this.actor.width, this.background.width)
+            : position === 'right'
+                ? Math.max(this.actor.width, this.background.width)
+                : 0;
+        const distanceY = position === 'top'
+            ? -Math.max(this.actor.height, this.background.height)
+            : position === 'bottom'
+                ? Math.max(this.actor.height, this.background.height)
+                : 0;
+        this.actor.translation_x = distanceX;
+        this.actor.translation_y = distanceY;
+        this.background.translation_x = distanceX;
+        this.background.translation_y = distanceY;
+    }
+
     onPointerChanged(): void {
         if (this.isInactive())
             return;
