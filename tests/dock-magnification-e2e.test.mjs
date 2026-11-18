@@ -143,18 +143,38 @@ test('E2E: every registered visual uses its transformed geometry without mutatio
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes('private readonly items = new Map<St.Button, Clutter.Actor>()'));
     assert.ok(controller.includes('this.items.set(button, visual)'));
-    assert.ok(controller.includes('getItemScales(influenceRadiusFactor = 2.5, maxScale = 4)'));
+    assert.ok(controller.includes('getItemScales('));
     assert.ok(controller.includes('visual.get_transformed_position()'));
     assert.ok(controller.includes('visual.get_transformed_size()'));
     assert.ok(controller.includes('resolveMagnificationItemScale('));
     assert.ok(controller.includes('return scales'));
 });
 
-test('E2E: pointer observation does not animate, scale, resize, or relayout items', () => {
+test('E2E: pointer motion animates every visual actor and restores scale on leave', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
-    assert.ok(!controller.includes('Clutter.Timeline'));
-    assert.ok(!controller.includes('set_scale('));
-    assert.ok(!controller.includes('set_size('));
+    assert.ok(controller.includes('private readonly animations = new AnimationManager()'));
+    assert.ok(controller.includes('this.applyMagnification()'));
+    assert.ok(controller.includes('this.animateItemsToScale(1)'));
+    assert.ok(controller.includes('{ scaleX: scale, scaleY: scale }'));
+    assert.ok(controller.includes('visual as unknown as AnimationTarget'));
+    assert.ok(controller.includes('MAGNIFICATION_DURATION_MS = 100'));
+    assert.ok(controller.includes('Clutter.AnimationMode.EASE_OUT_CUBIC'));
+});
+
+test('E2E: visual anchors preserve the outer edge in all dock orientations', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    assert.ok(controller.includes("visual.set_pivot_point(position === 'right' ? 1 : 0, 0.5)"));
+    assert.ok(controller.includes("visual.set_pivot_point(0.5, position === 'top' ? 0 : 1)"));
+});
+
+test('E2E: magnification respects settings and never resizes buttons or dock layout', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    assert.ok(controller.includes("'dock-magnification-enabled'"));
+    assert.ok(controller.includes("'dock-magnification-scale'"));
+    assert.ok(controller.includes('this.settings.get_int'));
+    assert.ok(controller.includes('this.settings.get_boolean'));
+    assert.ok(!controller.includes('button.scale_x'));
+    assert.ok(!controller.includes('button.scale_y'));
+    assert.ok(!controller.includes('button.set_size('));
     assert.ok(!controller.includes('queue_relayout('));
-    assert.ok(!controller.includes('ease('));
 });
