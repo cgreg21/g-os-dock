@@ -14,6 +14,7 @@ import { DockIndicators } from '../features/indicators.js';
 import { WindowTracker } from '../features/window-tracker.js';
 import { DockAppItemFactory, type DockAppButton } from '../features/app-item.js';
 import { DockApplicationItemsController } from '../features/application-items-controller.js';
+import { DockFoldersController } from '../features/applications/dock-folders-controller.js';
 import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
 import { DockItemsController } from '../features/dock-items-controller.js';
@@ -58,6 +59,7 @@ export class DockView {
     private actorSignals: DockActorSignalsController;
     private contextMenu: AppContextMenu;
     private applicationItems!: DockApplicationItemsController;
+    private folders!: DockFoldersController;
     private previews: WindowPreviews;
     private dragDrop: DockDragDrop;
     private visibility: DockVisibility;
@@ -120,6 +122,13 @@ export class DockView {
             this.monitor,
         );
         this.actor._delegate = this;
+        this.folders = new DockFoldersController(
+            this.content,
+            this.settings,
+            this.dragDrop,
+            this.appSystem,
+            () => this.refresh(),
+        );
         this.previews = new WindowPreviews(
             this.settings,
             this.monitor,
@@ -308,11 +317,12 @@ export class DockView {
 
     private getApplications(): Shell.App[] {
         const ranks = this.itemOrder.getRanks(this.settings.get_strv('dock-item-order'));
+        const hiddenAppIds = this.folders.getHiddenAppIds();
         return resolveApplicationOrder(
             this.favorites.getFavorites(),
             this.appSystem.get_running(),
             ranks,
-        );
+        ).filter(app => !hiddenAppIds.has(app.get_id()));
     }
 
     private get itemActors(): DockAppButton[] {
@@ -328,6 +338,7 @@ export class DockView {
             this.createAppDndItem(item),
         );
         items.push(...this.dockItems.getDndItems());
+        items.push(...this.folders.getDndItems());
         return resolveDockDndOrder(items, this.content.get_children());
     }
 
@@ -340,6 +351,7 @@ export class DockView {
             isFavorite: () => this.favorites.isFavorite(appId),
             canRemove: () => this.favorites.isFavorite(appId),
             onRemove: () => this.favorites.removeFavorite(appId),
+            onCreateFolder: target => this.folders.addToFolder(`app:${appId}`, target),
         };
     }
 
@@ -354,6 +366,7 @@ export class DockView {
     private refresh(syncVolumes = false): void {
         if (this.destroyed)
             return;
+        this.folders.sync();
         this.refreshController.refresh(syncVolumes);
     }
 
@@ -444,6 +457,7 @@ export class DockView {
         this.windowTracker.destroy();
         this.contextMenu.destroy();
         this.applicationItems.destroy();
+        this.folders.destroy();
         this.favoritesSeparator.destroy();
         this.dockItems.destroy();
         this.dragDrop.destroy();
