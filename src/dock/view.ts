@@ -98,7 +98,11 @@ export class DockView {
         // The interactive content container sits above the independent background.
         this.actor.add_child(this.content);
         this.appearance = new DockAppearance(this.background, this.actor, this.content, this.settings, this.desktopSettings);
-        this.contextMenu = new AppContextMenu(this.actor, this.favorites);
+        this.contextMenu = new AppContextMenu(
+            this.actor,
+            this.favorites,
+            () => this.settings.get_string('dock-position'),
+        );
         this.dragDrop = new DockDragDrop(
             this.actor,
             this.content,
