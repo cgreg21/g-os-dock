@@ -16,6 +16,7 @@ export class DockItemBase {
     private animations = new AnimationManager();
     private focused = false;
     private settings: Gio.Settings | null = null;
+    private observedSettings: Gio.Settings | null = null;
 
     constructor(
         private content: St.BoxLayout | null,
@@ -51,6 +52,13 @@ export class DockItemBase {
         const style = getIconPaddingStyle(settings, size);
         dockStyles.apply(this.button, style);
         this.settings = settings;
+        if (this.observedSettings !== settings) {
+            this.observedSettings = settings;
+            for (const key of ['hover-animation', 'hover-animation-intensity', 'hover-animation-duration']) {
+                const signal = settings.connect(`changed::${key}`, () => this.updateInteractionAnimation());
+                this.cleanup.addSignal(settings, signal);
+            }
+        }
         this.updateInteractionAnimation();
         return style;
     }
