@@ -1,7 +1,7 @@
 import Clutter from 'gi://Clutter?version=51';
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
-import { dockCache } from './cache.js';
+import { dockCache } from '../../core/cache.js';
 import { FAVORITES_SEPARATOR_MARGIN } from './favorites-separator.js';
 
 /**

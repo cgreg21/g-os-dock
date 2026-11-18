@@ -4,8 +4,8 @@ import Gio from 'gi://Gio?version=2.0';
 import Shell from 'gi://Shell?version=51';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import { dockCache } from './cache.js';
-import { ChromeActorManager } from './chrome-actor-manager.js';
+import { dockCache } from '../../core/cache.js';
+import { ChromeActorManager } from '../../core/chrome-actor-manager.js';
 
 export interface DockDndItem {
     id: string;

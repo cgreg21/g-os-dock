@@ -1,10 +1,10 @@
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { DockDragDrop, type DockDndItem } from '../interaction/drag-and-drop.js';
-import { DockTooltip } from './tooltip.js';
-import { getIconPaddingStyle } from './icon-padding.js';
-import { CleanupManager } from './cleanup-manager.js';
-import { dockStyles } from './style-manager.js';
+import { DockTooltip } from '../interaction/tooltip.js';
+import { getIconPaddingStyle } from '../layout/icon-padding.js';
+import { CleanupManager } from '../../core/cleanup-manager.js';
+import { dockStyles } from '../../core/style-manager.js';
 
 /** Shared lifecycle and presentation primitives for interactive dock buttons. */
 export class DockItemBase {
