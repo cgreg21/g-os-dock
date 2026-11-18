@@ -568,11 +568,7 @@ export class DockView {
         );
 
         if (!enabled || !hasFavorite || !firstNonFavorite) {
-            if (this.favoritesSeparator) {
-                this.favoritesSeparator.get_parent()?.remove_child(this.favoritesSeparator);
-                this.favoritesSeparator.destroy();
-                this.favoritesSeparator = null;
-            }
+            this.removeFavoritesSeparator();
             return;
         }
 
@@ -613,6 +609,14 @@ export class DockView {
             this.content.get_children()[targetIndex - 1] !== this.favoritesSeparator) {
             this.content.set_child_at_index(this.favoritesSeparator, targetIndex);
         }
+    }
+
+    private removeFavoritesSeparator(): void {
+        if (!this.favoritesSeparator)
+            return;
+        this.favoritesSeparator.get_parent()?.remove_child(this.favoritesSeparator);
+        this.favoritesSeparator.destroy();
+        this.favoritesSeparator = null;
     }
 
     private syncSystemItem(size: number): boolean {
@@ -839,11 +843,7 @@ export class DockView {
         this.previews.destroy();
         this.windowTracker.destroy();
         this.contextMenu.destroy();
-        if (this.favoritesSeparator) {
-            this.favoritesSeparator.get_parent()?.remove_child(this.favoritesSeparator);
-            this.favoritesSeparator.destroy();
-            this.favoritesSeparator = null;
-        }
+        this.removeFavoritesSeparator();
         this.systemItem?.destroy();
         this.systemItem = null;
         this.trashItem?.destroy();
