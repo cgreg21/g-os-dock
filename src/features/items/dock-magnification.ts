@@ -83,11 +83,13 @@ export class DockMagnificationController {
 
         for (const item of snapshots) {
             const distance = Math.abs(pointer - item.center);
-            const radius = item.size * 2.7;
+            const radius = item.size * 1.45;
             const influence = Math.exp(-(distance * distance) / (2 * radius * radius));
             const scale = 1 + (maximum - 1) * influence;
             const direction = Math.sign(item.center - pointer);
-            const displacement = direction * (scale - 1) * item.size * 0.55;
+            const neighborPush = (maximum - 1) * item.size * 0.5 *
+                Math.exp(-(distance * distance) / (2 * Math.pow(item.size * 2.5, 2)));
+            const displacement = direction * ((scale - 1) * item.size * 0.5 + neighborPush);
             this.animations.animate(item.key, item.actor as unknown as AnimationTarget, {
                 scaleX: scale,
                 scaleY: scale,
