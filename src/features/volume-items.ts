@@ -25,6 +25,7 @@ export class DockVolumeItems {
         icon: St.Icon;
         mount: Gio.Mount;
         name: string;
+        iconKey: string;
         tooltip: DockTooltip;
     }>();
     private destroyed = false;
@@ -84,8 +85,13 @@ export class DockVolumeItems {
                     existing.button.accessible_name = name;
                     existing.tooltip.setText(name);
                 }
-                // Use the mount-provided GIcon, just like GNOME Files (Nautilus).
-                existing.icon.set_gicon(entry.mount.get_icon());
+                // Avoid replacing the icon actor's GIcon when the mount icon is unchanged.
+                const icon = entry.mount.get_icon();
+                const iconKey = icon.to_string() ?? '';
+                if (existing.iconKey !== iconKey) {
+                    existing.icon.set_gicon(icon);
+                    existing.iconKey = iconKey;
+                }
                 continue;
             }
             this.createItem(entry);
@@ -122,8 +128,9 @@ export class DockVolumeItems {
     private createItem(entry: MountedDrive): void {
         // Gio.Mount.get_icon() provides the same themed, non-symbolic icon
         // used by GNOME Files for this mounted volume.
+        const gicon = entry.mount.get_icon();
         const icon = new St.Icon({
-            gicon: entry.mount.get_icon(),
+            gicon,
             icon_size: this.iconSize,
             style_class: 'g-os-dock-volume-icon',
         });
@@ -148,7 +155,10 @@ export class DockVolumeItems {
         const tooltip = new DockTooltip(button, name, this.dockPosition);
         this.content.add_child(button);
         this.updateButtonPadding(button);
-        this.items.set(entry.id, { button, icon, mount: entry.mount, name, tooltip });
+        this.items.set(entry.id, {
+            button, icon, mount: entry.mount, name,
+            iconKey: gicon.to_string() ?? '', tooltip,
+        });
         this.dragDrop.registerItem({ id: entry.id, actor: button });
     }
 
