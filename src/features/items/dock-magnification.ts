@@ -23,7 +23,6 @@ export class DockMagnificationController {
     private readonly cleanup = new CleanupManager();
     private destroyed = false;
     private timeline: Clutter.Timeline | null = null;
-    private lastFrameDelta = 0;
     private cursor: number | null = null;
     private rawPointer: number | null = null;
     private envelope = 0;
@@ -119,7 +118,6 @@ export class DockMagnificationController {
     private startTimeline(): void {
         if (this.destroyed || this.timeline || this.items.size === 0)
             return;
-        this.lastFrameDelta = 0;
         this.timeline = Clutter.Timeline.new_for_actor(this.content, 3600 * 1000);
         this.timeline.set_repeat_count(-1);
         this.timeline.connect('new-frame', () => this.onFrame());
@@ -140,8 +138,7 @@ export class DockMagnificationController {
         }
 
         const delta = this.timeline?.get_delta() ?? 0;
-        const dt = Math.min(Math.max((delta - this.lastFrameDelta) / 1_000_000, 0), DockMagnificationController.MAX_FRAME_DT);
-        this.lastFrameDelta = delta;
+        const dt = Math.min(Math.max(delta / 1000, 0), DockMagnificationController.MAX_FRAME_DT);
 
         if (this.rawPointer !== null) {
             if (this.cursor === null)
@@ -183,10 +180,9 @@ export class DockMagnificationController {
             return;
 
         const vertical = this.isVertical();
-        const allocation = this.content.get_allocation_box();
         const contentPosition = this.content.get_transformed_position();
         const contentAxis = vertical ? contentPosition[1] : contentPosition[0];
-        const contentOrigin = contentAxis + (vertical ? allocation.y1 : allocation.x1);
+        const contentOrigin = contentAxis;
         const entries: MagnifiedItem[] = [];
 
         for (const entry of this.items.values()) {
