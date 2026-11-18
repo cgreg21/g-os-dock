@@ -206,7 +206,7 @@ export class DockLayout {
         }
         if (immediate) {
             this.animations.cancel('dock-background-surface');
-            this.background.set_size(backgroundWidth, backgroundHeight);
+            this.background.set_size(backgroundWidth, stableHeight);
             this.background.set_position(Math.round(x), Math.round(y));
         } else this.animations.animate(
             'dock-background-surface',
