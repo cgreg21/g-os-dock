@@ -23,6 +23,7 @@ import { DockVolumeItems } from '../features/volume-items.js';
 import { dockCache } from '../features/cache.js';
 import { CleanupManager } from '../features/cleanup-manager.js';
 import { SettingsObserver } from '../features/settings-observer.js';
+import { TaskScheduler } from '../features/task-scheduler.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -35,7 +36,11 @@ export class DockView {
     private monitorIndex: number;
     private settings: Gio.Settings;
     private desktopSettings: Gio.Settings;
-    private layoutIdleSource = 0;
+    private scheduler = new TaskScheduler({
+        timeout: (delay, callback) => GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, callback),
+        idle: callback => GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, callback),
+        remove: sourceId => GLib.Source.remove(sourceId),
+    });
     private appSystem: Shell.AppSystem;
     private favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
 
@@ -966,15 +971,12 @@ export class DockView {
     }
 
     private queueLayoutUpdate(): void {
-        if (this.destroyed || this.layoutIdleSource)
+        if (this.destroyed)
             return;
 
-        this.layoutIdleSource = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            this.layoutIdleSource = 0;
-            if (!this.destroyed) {
+        this.scheduler.idle('layout-update', () => {
+            if (!this.destroyed)
                 this.positionDock();
-            }
-            return GLib.SOURCE_REMOVE;
         });
     }
 
@@ -982,10 +984,7 @@ export class DockView {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        if (this.layoutIdleSource) {
-            GLib.Source.remove(this.layoutIdleSource);
-            this.layoutIdleSource = 0;
-        }
+        this.scheduler.destroy();
         this.settingsObserver.destroy();
         this.cleanup.clear();
         this.visibility.destroy();
