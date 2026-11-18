@@ -8,6 +8,7 @@ import { resolveWindowIndicatorState } from './window-indicator-state.js';
 import {
     createIndicatorMarkerSignature,
     createIndicatorMarkerStyle,
+    createIndicatorMarkerStyleKey,
     resolveIndicatorColor,
 } from './indicator-style.js';
 import { resolveIndicatorMarkerLayout } from './indicator-layout.js';
@@ -101,7 +102,7 @@ export class DockIndicators {
                         const marker = new St.Widget();
                         marker.set_size(length, thickness);
                         const markerStyle = dockCache.getOrCreate(
-                            `indicator-marker-style:${signature.slice(String(markerCount).length + 1)}`,
+                            `indicator-marker-style:${createIndicatorMarkerStyleKey(styleOptions)}`,
                             () => createIndicatorMarkerStyle(styleOptions),
                         );
                         dockStyles.apply(marker, markerStyle);
