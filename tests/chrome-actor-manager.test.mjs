@@ -60,3 +60,27 @@ test('does not register actors after destruction', () => {
     assert.equal(adds, 0);
     assert.equal(manager.size, 0);
 });
+
+
+test('contains individual removal failures', () => {
+    const removed = [];
+    const originalLogError = globalThis.logError;
+    globalThis.logError = () => {};
+    try {
+        const manager = new ChromeActorManager(() => {}, actor => {
+            removed.push(actor);
+            if (actor.fail)
+                throw new Error('remove failed');
+        });
+        const failing = { fail: true };
+        const succeeding = { fail: false };
+        manager.add(failing);
+        manager.add(succeeding);
+        manager.remove(failing);
+        manager.remove(succeeding);
+        assert.deepEqual(removed, [failing, succeeding]);
+        assert.equal(manager.size, 0);
+    } finally {
+        globalThis.logError = originalLogError;
+    }
+});
