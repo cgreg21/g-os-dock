@@ -1,6 +1,7 @@
 import Adw from 'gi://Adw?version=1';
 import Gio from 'gi://Gio?version=2.0';
 import Gtk from 'gi://Gtk?version=4.0';
+import { SettingsBinding } from '../features/settings-binding.js';
 
 /** Add a switch row bound directly to a boolean GSettings key. */
 export function addSwitch(
@@ -11,6 +12,7 @@ export function addSwitch(
 ): void {
     const row = new Adw.SwitchRow({ title });
     group.add(row);
+    new SettingsBinding(row);
     settings.bind(key, row, 'active', Gio.SettingsBindFlags.DEFAULT);
 }
 
@@ -36,6 +38,7 @@ export function addSpin(
         }),
     });
     group.add(row);
+    new SettingsBinding(row);
     settings.bind(key, row, 'value', Gio.SettingsBindFlags.DEFAULT);
 }
 
@@ -56,18 +59,13 @@ export function addCombo(
         const index = values.indexOf(settings.get_string(key));
         row.selected = index >= 0 ? index : 0;
     };
-    row.connect('notify::selected', () => {
+    const binding = new SettingsBinding(row);
+    binding.connect(row, 'notify::selected', () => {
         const value = values[row.selected];
         if (value)
             settings.set_string(key, value);
     });
-    const settingsSignal = settings.connect(`changed::${key}`, sync);
-    const rootSignal = row.connect('notify::root', () => {
-        if (row.get_root() !== null)
-            return;
-        settings.disconnect(settingsSignal);
-        row.disconnect(rootSignal);
-    });
+    binding.watch(settings, key, sync);
     group.add(row);
     sync();
 }
