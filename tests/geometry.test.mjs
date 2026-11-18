@@ -94,3 +94,27 @@ test('shares rectangle validation across geometry operations', async () => {
         x: Number.MAX_VALUE, y: 0, width: Number.MAX_VALUE, height: 10,
     }), false);
 });
+
+
+test('returns the exact positive-area rectangle intersection', async () => {
+    const { intersectRectangles } = await import('../dist/features/geometry.js');
+    assert.deepEqual(
+        intersectRectangles(
+            { x: 10, y: 20, width: 30, height: 40 },
+            { x: 25, y: 5, width: 30, height: 30 },
+        ),
+        { x: 25, y: 20, width: 15, height: 15 },
+    );
+});
+
+test('returns no intersection for touching or invalid rectangles', async () => {
+    const { intersectRectangles } = await import('../dist/features/geometry.js');
+    assert.equal(intersectRectangles(
+        { x: 0, y: 0, width: 10, height: 10 },
+        { x: 10, y: 0, width: 10, height: 10 },
+    ), null);
+    assert.equal(intersectRectangles(
+        { x: 1e20, y: 0, width: 1, height: 10 },
+        { x: 0, y: 0, width: 10, height: 10 },
+    ), null);
+});
