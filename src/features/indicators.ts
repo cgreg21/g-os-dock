@@ -12,6 +12,7 @@ import {
 } from './indicator-style.js';
 import { resolveIndicatorMarkerLayout } from './indicator-layout.js';
 import { resolveIndicatorPresentation } from './indicator-presentation.js';
+import { resolveActiveIndicatorTransition } from './active-indicator-state.js';
 
 /** Updates configurable open, focused and minimized application indicators. */
 export class DockIndicators {
@@ -127,15 +128,19 @@ export class DockIndicators {
                 }
             }
 
-            if (this.activeStates.get(item) !== active) {
-                if (active) {
+            const activeTransition = resolveActiveIndicatorTransition(
+                this.activeStates.get(item),
+                active,
+            );
+            if (activeTransition.changed) {
+                if (activeTransition.active) {
                     item._gOsDockIndicator?.add_style_class_name('active');
                     item.add_style_class_name('active');
                 } else {
                     item._gOsDockIndicator?.remove_style_class_name('active');
                     item.remove_style_class_name('active');
                 }
-                this.activeStates.set(item, active);
+                this.activeStates.set(item, activeTransition.active);
             }
 
             if (item._gOsDockBadge) {
