@@ -1,4 +1,5 @@
 import Gio from 'gi://Gio?version=2.0';
+import { dockCache } from './cache.js';
 
 /** Build the shared icon box style from the four dock padding preferences. */
 export function getIconPaddingStyle(settings: Gio.Settings, size: number): string {
@@ -6,8 +7,11 @@ export function getIconPaddingStyle(settings: Gio.Settings, size: number): strin
     const right = settings.get_int('icon-padding-right');
     const bottom = settings.get_int('icon-padding-bottom');
     const left = settings.get_int('icon-padding-left');
+    const key = `icon-padding:${size}:${top}:${right}:${bottom}:${left}`;
 
-    return `padding: ${top}px ${right}px ${bottom}px ${left}px; ` +
+    return dockCache.getOrCreate(key, () =>
+        `padding: ${top}px ${right}px ${bottom}px ${left}px; ` +
         `min-width: ${size + left + right}px; ` +
-        `min-height: ${size + top + bottom}px;`;
+        `min-height: ${size + top + bottom}px;`,
+    );
 }
