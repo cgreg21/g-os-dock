@@ -73,7 +73,7 @@ export class DockItemBase {
                 );
                 DockItemBase.magnificationControllers.set(this.content, controller);
             }
-            controller.register(this.button, visualActor ?? this.button.get_first_child() ?? this.button);
+            controller.register(this.button, visualActor ?? this.button.get_first_child() ?? this.button, style);
             this.magnification = controller;
         }
         if (this.observedSettings !== settings) {
