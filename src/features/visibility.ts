@@ -74,22 +74,23 @@ export class DockVisibility {
         this.setHiddenPosition();
     }
 
-    private setHiddenPosition(): void {
+    private getHiddenOffset(): { x: number; y: number } {
         const position = this.settings.get_string('dock-position');
-        const distanceX = position === 'left'
-            ? -Math.max(this.actor.width, this.background.width)
-            : position === 'right'
-                ? Math.max(this.actor.width, this.background.width)
-                : 0;
-        const distanceY = position === 'top'
-            ? -Math.max(this.actor.height, this.background.height)
-            : position === 'bottom'
-                ? Math.max(this.actor.height, this.background.height)
-                : 0;
-        this.actor.translation_x = distanceX;
-        this.actor.translation_y = distanceY;
-        this.background.translation_x = distanceX;
-        this.background.translation_y = distanceY;
+        const width = Math.max(this.actor.width, this.background.width);
+        const height = Math.max(this.actor.height, this.background.height);
+
+        return {
+            x: position === 'left' ? -width : position === 'right' ? width : 0,
+            y: position === 'top' ? -height : position === 'bottom' ? height : 0,
+        };
+    }
+
+    private setHiddenPosition(): void {
+        const { x, y } = this.getHiddenOffset();
+        this.actor.translation_x = x;
+        this.actor.translation_y = y;
+        this.background.translation_x = x;
+        this.background.translation_y = y;
     }
 
     onPointerChanged(): void {
@@ -175,21 +176,8 @@ export class DockVisibility {
 
         // Move almost completely beyond the selected screen edge, leaving a
         // narrow reveal strip. The independent edge sensor remains at the edge.
-        const position = this.settings.get_string('dock-position');
-        // Account for the larger of the content and background containers so
-        // neither the dock nor its background/border remains visible onscreen.
-        const slideWidth = Math.max(this.actor.width, this.background.width);
-        const slideHeight = Math.max(this.actor.height, this.background.height);
-        const distanceX = position === 'left'
-            ? -slideWidth
-            : position === 'right'
-                ? slideWidth
-                : 0;
-        const distanceY = position === 'top'
-            ? -slideHeight
-            : position === 'bottom'
-                ? slideHeight
-                : 0;
+        // Use the same measured offset as initialization and resize handling.
+        const { x: distanceX, y: distanceY } = this.getHiddenOffset();
 
         this.actor.remove_all_transitions();
         this.background.remove_all_transitions();
