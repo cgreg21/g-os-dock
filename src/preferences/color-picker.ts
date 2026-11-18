@@ -36,7 +36,14 @@ export function addColorPicker(
         settings.set_string(colorKey, `#${hex}`);
         settings.set_double(opacityKey, rgba.alpha);
     });
-    settings.connect(`changed::${colorKey}`, sync);
-    settings.connect(`changed::${opacityKey}`, sync);
+    const colorSignal = settings.connect(`changed::${colorKey}`, sync);
+    const opacitySignal = settings.connect(`changed::${opacityKey}`, sync);
+    const rootSignal = row.connect('notify::root', () => {
+        if (row.get_root() !== null)
+            return;
+        settings.disconnect(colorSignal);
+        settings.disconnect(opacitySignal);
+        row.disconnect(rootSignal);
+    });
     sync();
 }
