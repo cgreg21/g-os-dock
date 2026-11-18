@@ -5,11 +5,11 @@ import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { getDockMenuSide } from '../menu-position.js';
+import { PopupMenuLifecycle } from '../popup-menu-lifecycle.js';
 
 /** Keeps application context-menu construction and cleanup out of DockView. */
 export class AppContextMenu {
-    private manager: PopupMenu.PopupMenuManager;
-    private menus: PopupMenu.PopupMenu[] = [];
+    private lifecycle: PopupMenuLifecycle;
     private destroyed = false;
 
     constructor(
@@ -17,7 +17,7 @@ export class AppContextMenu {
         private favorites: ReturnType<typeof AppFavorites.getAppFavorites>,
         private dockPosition: () => string,
     ) {
-        this.manager = new PopupMenu.PopupMenuManager(actor);
+        this.lifecycle = new PopupMenuLifecycle(new PopupMenu.PopupMenuManager(actor));
     }
 
     show(source: St.Widget, app: Shell.App): void {
@@ -26,8 +26,7 @@ export class AppContextMenu {
 
         const menu = new PopupMenu.PopupMenu(source, 0.5, getDockMenuSide(this.dockPosition()));
         Main.uiGroup.add_child(menu.actor);
-        this.manager.addMenu(menu);
-        this.menus.push(menu);
+        this.lifecycle.track(menu);
         const appInfo = app.get_app_info();
         const actions = appInfo?.list_actions() ?? [];
         if (actions.length > 0) {
@@ -98,14 +97,6 @@ export class AppContextMenu {
             moveLater.connect('activate', () => this.favorites.moveFavoriteToPos(appId, Math.min(favoriteIds.length - 1, favoriteIndex + 1)));
             menu.addMenuItem(moveLater);
         }
-        menu.connect('open-state-changed', (_menu: PopupMenu.PopupMenu, isOpen: boolean) => {
-            if (isOpen || !this.menus.includes(menu))
-                return;
-
-            this.menus = this.menus.filter(entry => entry !== menu);
-            this.manager.removeMenu(menu);
-            menu.destroy();
-        });
         menu.open();
     }
 
@@ -114,12 +105,6 @@ export class AppContextMenu {
             return;
 
         this.destroyed = true;
-        const menus = this.menus;
-        this.menus = [];
-        for (const menu of menus) {
-            menu.close();
-            this.manager.removeMenu(menu);
-            menu.destroy();
-        }
+        this.lifecycle.destroy();
     }
 }
