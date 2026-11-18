@@ -110,7 +110,11 @@ export class DockDragDrop {
         const favoriteCount = targets.filter(item =>
             item.app && this.isFavorite(item),
         ).length;
-        if (dragged?.app && this.isFavorite(dragged) && index > favoriteCount)
+        const applicationsBefore = targets
+            .slice(0, index)
+            .filter(item => item.app).length;
+        if (dragged?.app && this.isFavorite(dragged) &&
+            applicationsBefore > favoriteCount)
             return DND.DragMotionResult.NO_DROP;
 
         this.movePreview(index, targets);
@@ -143,9 +147,13 @@ export class DockDragDrop {
         const favoriteCount = remaining.filter(item =>
             item.app && this.isFavorite(item),
         ).length;
-        // Favorite applications must remain in the favorites section.
+        const applicationsBefore = remaining
+            .slice(0, target)
+            .filter(item => item.app).length;
+        // Ignore system items when enforcing the favorites boundary.
         // Non-favorites may still be dropped into that section to be pinned.
-        if (dragged.app && this.isFavorite(dragged) && target > favoriteCount)
+        if (dragged.app && this.isFavorite(dragged) &&
+            applicationsBefore > favoriteCount)
             return false;
 
         const ordered = [...remaining];
