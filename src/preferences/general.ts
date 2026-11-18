@@ -13,6 +13,7 @@ export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.S
     addSwitch(group, settings, 'auto-hide', 'Automatically hide the dock');
     addSwitch(group, settings, 'smart-hide', 'Hide when a window overlaps the dock');
     addSwitch(group, settings, 'show-window-previews', 'Show window previews on hover');
+    addCombo(group, settings, 'folder-view-mode', 'Application folder view', ['Grid', 'Stack'], ['grid', 'stack']);
     addSwitch(group, settings, 'dev-mode', 'Enable development mode (red element borders)');
 }
 
