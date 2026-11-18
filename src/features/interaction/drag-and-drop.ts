@@ -52,11 +52,7 @@ export class DockDragDrop {
         (actor, options) => Main.layoutManager.addChrome(actor, options),
         actor => Main.layoutManager.removeChrome(actor),
     );
-    private removalZone: St.Widget;
-    private removalZoneDelegate: {
-        handleDragOver: (source: DockDragSource) => number;
-        acceptDrop: (source: DockDragSource) => boolean;
-    };
+    private removalZone: St.Widget | null = null;
 
     constructor(
         private actor: St.Widget,
@@ -66,24 +62,7 @@ export class DockDragDrop {
         private persistOrder: (ids: string[]) => void,
         private monitor: { x: number; y: number; width: number; height: number },
     ) {
-        this.removalZone = new St.Widget({
-            style_class: 'g-os-dock-removal-zone',
-            reactive: false,
-            can_focus: false,
-        });
-        this.removalZoneDelegate = {
-            handleDragOver: source => this.handleRemovalDragOver(source),
-            acceptDrop: source => this.acceptRemovalDrop(source),
-        };
-        (this.removalZone as St.Widget & { _delegate?: unknown })._delegate = this.removalZoneDelegate;
-        this.updateRemovalZoneGeometry();
-        this.chromeActors.add(this.removalZone, {
-            affectsStruts: false,
-            trackFullscreen: false,
-        });
-        // Keep the large removal target visible at all times. It only becomes
-        // reactive while an item that can be removed is being dragged.
-        this.removalZone.show();
+
     }
 
     registerItem(item: DockDndItem, onStart: () => void = () => {}): void {
@@ -364,6 +343,8 @@ export class DockDragDrop {
     }
 
     private updateRemovalZoneGeometry(): void {
+        if (!this.removalZone)
+            return;
         const geometry = resolveDockRemovalZoneGeometry(
             this.monitor,
             this.settings.get_string('dock-position'),
@@ -374,15 +355,32 @@ export class DockDragDrop {
     }
 
     private showRemovalZone(): void {
-        this.updateRemovalZoneGeometry();
-        this.removalZone.reactive = true;
-        if (!this.removalZone.visible) {
-            this.removalZone.opacity = 0;
-            this.removalZone.scale_x = 0.97;
-            this.removalZone.scale_y = 0.97;
+        if (this.destroyed)
+            return;
+        if (!this.removalZone) {
+            const zone = new St.Widget({
+                style_class: 'g-os-dock-removal-zone',
+                reactive: true,
+                can_focus: false,
+            });
+            (zone as St.Widget & { _delegate?: unknown })._delegate = {
+                handleDragOver: (source: DockDragSource) => this.handleRemovalDragOver(source),
+                acceptDrop: (source: DockDragSource) => this.acceptRemovalDrop(source),
+            };
+            this.removalZone = zone;
+            this.updateRemovalZoneGeometry();
+            this.chromeActors.add(zone, {
+                affectsStruts: false,
+                trackFullscreen: false,
+            });
         }
-        this.removalZone.show();
-        this.animations.animate('removal-zone', this.removalZone as unknown as AnimationTarget, {
+        const zone = this.removalZone;
+        zone.reactive = true;
+        zone.opacity = 0;
+        zone.scale_x = 0.97;
+        zone.scale_y = 0.97;
+        zone.show();
+        this.animations.animate('removal-zone', zone as unknown as AnimationTarget, {
             opacity: 255,
             scaleX: 1,
             scaleY: 1,
@@ -393,15 +391,14 @@ export class DockDragDrop {
     }
 
     private hideRemovalZone(): void {
-        // Visibility is permanent; only drop acceptance is disabled outside
-        // an eligible drag operation.
-        this.removalZone.reactive = false;
         this.animations.cancel('removal-zone');
-        this.removalZone.opacity = 255;
-        this.removalZone.scale_x = 1;
-        this.removalZone.scale_y = 1;
-        if (!this.destroyed)
-            this.removalZone.show();
+        const zone = this.removalZone;
+        if (!zone)
+            return;
+        zone.reactive = false;
+        this.chromeActors.remove(zone);
+        zone.destroy();
+        this.removalZone = null;
     }
 
     private handleRemovalDragOver(source: DockDragSource): number {
@@ -476,6 +473,10 @@ export class DockDragDrop {
             this.unregisterItem(actor);
         }
         this.chromeActors.destroy();
-        this.removalZone.destroy();
+        if (this.removalZone) {
+            this.chromeActors.remove(this.removalZone);
+            this.removalZone.destroy();
+            this.removalZone = null;
+        }
     }
 }
