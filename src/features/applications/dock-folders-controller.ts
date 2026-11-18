@@ -1,6 +1,5 @@
 import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
-import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import GLib from 'gi://GLib?version=2.0';
