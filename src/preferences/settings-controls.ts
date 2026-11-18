@@ -61,7 +61,13 @@ export function addCombo(
         if (value)
             settings.set_string(key, value);
     });
-    settings.connect(`changed::${key}`, sync);
+    const settingsSignal = settings.connect(`changed::${key}`, sync);
+    const rootSignal = row.connect('notify::root', () => {
+        if (row.get_root() !== null)
+            return;
+        settings.disconnect(settingsSignal);
+        row.disconnect(rootSignal);
+    });
     group.add(row);
     sync();
 }
