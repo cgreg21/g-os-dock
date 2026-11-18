@@ -2,10 +2,15 @@ import GLib from 'gi://GLib?version=2.0';
 import St from 'gi://St?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { TaskScheduler } from './task-scheduler.js';
+import { ChromeActorManager } from './chrome-actor-manager.js';
 
 /** Displays an application name after the pointer has rested on its dock item. */
 export class DockTooltip {
     private actor: St.Label;
+    private chromeActors = new ChromeActorManager<St.Widget>(
+        (actor, options) => Main.layoutManager.addTopChrome(actor, options),
+        actor => Main.layoutManager.removeChrome(actor),
+    );
     private scheduler = new TaskScheduler({
         timeout: (delay, callback) => GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, callback),
         idle: callback => GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, callback),
@@ -35,7 +40,7 @@ export class DockTooltip {
                 this.hide();
         });
         this.destroySignal = parent.connect('destroy', () => this.destroy());
-        Main.layoutManager.addTopChrome(this.actor, {
+        this.chromeActors.add(this.actor, {
             affectsStruts: false,
             trackFullscreen: false,
         });
@@ -98,7 +103,7 @@ export class DockTooltip {
             this.parent.disconnect(this.hoverSignal);
         if (this.destroySignal)
             this.parent.disconnect(this.destroySignal);
-        Main.layoutManager.removeChrome(this.actor);
+        this.chromeActors.destroy();
         this.actor.destroy();
     }
 }
