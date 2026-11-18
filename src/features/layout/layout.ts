@@ -2,6 +2,7 @@ import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Gio from 'gi://Gio?version=2.0';
+import { AnimationManager, type AnimationTarget } from '../../core/animation-manager.js';
 import {
     resolveDockEdgeSensor,
     resolveDockSurfacePosition,
@@ -13,9 +14,12 @@ import { calculateAvailableDockSpace } from './icon-sizing.js';
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
 const EDGE_THICKNESS = 3;
+const DOCK_RESIZE_DURATION_MS = 230;
 
 /** Positions the content-sized dock and its reveal sensor on the selected monitor. */
 export class DockLayout {
+    private readonly animations = new AnimationManager();
+    private hasPositioned = false;
     constructor(
         private actor: St.Widget,
         private background: St.Widget,
@@ -25,6 +29,10 @@ export class DockLayout {
         private settings: Gio.Settings,
         private isDestroyed: () => boolean,
     ) {}
+
+    destroy(): void {
+        this.animations.destroy();
+    }
 
     availableSpace(vertical: boolean): number {
         const edge = this.settings.get_int('edge-distance');
@@ -91,8 +99,6 @@ export class DockLayout {
             ? this.monitor.y
             : Math.min(this.monitor.y + this.monitor.height, panelBottom + edgeDistance);
 
-        this.actor.set_size(width, height);
-        this.background.set_size(width, height);
 
         const surfacePosition = resolveDockSurfacePosition(
             {
@@ -108,7 +114,19 @@ export class DockLayout {
         );
         const x = surfacePosition.x;
         const y = surfacePosition.y;
-        this.actor.set_position(Math.round(x), Math.round(y));
+        if (!this.hasPositioned) {
+            this.actor.set_size(width, height);
+            this.actor.set_position(Math.round(x), Math.round(y));
+            this.background.set_size(width, height);
+            this.hasPositioned = true;
+        } else {
+            this.animations.animate(
+                'dock-surface',
+                this.actor as unknown as AnimationTarget,
+                { width, height, x: Math.round(x), y: Math.round(y) },
+                { durationMs: DOCK_RESIZE_DURATION_MS, mode: Clutter.AnimationMode.EASE_OUT_CUBIC },
+            );
+        }
 
         // Center the decorative background on the actual icon content.
         // This keeps it visually centered even when the four padding values
@@ -134,8 +152,22 @@ export class DockLayout {
         // background margins are added (or are asymmetric).
         const x = actorX + paddingLeft + (contentWidth - backgroundWidth) / 2;
         const y = actorY;
-        this.background.set_size(backgroundWidth, backgroundHeight);
-        this.background.set_position(Math.round(x), Math.round(y));
+        if (!this.hasPositioned) {
+            this.background.set_size(backgroundWidth, backgroundHeight);
+            this.background.set_position(Math.round(x), Math.round(y));
+            return;
+        }
+        this.animations.animate(
+            'dock-background-surface',
+            this.background as unknown as AnimationTarget,
+            {
+                width: backgroundWidth,
+                height: backgroundHeight,
+                x: Math.round(x),
+                y: Math.round(y),
+            },
+            { durationMs: DOCK_RESIZE_DURATION_MS, mode: Clutter.AnimationMode.EASE_OUT_CUBIC },
+        );
     }
 
     private getPanelBottom(): number | null {
