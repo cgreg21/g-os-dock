@@ -15,6 +15,8 @@ interface MagnifiedItem {
     baseVisualWidth: number | null;
     baseVisualHeight: number | null;
     baseStyle: string;
+    requestedWidth: number | null;
+    requestedHeight: number | null;
 }
 
 /**
@@ -90,6 +92,12 @@ export class DockMagnificationController {
         const existing = this.items.get(button);
         if (existing) {
             existing.baseStyle = baseStyle;
+            existing.baseButtonWidth = null;
+            existing.baseButtonHeight = null;
+            existing.baseVisualWidth = null;
+            existing.baseVisualHeight = null;
+            existing.requestedWidth = null;
+            existing.requestedHeight = null;
             if (existing.visual !== visual) {
                 this.resetVisual(existing.visual);
                 existing.visual = visual;
@@ -102,6 +110,7 @@ export class DockMagnificationController {
             button, visual, start: 0, end: 0, center: 0, scale: 1,
             baseButtonWidth: null, baseButtonHeight: null,
             baseVisualWidth: null, baseVisualHeight: null, baseStyle,
+            requestedWidth: null, requestedHeight: null,
         });
         if (this.envelope > 0)
             this.startTimeline();
@@ -222,6 +231,7 @@ export class DockMagnificationController {
         const averageSize = entries.reduce((sum, item) => sum + item.end - item.start, 0) / entries.length;
         const effectWidth = averageSize * 6;
         const min = this.cursor - effectWidth / 2;
+        let layoutChanged = false;
         for (const item of entries) {
             const theta = Math.max(0, Math.min(2 * Math.PI,
                 ((item.center - min) / effectWidth) * 2 * Math.PI));
@@ -237,7 +247,14 @@ export class DockMagnificationController {
             item.visual.set_scale(item.scale, item.scale);
             const requestedWidth = item.baseButtonWidth + item.baseVisualWidth * (item.scale - 1);
             const requestedHeight = item.baseButtonHeight + item.baseVisualHeight * (item.scale - 1);
-            item.button.set_style(`${item.baseStyle} min-width: ${Math.ceil(requestedWidth)}px; min-height: ${Math.ceil(requestedHeight)}px;`);
+            const width = Math.ceil(requestedWidth);
+            const height = Math.ceil(requestedHeight);
+            if (item.requestedWidth !== width || item.requestedHeight !== height) {
+                item.button.set_style(`${item.baseStyle} min-width: ${width}px; min-height: ${height}px;`);
+                item.requestedWidth = width;
+                item.requestedHeight = height;
+                layoutChanged = true;
+            }
 
             // StButton centers its child in the enlarged slot. Counter that
             // centering shift so the icon stays pinned to the screen-facing edge.
@@ -262,8 +279,10 @@ export class DockMagnificationController {
 
         // Re-measure the content and reposition the dock on its fixed screen edge.
         // Padding and BoxLayout spacing are untouched; only button size requests change.
-        this.content.queue_relayout();
-        this.onSurfaceExtentChanged?.(0, 0);
+        if (layoutChanged) {
+            this.content.queue_relayout();
+            this.onSurfaceExtentChanged?.(0, 0);
+        }
     }
 
     private resetVisual(actor: Clutter.Actor): void {
@@ -282,6 +301,8 @@ export class DockMagnificationController {
             item.baseButtonHeight = null;
             item.baseVisualWidth = null;
             item.baseVisualHeight = null;
+            item.requestedWidth = null;
+            item.requestedHeight = null;
         }
         this.content.queue_relayout();
     }
