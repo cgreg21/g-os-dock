@@ -36,3 +36,8 @@ export function resolveIndicatorMarkerConfiguration(
         },
     };
 }
+
+/** Clamp a visual opacity setting to the CSS alpha range. */
+export function normalizeIndicatorOpacity(value: number): number {
+    return Math.max(0, Math.min(1, value));
+}
