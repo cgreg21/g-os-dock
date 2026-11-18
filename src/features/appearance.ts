@@ -3,6 +3,10 @@ import Gio from 'gi://Gio?version=2.0';
 
 /** Applies the user-configurable dock surface and spacing. */
 export class DockAppearance {
+    private backgroundStyle = '';
+    private actorStyle = '';
+    private contentStyle = '';
+
     constructor(
         private background: St.Widget,
         private actor: St.Widget,
@@ -46,14 +50,27 @@ export class DockAppearance {
             ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px ${shadowSpread}px ${this.rgba(shadowColor, shadowOpacity)};`
             : 'box-shadow: none;';
 
-        this.background.set_style(
+        const backgroundStyle =
             `background-color: ${this.rgba(backgroundColor, backgroundOpacity)}; ` +
             `border: ${borderSize}px solid ${this.rgba(borderColor, borderOpacity)}; ` +
             `border-radius: ${radius}; ` +
-            boxShadow,
-        );
-        this.actor.set_style(`padding: ${top}px ${right}px ${bottom}px ${left}px;`);
-        this.content.set_style(`spacing: ${spacing}px; color: ${defaultForeground};`);
+            boxShadow;
+        if (this.backgroundStyle !== backgroundStyle) {
+            this.background.set_style(backgroundStyle);
+            this.backgroundStyle = backgroundStyle;
+        }
+
+        const actorStyle = `padding: ${top}px ${right}px ${bottom}px ${left}px;`;
+        if (this.actorStyle !== actorStyle) {
+            this.actor.set_style(actorStyle);
+            this.actorStyle = actorStyle;
+        }
+
+        const contentStyle = `spacing: ${spacing}px; color: ${defaultForeground};`;
+        if (this.contentStyle !== contentStyle) {
+            this.content.set_style(contentStyle);
+            this.contentStyle = contentStyle;
+        }
     }
 
     private color(value: string, fallback: string): string {
