@@ -21,20 +21,28 @@ export function isValidRectangle(rectangle: DockRectangle): boolean {
         Number.isFinite(bottom) && bottom > rectangle.y;
 }
 
+/** Return the positive-area intersection of two valid rectangles, if any. */
+export function intersectRectangles(first: DockRectangle, second: DockRectangle): DockRectangle | null {
+    if (!isValidRectangle(first) || !isValidRectangle(second))
+        return null;
+
+    const left = Math.max(first.x, second.x);
+    const top = Math.max(first.y, second.y);
+    const right = Math.min(first.x + first.width, second.x + second.width);
+    const bottom = Math.min(first.y + first.height, second.y + second.height);
+    const width = right - left;
+    const height = bottom - top;
+
+    if (![width, height].every(Number.isFinite) || width <= 0 || height <= 0)
+        return null;
+
+    const intersection = { x: left, y: top, width, height };
+    return isValidRectangle(intersection) ? intersection : null;
+}
+
 /** Return true only when two valid rectangles share a positive-area intersection. */
 export function rectanglesOverlap(first: DockRectangle, second: DockRectangle): boolean {
-    if (!isValidRectangle(first) || !isValidRectangle(second))
-        return false;
-
-    const firstRight = first.x + first.width;
-    const firstBottom = first.y + first.height;
-    const secondRight = second.x + second.width;
-    const secondBottom = second.y + second.height;
-
-    return first.x < secondRight &&
-        firstRight > second.x &&
-        first.y < secondBottom &&
-        firstBottom > second.y;
+    return intersectRectangles(first, second) !== null;
 }
 /** Return the smallest valid rectangle containing both input rectangles. */
 export function unionRectangles(first: DockRectangle, second: DockRectangle): DockRectangle | null {
