@@ -4,6 +4,7 @@ import Gio from 'gi://Gio?version=2.0';
 import Shell from 'gi://Shell?version=51';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { dockCache } from './cache.js';
 
 export interface DockDndItem {
     id: string;
@@ -214,10 +215,12 @@ export class DockDragDrop {
             can_focus: false,
         });
         this.previewSlot.set_size(item.actor.width, item.actor.height);
-        this.previewSlot.set_style(
-            'background-color: rgba(90, 150, 255, 0.28); ' +
-            'border: 2px dashed rgba(120, 175, 255, 0.95); border-radius: 8px;',
-        );
+        this.previewSlot.set_style(dockCache.getOrCreate(
+            'drag-preview-slot-style',
+            () =>
+                'background-color: rgba(90, 150, 255, 0.28); ' +
+                'border: 2px dashed rgba(120, 175, 255, 0.95); border-radius: 8px;',
+        ));
         item.actor.hide();
         this.content.add_child(this.previewSlot);
 
