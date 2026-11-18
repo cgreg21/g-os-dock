@@ -2,6 +2,7 @@ import St from 'gi://St?version=51';
 import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import type { DockAppButton } from './app-item.js';
+import { dockCache } from './cache.js';
 
 /** Updates configurable open, focused and minimized application indicators. */
 export class DockIndicators {
@@ -24,8 +25,6 @@ export class DockIndicators {
         const shape = this.settings.get_string('indicator-shape');
         const color = this.validColor(this.settings.get_string('indicator-color'));
         const opacity = Math.max(0, Math.min(1, this.settings.get_double('indicator-opacity')));
-        // Positive values move the indicator upward inside the icon; negative
-        // values move it below the icon's bottom edge.
         const bottomOffset = this.settings.get_int('indicator-bottom-offset');
         const indicatorSize = this.settings.get_int('indicator-size');
         const borderSize = this.settings.get_int('indicator-border-size');
@@ -41,11 +40,10 @@ export class DockIndicators {
             const running = windows.length > 0 || app.get_state() === Shell.AppState.RUNNING;
             const active = !!focused && windows.includes(focused);
             const minimized = windows.length > 0 && windows.every(window => window.minimized);
-            // Dim the application icon itself when all of its windows are minimized.
             if (item._gOsDockIcon) {
-                const opacity = minimized ? 128 : 255;
-                if (item._gOsDockIcon.opacity !== opacity)
-                    item._gOsDockIcon.opacity = opacity;
+                const iconOpacity = minimized ? 128 : 255;
+                if (item._gOsDockIcon.opacity !== iconOpacity)
+                    item._gOsDockIcon.opacity = iconOpacity;
             }
             const shouldShow = enabled && (
                 (showOpen && running) ||
@@ -78,8 +76,6 @@ export class DockIndicators {
                     }
                     this.markerSignatures.set(item, signature);
                 }
-                // Clutter.FixedLayout does not infer overlay alignment: place
-                // the marker row explicitly at the icon's bottom center.
                 const iconContainer = item._gOsDockIndicator.get_parent();
                 if (iconContainer) {
                     const spacing = 2;
@@ -115,14 +111,15 @@ export class DockIndicators {
                 if (item._gOsDockBadge.visible !== badgeVisible)
                     item._gOsDockBadge.visible = badgeVisible;
             }
-
         }
     }
 
     private validColor(value: string): string {
-        if (!/^#[0-9a-fA-F]{6}$/.test(value))
-            value = '#e6e6f0';
-        const hex = value.slice(1);
-        return `${parseInt(hex.slice(0, 2), 16)}, ${parseInt(hex.slice(2, 4), 16)}, ${parseInt(hex.slice(4, 6), 16)}`;
+        return dockCache.getOrCreate(`indicator-color:${value}`, () => {
+            if (!/^#[0-9a-fA-F]{6}$/.test(value))
+                value = '#e6e6f0';
+            const hex = value.slice(1);
+            return `${parseInt(hex.slice(0, 2), 16)}, ${parseInt(hex.slice(2, 4), 16)}, ${parseInt(hex.slice(4, 6), 16)}`;
+        });
     }
 }
