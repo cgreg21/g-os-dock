@@ -3,18 +3,28 @@ import Clutter from 'gi://Clutter?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { AnimationManager, type AnimationTarget } from '../../core/animation-manager.js';
 import { CleanupManager } from '../../core/cleanup-manager.js';
-import { dockStyles } from '../../core/style-manager.js';
 
 const MAGNIFICATION_DURATION_MS = 100;
 const INFLUENCE_RADIUS_FACTOR = 2.5;
 
-/** Scale the button allocation while leaving its CSS padding unchanged. */
-export function resolveMagnificationButtonStyle(baseStyle: string, scale: number): string {
-    if (!Number.isFinite(scale) || scale < 1)
-        return baseStyle;
-    return baseStyle
-        .replace(/min-width:\s*([\d.]+)px/, (_match, value: string) => `min-width: ${Number(value) * scale}px`)
-        .replace(/min-height:\s*([\d.]+)px/, (_match, value: string) => `min-height: ${Number(value) * scale}px`);
+/** Resolve button dimensions from the visual's animated size, keeping CSS padding fixed. */
+export function resolveMagnificationButtonSize(
+    baseStyle: string,
+    visualWidth: number,
+    visualHeight: number,
+    scale: number,
+): [number, number] {
+    const widthMatch = baseStyle.match(/min-width:\s*([\d.]+)px/);
+    const heightMatch = baseStyle.match(/min-height:\s*([\d.]+)px/);
+    if (![visualWidth, visualHeight, scale].every(Number.isFinite)
+        || visualWidth <= 0 || visualHeight <= 0 || scale < 1
+        || !widthMatch || !heightMatch)
+        return [0, 0];
+
+    return [
+        Number(widthMatch[1]) + visualWidth * (scale - 1),
+        Number(heightMatch[1]) + visualHeight * (scale - 1),
+    ];
 }
 
 /**
@@ -133,6 +143,7 @@ export function resolveMagnificationCrossAxisLayout(
 export class DockMagnificationController {
     private readonly items = new Map<St.Button, Clutter.Actor>();
     private readonly animationKeys = new Map<St.Button, string>();
+    private readonly buttonAnimationKeys = new Map<St.Button, string>();
     private readonly baseStyles = new Map<St.Button, string>();
     private readonly animations = new AnimationManager();
     private readonly cleanup = new CleanupManager();
@@ -162,7 +173,6 @@ export class DockMagnificationController {
         }));
         this.cleanup.addSignal(this.surface, this.surface.connect('leave-event', () => {
             this.pointerAxis = null;
-            this.resetButtonAllocations();
             this.onSurfaceExtentChanged?.(0, 0, false);
             this.animateItemsToScale(1);
             log('[G-OS Dock] magnification pointer: left surface');
@@ -205,7 +215,9 @@ export class DockMagnificationController {
             return;
         this.items.set(button, visual);
         this.baseStyles.set(button, _baseStyle);
-        this.animationKeys.set(button, `dock-magnification-${this.nextAnimationId++}`);
+        const animationId = this.nextAnimationId++;
+        this.animationKeys.set(button, `dock-magnification-visual-${animationId}`);
+        this.buttonAnimationKeys.set(button, `dock-magnification-button-${animationId}`);
         this.applyVisualAnchor(visual);
         visual.scale_x = 1;
         visual.scale_y = 1;
@@ -260,19 +272,9 @@ export class DockMagnificationController {
         const scales = this.getItemScales();
         for (const [button, visual] of this.items) {
             const scale = scales.get(button) ?? 1;
-            const baseStyle = this.baseStyles.get(button);
-            if (baseStyle !== undefined)
-                dockStyles.apply(button, resolveMagnificationButtonStyle(baseStyle, scale));
             this.animateItem(button, visual, scale);
         }
         this.updateSurfaceInsets(scales);
-        this.content.queue_relayout();
-    }
-
-
-    private resetButtonAllocations(): void {
-        for (const [button, baseStyle] of this.baseStyles)
-            dockStyles.apply(button, baseStyle);
         this.content.queue_relayout();
     }
 
@@ -291,13 +293,28 @@ export class DockMagnificationController {
     }
 
     private animateItem(button: St.Button, visual: Clutter.Actor, scale: number): void {
-        const key = this.animationKeys.get(button);
-        if (!key)
+        const visualKey = this.animationKeys.get(button);
+        const buttonKey = this.buttonAnimationKeys.get(button);
+        const baseStyle = this.baseStyles.get(button);
+        if (!visualKey || !buttonKey || baseStyle === undefined)
             return;
+
+        const [buttonWidth, buttonHeight] = resolveMagnificationButtonSize(
+            baseStyle, visual.width, visual.height, scale,
+        );
         this.animations.animate(
-            key,
+            visualKey,
             visual as unknown as AnimationTarget,
             { scaleX: scale, scaleY: scale },
+            {
+                durationMs: MAGNIFICATION_DURATION_MS,
+                mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+            },
+        );
+        this.animations.animate(
+            buttonKey,
+            button as unknown as AnimationTarget,
+            { width: buttonWidth, height: buttonHeight },
             {
                 durationMs: MAGNIFICATION_DURATION_MS,
                 mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
@@ -309,7 +326,11 @@ export class DockMagnificationController {
         const key = this.animationKeys.get(button);
         if (key)
             this.animations.cancel(key);
+        const buttonKey = this.buttonAnimationKeys.get(button);
+        if (buttonKey)
+            this.animations.cancel(buttonKey);
         this.animationKeys.delete(button);
+        this.buttonAnimationKeys.delete(button);
         this.items.delete(button);
         this.baseStyles.delete(button);
         if (this.items.size === 0)
@@ -326,6 +347,7 @@ export class DockMagnificationController {
         this.surface.reactive = this.originalReactive;
         this.items.clear();
         this.animationKeys.clear();
+        this.buttonAnimationKeys.clear();
         this.baseStyles.clear();
         this.onSurfaceExtentChanged?.(0, 0, false);
     }
