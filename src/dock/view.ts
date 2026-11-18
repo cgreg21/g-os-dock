@@ -789,6 +789,28 @@ export class DockView {
         this.visibility.onPointerChanged();
     }
 
+    private disconnectSignals(): void {
+        if (this.hoverSignal) this.actor.disconnect(this.hoverSignal);
+        if (this.sensorHoverSignal) this.edgeSensor.disconnect(this.sensorHoverSignal);
+        if (this.settingsSignal) this.settings.disconnect(this.settingsSignal);
+        if (this.desktopThemeSignal) this.desktopSettings.disconnect(this.desktopThemeSignal);
+        if (this.appStateSignal) this.appSystem.disconnect(this.appStateSignal);
+        if (this.favoritesSignal) this.favorites.disconnect(this.favoritesSignal);
+        if (this.focusSignal) global.display.disconnect(this.focusSignal);
+        if (this.restackedSignal) global.display.disconnect(this.restackedSignal);
+        if (this.workspaceSignal) global.workspace_manager.disconnect(this.workspaceSignal);
+        if (this.windowCreatedSignal) global.display.disconnect(this.windowCreatedSignal);
+
+        const panel = Main.panel as St.Widget;
+        for (const signal of this.panelGeometrySignals)
+            panel.disconnect(signal);
+        this.panelGeometrySignals = [];
+
+        for (const signal of this.contentGeometrySignals)
+            this.content.disconnect(signal);
+        this.contentGeometrySignals = [];
+    }
+
     destroy(): void {
         if (this.destroyed)
             return;
@@ -797,25 +819,9 @@ export class DockView {
             GLib.Source.remove(this.layoutIdleSource);
             this.layoutIdleSource = 0;
         }
-        for (const signal of this.contentGeometrySignals)
-            this.content.disconnect(signal);
-        this.contentGeometrySignals = [];
+        this.disconnectSignals();
         this.visibility.destroy();
         this.previews.destroy();
-        if (this.hoverSignal) this.actor.disconnect(this.hoverSignal);
-        if (this.sensorHoverSignal) this.edgeSensor.disconnect(this.sensorHoverSignal);
-        if (this.settingsSignal) this.settings.disconnect(this.settingsSignal);
-        if (this.desktopThemeSignal) this.desktopSettings.disconnect(this.desktopThemeSignal);
-        const panel = Main.panel as St.Widget;
-        for (const signal of this.panelGeometrySignals)
-            panel.disconnect(signal);
-        this.panelGeometrySignals = [];
-        if (this.appStateSignal) this.appSystem.disconnect(this.appStateSignal);
-        if (this.favoritesSignal) this.favorites.disconnect(this.favoritesSignal);
-        if (this.focusSignal) global.display.disconnect(this.focusSignal);
-        if (this.restackedSignal) global.display.disconnect(this.restackedSignal);
-        if (this.workspaceSignal) global.workspace_manager.disconnect(this.workspaceSignal);
-        if (this.windowCreatedSignal) global.display.disconnect(this.windowCreatedSignal);
         this.windowTracker.destroy();
         this.contextMenu.destroy();
         if (this.favoritesSeparator) {
