@@ -50,15 +50,27 @@ export interface DockSizingMetrics {
     separatorSpace: number;
 }
 
+export interface DockSizingMetricsOptions {
+    applicationIds: readonly string[];
+    favoriteIds: ReadonlySet<string>;
+    additionalItemCount: number;
+    showFavoritesSeparator: boolean;
+    separatorSize: number;
+    spacing: number;
+}
+
 /** Resolve the item count and optional favorites separator cost for dock sizing. */
 export function resolveDockSizingMetrics(
-    applicationIds: readonly string[],
-    favoriteIds: ReadonlySet<string>,
-    additionalItemCount: number,
-    showFavoritesSeparator: boolean,
-    separatorSize: number,
-    spacing: number,
+    options: DockSizingMetricsOptions,
 ): DockSizingMetrics {
+    const {
+        applicationIds,
+        favoriteIds,
+        additionalItemCount,
+        showFavoritesSeparator,
+        separatorSize,
+        spacing,
+    } = options;
     let hasFavorites = false;
     let hasRunningApps = false;
     for (const id of applicationIds) {
@@ -93,14 +105,14 @@ export function calculateDockIconSize(options: DockIconSizingOptions): number {
         vertical,
     } = options;
 
-    const { itemCount, separatorSpace } = resolveDockSizingMetrics(
+    const { itemCount, separatorSpace } = resolveDockSizingMetrics({
         applicationIds,
         favoriteIds,
         additionalItemCount,
         showFavoritesSeparator,
         separatorSize,
         spacing,
-    );
+    });
 
     return calculateUniformItemSize({
         availableSpace,
