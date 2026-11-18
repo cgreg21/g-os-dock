@@ -1,4 +1,5 @@
 import St from 'gi://St?version=51';
+import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { dockCache } from '../../core/cache.js';
 import { dockStyles } from '../../core/style-manager.js';
@@ -6,6 +7,7 @@ import { createRgbaColor, normalizeHexColor, normalizeUnitInterval } from '../..
 
 /** Applies the user-configurable dock surface and spacing. */
 export class DockAppearance {
+    private blurEffect: Shell.BlurEffect | null = null;
 
     constructor(
         private background: St.Widget,
@@ -22,6 +24,7 @@ export class DockAppearance {
         const defaultBackground = dark ? '#20232d' : '#f6f7fa';
         const defaultForeground = dark ? '#ffffff' : '#1e2026';
         const acrylic = this.settings.get_boolean('acrylic-enabled');
+        const blurRadius = this.settings.get_int('background-blur');
         const backgroundColor = this.color(this.settings.get_string('background-color'), defaultBackground);
         const backgroundOpacity = acrylic ? this.settings.get_double('background-opacity') : 1;
         const borderColor = this.color(this.settings.get_string('border-color'), '#ffffff');
@@ -59,6 +62,7 @@ export class DockAppearance {
                 boxShadow,
         );
         dockStyles.apply(this.background, backgroundStyle);
+        this.applyBackgroundBlur(blurRadius);
 
         const actorStyle = dockCache.getOrCreate(
             `appearance-actor-style:${top}:${right}:${bottom}:${left}`,
@@ -71,6 +75,27 @@ export class DockAppearance {
             () => `spacing: ${spacing}px; color: ${defaultForeground};`,
         );
         dockStyles.apply(this.content, contentStyle);
+    }
+
+    private applyBackgroundBlur(radius: number): void {
+        const normalizedRadius = Math.max(0, Math.min(64, radius));
+        if (normalizedRadius === 0) {
+            if (this.blurEffect) {
+                this.background.remove_effect(this.blurEffect);
+                this.blurEffect = null;
+            }
+            return;
+        }
+
+        if (!this.blurEffect) {
+            this.blurEffect = new Shell.BlurEffect({
+                radius: normalizedRadius,
+                mode: Shell.BlurMode.BACKGROUND,
+            });
+            this.background.add_effect_with_name('g-os-dock-background-blur', this.blurEffect);
+        } else {
+            this.blurEffect.set_radius(normalizedRadius);
+        }
     }
 
     private color(value: string, fallback: string): string {
