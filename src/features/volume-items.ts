@@ -19,7 +19,13 @@ interface MountedDrive {
 export class DockVolumeItems {
     private monitor: Gio.VolumeMonitor;
     private signals: number[] = [];
-    private items = new Map<string, { button: St.Button; icon: St.Icon; mount: Gio.Mount }>();
+    private items = new Map<string, {
+        button: St.Button;
+        icon: St.Icon;
+        mount: Gio.Mount;
+        name: string;
+        tooltip: DockTooltip;
+    }>();
     private destroyed = false;
 
     constructor(
@@ -71,6 +77,12 @@ export class DockVolumeItems {
             if (existing) {
                 existing.icon.icon_size = this.iconSize;
                 this.updateButtonPadding(existing.button);
+                const name = entry.mount.get_name();
+                if (existing.name !== name) {
+                    existing.name = name;
+                    existing.button.accessible_name = name;
+                    existing.tooltip.setText(name);
+                }
                 // Use the mount-provided GIcon, just like GNOME Files (Nautilus).
                 existing.icon.set_gicon(entry.mount.get_icon());
                 continue;
@@ -131,10 +143,11 @@ export class DockVolumeItems {
                 logError(error as Error, 'Unable to open mounted volume');
             }
         });
-        new DockTooltip(button, entry.mount.get_name(), this.dockPosition());
+        const name = entry.mount.get_name();
+        const tooltip = new DockTooltip(button, name, this.dockPosition());
         this.content.add_child(button);
         this.updateButtonPadding(button);
-        this.items.set(entry.id, { button, icon, mount: entry.mount });
+        this.items.set(entry.id, { button, icon, mount: entry.mount, name, tooltip });
         this.dragDrop.registerItem({ id: entry.id, actor: button });
     }
 
