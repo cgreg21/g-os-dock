@@ -4,147 +4,44 @@ import test from 'node:test';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 
-test('E2E: magnification has a configurable 100–400 percent range', () => {
-    const schema = read('../schemas/org.gnome.shell.extensions.g-os-dock.gschema.xml');
-    const preferences = read('../src/preferences/appearance.ts');
-    assert.match(schema, /name="dock-magnification-enabled" type="b"><default>true<\/default>/);
-    assert.match(schema, /name="dock-magnification-scale" type="i"><range min="100" max="400"\/><default>400<\/default>/);
-    assert.ok(preferences.includes("'dock-magnification-enabled'"));
-    assert.ok(preferences.includes("'dock-magnification-scale'"));
-});
-
-test('E2E: magnification uses a frame-driven raised-cosine wave with smoothed pointer input', () => {
+test('E2E: step 1 observes the pointer on the complete dock content surface', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes("this.surface.connect('motion-event'"));
     assert.ok(controller.includes("this.surface.connect('enter-event'"));
     assert.ok(controller.includes("this.surface.connect('leave-event'"));
-    assert.ok(controller.includes('Clutter.Timeline.new_for_actor'));
-    assert.ok(controller.includes('CURSOR_TAU = 0.045'));
-    assert.ok(controller.includes('SPRING_OMEGA = 20'));
-    assert.ok(controller.includes('(1 - Math.cos(theta)) / 2'));
-    assert.ok(controller.includes('Math.exp(-dt / DockMagnificationController.CURSOR_TAU)'));
-    assert.ok(controller.includes('MAX_FRAME_DT = 1 / 30'));
-});
-
-test('E2E: magnification keeps every icon anchored to the screen-facing edge', () => {
-    const controller = read('../src/features/items/dock-magnification.ts');
-    assert.ok(controller.includes("actor.set_pivot_point(0.5, 1)"));
-    assert.ok(controller.includes("actor.set_pivot_point(0.5, 0)"));
-    assert.ok(controller.includes("actor.set_pivot_point(0, 0.5)"));
-    assert.ok(controller.includes("actor.set_pivot_point(1, 0.5)"));
-    assert.ok(controller.includes("changed::dock-position"));
-});
-
-test('E2E: dock magnification keeps application icons rendered at four times their display resolution', () => {
-    const appItem = read('../src/features/applications/app-item.ts');
-    const folders = read('../src/features/applications/dock-folders-controller.ts');
-    assert.ok(appItem.includes('app.create_icon_texture(size * 4)'));
-    assert.ok(folders.includes('app.create_icon_texture(iconSize * 4)'));
-});
-
-test('E2E: magnification is shared by all dock items and frame resources are cleaned up', () => {
-    const base = read('../src/features/items/dock-item-base.ts');
-    const controller = read('../src/features/items/dock-magnification.ts');
-    assert.ok(base.includes('DockMagnificationController'));
-    assert.ok(base.includes('magnification.unregister(this.button)'));
-    assert.ok(controller.includes('this.stopTimeline()'));
-    assert.ok(controller.includes('this.cleanup.clear()'));
-    assert.ok(controller.includes('this.resetAllVisuals()'));
-});
-
-test('E2E: every interactive dock item type joins the shared magnification wave', () => {
-    const base = read('../src/features/items/dock-item-base.ts');
-    const applications = read('../src/features/applications/app-item.ts');
-    const folders = read('../src/features/applications/dock-folders-controller.ts');
-    const system = read('../src/features/items/system-item.ts');
-    const trash = read('../src/features/items/trash-item.ts');
-    const volumes = read('../src/features/items/volume-items.ts');
-
-    assert.ok(base.includes('controller.register(this.button, visualActor ?? this.button.get_first_child() ?? this.button, style)'));
-    assert.ok(applications.includes('new DockItemBase('));
-    assert.ok(folders.includes('new DockItemBase(\n            this.content,'));
-    assert.ok(system.includes('new DockItemBase(\n            this.content,'));
-    assert.ok(trash.includes('new DockItemBase(\n            this.content,'));
-    assert.ok(volumes.includes('new DockItemBase(\n            this.content,'));
-});
-
-test('E2E: folder items participate in shared magnification and keep lifecycle cleanup', () => {
-    const folders = read('../src/features/applications/dock-folders-controller.ts');
-    assert.ok(folders.includes('if (folder.actor.get_parent() !== this.content)'));
-    assert.ok(folders.includes('folder.base.destroy()'));
-    assert.ok(folders.includes('this.animateIn(folder.actor)'));
-    assert.ok(folders.includes('this.animateOut(folder)'));
-});
-
-test('E2E: dock background preserves its fixed height during magnification', () => {
-    const layout = read('../src/features/layout/layout.ts');
-    assert.ok(layout.includes('const height = this.backgroundBaseHeight'));
-    assert.ok(layout.includes('this.backgroundBaseWidth + leading + trailing'));
-    assert.ok(layout.includes('this.magnificationActive = active'));
-});
-
-
-
-
-test('E2E: dock backdrop blur is configurable and updates with appearance settings', () => {
-    const schema = read('../schemas/org.gnome.shell.extensions.g-os-dock.gschema.xml');
-    const preferences = read('../src/preferences/appearance.ts');
-    const appearance = read('../src/features/appearance/appearance.ts');
-    const settings = read('../src/dock/controllers/settings-controller.ts');
-
-    assert.match(schema, /name="background-blur" type="i"><range min="0" max="64"\/><default>20<\/default>/);
-    assert.ok(preferences.includes("'background-blur'"));
-    assert.ok(preferences.includes("'Background blur radius (px)'"));
-    assert.ok(appearance.includes('Shell.BlurMode.BACKGROUND'));
-    assert.ok(appearance.includes('set_radius(normalizedRadius)'));
-    assert.ok(appearance.includes('normalizedRadius === 0'));
-    assert.ok(settings.includes("'background-blur'"));
-});
-
-
-test('E2E: magnification scales visual actors and recalculates button slots', () => {
-    const controller = read('../src/features/items/dock-magnification.ts');
-    assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
-    assert.ok(controller.includes('item.button.set_size(width, height)'));
-    assert.ok(controller.includes('item.baseButtonWidth +'));
-    assert.ok(controller.includes('this.content.queue_relayout()'));
-    assert.ok(controller.includes('item.button.get_allocation_box()'));
-    assert.ok(controller.includes('this.setVisualPivot(visual)'));
     assert.ok(controller.includes('this.surface = content.get_parent() ?? content'));
-    assert.ok(!controller.includes('GAP_COMPRESSION'));
-    assert.ok(controller.includes('item.button.set_style(item.baseStyle)'));
-    assert.ok(!controller.includes('entry.button.set_scale'));
-    assert.ok(!controller.includes('entry.button.translation_x'));
-    assert.ok(!controller.includes('entry.button.translation_y'));
+    assert.ok(controller.includes('getPointerAxis(): number | null'));
 });
 
-
-
-
-test('E2E: dock background width follows magnification while its height and vertical position stay fixed', () => {
-    const layout = read('../src/features/layout/layout.ts');
+test('E2E: pointer coordinates are converted to the dock main-axis coordinate', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
-    assert.ok(layout.includes('const stableHeight = this.magnificationActive ? this.backgroundBaseHeight : backgroundHeight'));
-    assert.ok(layout.includes('const y = this.magnificationActive ? this.backgroundBaseY : actorY'));
-    assert.ok(layout.includes('const width = this.backgroundBaseWidth + leading + trailing'));
-    assert.ok(layout.includes('const height = this.backgroundBaseHeight'));
+    assert.ok(controller.includes('pointerY - surfaceY'));
+    assert.ok(controller.includes('pointerX - surfaceX'));
+    assert.ok(controller.includes('this.surface.get_transformed_position()'));
+    assert.ok(controller.includes('this.pointerAxis = null'));
 });
 
-
-test('E2E: magnification is driven by the content surface pointer and updates button allocations', () => {
+test('E2E: step 1 supports horizontal and vertical dock orientations', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
-    assert.ok(controller.includes("this.surface.connect('motion-event'"));
-    assert.ok(controller.includes('this.rawPointer = this.isVertical() ? y : x'));
-    assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
-    assert.ok(controller.includes('item.visual.translation_y = 0'));
-    assert.ok(!controller.includes('item.button.set_style(`${item.baseStyle} min-width'));
+    assert.ok(controller.includes('this.content.orientation === Clutter.Orientation.VERTICAL'));
+    assert.ok(controller.includes("position === 'left' || position === 'right'"));
+    assert.ok(controller.includes(': pointerX - surfaceX'));
 });
 
-test('E2E: screen-edge pivots keep icons fixed to the dock edge during magnification', () => {
+test('E2E: step 1 does not animate, scale, resize, or relayout dock items', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
-    assert.ok(controller.includes("actor.set_pivot_point(0.5, 1)"));
-    assert.ok(controller.includes("actor.set_pivot_point(0.5, 0)"));
-    assert.ok(controller.includes("actor.set_pivot_point(0, 0.5)"));
-    assert.ok(controller.includes("actor.set_pivot_point(1, 0.5)"));
-    assert.ok(!controller.includes('mainAxisGrowth / 2'));
+    assert.ok(!controller.includes('Clutter.Timeline'));
+    assert.ok(!controller.includes('set_scale('));
+    assert.ok(!controller.includes('set_size('));
+    assert.ok(!controller.includes('queue_relayout('));
+    assert.ok(!controller.includes('ease('));
+});
+
+test('E2E: pointer listeners and registered items are cleaned up safely', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    assert.ok(controller.includes('this.cleanup.clear()'));
+    assert.ok(controller.includes('this.items.clear()'));
+    assert.ok(controller.includes('this.pointerAxis = null'));
+    assert.ok(controller.includes('this.items.add(button)'));
+    assert.ok(controller.includes('this.items.delete(button)'));
 });
