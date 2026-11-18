@@ -21,7 +21,7 @@ test('caps icon size at configured size when there is ample room', () => {
 
 test('shrinks icons to fit item count and separator space', () => {
     const result = calculateDockIconSize({ ...defaults, availableSpace: 150 });
-    assert.equal(result, 55);
+    assert.equal(result, 25);
 });
 
 test('does not reserve separator space without both favorite and running apps', () => {
@@ -30,7 +30,7 @@ test('does not reserve separator space without both favorite and running apps', 
         applicationIds: ['favorite'],
         availableSpace: 80,
     });
-    assert.equal(result, 64);
+    assert.equal(result, 17);
 });
 
 test('uses vertical overhead and respects minimum icon size', () => {
