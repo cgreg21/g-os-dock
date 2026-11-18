@@ -41,7 +41,7 @@ export class DockTrashItem {
                 logError(error as Error, 'Unable to open Trash');
             }
         });
-        new DockTooltip(this.button, 'Corbeille', dockPosition());
+        new DockTooltip(this.button, 'Corbeille', dockPosition);
         this.content.add_child(this.button);
         this.dragDrop.registerItem({ id: 'system:trash', actor: this.button });
         this.watchTrash();
