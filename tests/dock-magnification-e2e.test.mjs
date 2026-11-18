@@ -184,16 +184,16 @@ test('E2E: magnification respects settings and never resizes buttons or dock lay
 
 async function loadButtonLayoutResolvers() {
     const source = read('../src/features/items/dock-magnification.ts');
-    const mainMatch = source.match(/export function resolveMagnificationMainAxisLayout\\([\\s\\S]*?\\n}\\n/);
-    const crossMatch = source.match(/export function resolveMagnificationCrossAxisLayout\\([\\s\\S]*?\\n}\\n/);
+    const mainMatch = source.match(/export function resolveMagnificationMainAxisLayout\([\s\S]*?\n}\n/);
+    const crossMatch = source.match(/export function resolveMagnificationCrossAxisLayout\([\s\S]*?\n}\n/);
     assert.ok(mainMatch, 'the main-axis button layout resolver must be present');
     assert.ok(crossMatch, 'the cross-axis button layout resolver must be present');
     const stripTypes = value => value
         .replace('export function', 'function')
-        .replace(/: (?:number|boolean|\\[number, number\\])/g, '');
-    const moduleSource = stripTypes(mainMatch[0]) + '\\n' +
+        .replace(/: (?:number|boolean|\[number, number\])/g, '');
+    const moduleSource = stripTypes(mainMatch[0]) + '\n' +
         stripTypes(crossMatch[0]) +
-        '\\nexport { resolveMagnificationMainAxisLayout, resolveMagnificationCrossAxisLayout };\\n';
+        '\nexport { resolveMagnificationMainAxisLayout, resolveMagnificationCrossAxisLayout };\n';
     const encoded = Buffer.from(moduleSource).toString('base64');
     return import('data:text/javascript;base64,' + encoded);
 }
