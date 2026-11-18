@@ -11,7 +11,6 @@ export class DockTrashItem {
     private item: DockItemBase;
     private destroyed = false;
     private hasItems: boolean | null = null;
-    private paddingStyle = '';
 
     constructor(
         private content: St.BoxLayout,
