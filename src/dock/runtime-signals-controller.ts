@@ -1,10 +1,6 @@
 import Meta from 'gi://Meta?version=51';
-import { CleanupManager } from '../features/cleanup-manager.js';
+import { ManagedSignalController } from '../features/managed-signal-controller.js';
 
-interface SignalEmitter {
-    connect(signal: string, callback: (...args: any[]) => void): number;
-    disconnect(id: number): void;
-}
 
 export interface DockRuntimeSignalCallbacks {
     refresh(): void;
@@ -14,24 +10,21 @@ export interface DockRuntimeSignalCallbacks {
 }
 
 /** Owns application, focus, stacking and workspace signal subscriptions. */
-export class DockRuntimeSignalsController {
+export class DockRuntimeSignalsController extends ManagedSignalController {
     private readonly cleanup = new CleanupManager();
-    private destroyed = false;
-
-    private connected = false;
-
     constructor(
         private readonly appSystem: SignalEmitter,
         private readonly favorites: SignalEmitter,
         private readonly display: SignalEmitter,
         private readonly workspaceManager: SignalEmitter,
         private readonly callbacks: DockRuntimeSignalCallbacks,
-    ) {}
+    ) {
+        super();
+    }
 
     connect(): void {
-        if (this.destroyed || this.connected)
+        if (!this.beginConnect())
             return;
-        this.connected = true;
 
         this.connectSignal(this.appSystem, 'app-state-changed',
             () => this.run(() => this.callbacks.refresh()));
@@ -52,22 +45,6 @@ export class DockRuntimeSignalsController {
     }
 
     destroy(): void {
-        if (this.destroyed)
-            return;
-        this.destroyed = true;
-        this.cleanup.clear();
     }
 
-    private connectSignal(source: SignalEmitter, signal: string, callback: (...args: any[]) => void): void {
-        this.cleanup.addSignal(source, source.connect(signal, callback));
-    }
-
-    private run(callback: () => void): void {
-        if (!this.destroyed)
-            callback();
-    }
-
-    get size(): number {
-        return this.cleanup.size;
-    }
 }
