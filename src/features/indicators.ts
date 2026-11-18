@@ -60,7 +60,7 @@ export class DockIndicators {
                 );
                 this.windowStates.set(item, state);
             }
-            const { count, active } = state;
+            const { active } = state;
             const presentation = resolveIndicatorPresentation(state, {
                 enabled,
                 showOpen,
