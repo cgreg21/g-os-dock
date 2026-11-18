@@ -82,6 +82,7 @@ export class DockSettingsController {
             'icon-padding-bottom',
             'icon-padding-left',
             'dock-item-order',
+            'dock-folders',
             'show-favorites-separator',
             'favorites-separator-size',
         ], () => {
