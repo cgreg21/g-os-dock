@@ -21,6 +21,7 @@ import { DockSystemItem } from '../features/system-item.js';
 import { DockTrashItem } from '../features/trash-item.js';
 import { DockVolumeItems } from '../features/volume-items.js';
 import { dockCache } from '../features/cache.js';
+import { CleanupManager } from '../features/cleanup-manager.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -33,23 +34,12 @@ export class DockView {
     private monitorIndex: number;
     private settings: Gio.Settings;
     private desktopSettings: Gio.Settings;
-    private desktopThemeSignal = 0;
-    private panelGeometrySignals: number[] = [];
-    private contentGeometrySignals: number[] = [];
     private layoutIdleSource = 0;
     private appSystem: Shell.AppSystem;
     private favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
-    private hoverSignal = 0;
-    private sensorHoverSignal = 0;
-    private settingsSignal = 0;
-    private appStateSignal = 0;
-    private favoritesSignal = 0;
-    private focusSignal = 0;
-    private restackedSignal = 0;
-    private workspaceSignal = 0;
-    private windowCreatedSignal = 0;
 
     private destroyed = false;
+    private cleanup = new CleanupManager();
     private contextMenu: AppContextMenu;
     private itemActors: DockAppButton[] = [];
     private itemSize = 0;
@@ -198,7 +188,7 @@ export class DockView {
     private connectPanelGeometrySignals(): void {
         const panel = Main.panel as St.Widget;
         for (const property of ['x', 'y', 'width', 'height']) {
-            this.panelGeometrySignals.push(panel.connect(
+            this.cleanup.addSignal(panel, panel.connect(
                 `notify::${property}`,
                 () => {
                     if (this.destroyed)
@@ -212,70 +202,71 @@ export class DockView {
 
     private connectContentGeometrySignal(): void {
         // Coalesce allocation notifications into one geometry update.
-        this.contentGeometrySignals.push(
+        this.cleanup.addSignal(
+            this.content,
             this.content.connect('notify::allocation', () => this.queueLayoutUpdate()),
         );
     }
 
     private connectWindowSignals(): void {
-        this.focusSignal = global.display.connect(
+        this.cleanup.addSignal(global.display, global.display.connect(
             'notify::focus-window',
             () => {
                 this.indicators.update(this.itemActors);
                 this.visibility.queueSmartHideCheck();
             },
-        );
-        this.restackedSignal = global.display.connect(
+        ));
+        this.cleanup.addSignal(global.display, global.display.connect(
             'restacked',
             () => this.visibility.queueSmartHideCheck(),
-        );
-        this.workspaceSignal = global.workspace_manager.connect(
+        ));
+        this.cleanup.addSignal(global.workspace_manager, global.workspace_manager.connect(
             'active-workspace-changed',
             () => this.visibility.queueSmartHideCheck(),
-        );
-        this.windowCreatedSignal = global.display.connect(
+        ));
+        this.cleanup.addSignal(global.display, global.display.connect(
             'window-created',
             (_display: Meta.Display, window: Meta.Window) => this.windowTracker.track(window),
-        );
+        ));
     }
 
     private connectApplicationSignals(): void {
-        this.appStateSignal = this.appSystem.connect(
+        this.cleanup.addSignal(this.appSystem, this.appSystem.connect(
             'app-state-changed',
             () => this.refresh(),
-        );
-        this.favoritesSignal = this.favorites.connect(
+        ));
+        this.cleanup.addSignal(this.favorites, this.favorites.connect(
             'changed',
             () => this.refresh(),
-        );
+        ));
     }
 
     private connectThemeSignal(): void {
-        this.desktopThemeSignal = this.desktopSettings.connect(
+        this.cleanup.addSignal(this.desktopSettings, this.desktopSettings.connect(
             'changed::color-scheme',
             () => {
                 this.appearance.apply();
                 this.queueLayoutUpdate();
             },
-        );
+        ));
     }
 
     private connectPointerSignals(): void {
-        this.hoverSignal = this.actor.connect(
+        this.cleanup.addSignal(this.actor, this.actor.connect(
             'notify::hover',
             () => this.visibility.onPointerChanged(),
         );
-        this.sensorHoverSignal = this.edgeSensor.connect('notify::hover', () => {
+        this.cleanup.addSignal(this.edgeSensor, this.edgeSensor.connect('notify::hover', () => {
             if (this.edgeSensor.hover)
                 this.visibility.show();
-        });
+        }));
     }
 
     private connectSettingsSignal(): void {
-        this.settingsSignal = this.settings.connect(
+        this.cleanup.addSignal(this.settings, this.settings.connect(
             'changed',
             () => this.applySettings(),
-        );
+        ));
     }
 
     private connectSignals(): void {
@@ -888,47 +879,6 @@ export class DockView {
         });
     }
 
-    private disconnectGeometrySignals(): void {
-        const panel = Main.panel as St.Widget;
-        for (const signal of this.panelGeometrySignals)
-            panel.disconnect(signal);
-        this.panelGeometrySignals = [];
-
-        for (const signal of this.contentGeometrySignals)
-            this.content.disconnect(signal);
-        this.contentGeometrySignals = [];
-    }
-
-    private disconnectPointerSignals(): void {
-        if (this.hoverSignal) this.actor.disconnect(this.hoverSignal);
-        if (this.sensorHoverSignal) this.edgeSensor.disconnect(this.sensorHoverSignal);
-    }
-
-    private disconnectSettingsSignals(): void {
-        if (this.settingsSignal) this.settings.disconnect(this.settingsSignal);
-        if (this.desktopThemeSignal) this.desktopSettings.disconnect(this.desktopThemeSignal);
-    }
-
-    private disconnectApplicationSignals(): void {
-        if (this.appStateSignal) this.appSystem.disconnect(this.appStateSignal);
-        if (this.favoritesSignal) this.favorites.disconnect(this.favoritesSignal);
-    }
-
-    private disconnectWindowSignals(): void {
-        if (this.focusSignal) global.display.disconnect(this.focusSignal);
-        if (this.restackedSignal) global.display.disconnect(this.restackedSignal);
-        if (this.workspaceSignal) global.workspace_manager.disconnect(this.workspaceSignal);
-        if (this.windowCreatedSignal) global.display.disconnect(this.windowCreatedSignal);
-    }
-
-    private disconnectSignals(): void {
-        this.disconnectPointerSignals();
-        this.disconnectSettingsSignals();
-        this.disconnectApplicationSignals();
-        this.disconnectWindowSignals();
-        this.disconnectGeometrySignals();
-    }
-
     destroy(): void {
         if (this.destroyed)
             return;
@@ -937,7 +887,7 @@ export class DockView {
             GLib.Source.remove(this.layoutIdleSource);
             this.layoutIdleSource = 0;
         }
-        this.disconnectSignals();
+        this.cleanup.clear();
         this.visibility.destroy();
         this.previews.destroy();
         this.windowTracker.destroy();
