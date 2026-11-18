@@ -56,6 +56,9 @@ export class DockRefreshController {
                 Number(this.settings.get_boolean('show-system-icon')) +
                 Number(this.settings.get_boolean('show-trash-icon')) +
                 this.dockItems.volumeCount,
+            windowCountBadgeCount: this.settings.get_boolean('show-window-count')
+                ? applications.filter(app => app.get_windows().length > 1).length
+                : 0,
             iconPadding,
             vertical,
         });
