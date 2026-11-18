@@ -356,7 +356,7 @@ test('E2E: additional dock items and vertical window badges are included in sizi
     const base = {
         applicationIds: ['a', 'b', 'c'],
         favoriteIds: new Set(['a']),
-        availableSpace: 500,
+        availableSpace: 200,
         configuredSize: 96,
         spacing: 4,
         showFavoritesSeparator: false,
