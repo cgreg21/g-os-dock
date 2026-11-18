@@ -162,93 +162,104 @@ export class DockView {
         });
 
         try {
-            this.desktopThemeSignal = this.desktopSettings.connect(
-                'changed::color-scheme',
-                () => {
-                    this.appearance.apply();
-                    this.queueLayoutUpdate();
-                },
-            );
-            Main.layoutManager.addChrome(this.background, {
-                affectsStruts: false,
-                trackFullscreen: false,
-            });
-            Main.layoutManager.addChrome(this.actor, {
-                affectsStruts: false,
-                trackFullscreen: false,
-            });
-            Main.layoutManager.addChrome(this.edgeSensor, {
-                affectsStruts: false,
-                trackFullscreen: false,
-            });
-            // Recalculate available dock space when the top panel changes
-            // size or position (for example after a scale/theme/layout change).
-            const panel = Main.panel as St.Widget;
-            for (const property of ['x', 'y', 'width', 'height']) {
-                this.panelGeometrySignals.push(panel.connect(
-                    `notify::${property}`,
-                    () => {
-                        if (this.destroyed)
-                            return;
-                        this.layout.position();
-                        this.layout.positionSensor();
-                    },
-                ));
-            }
-            this.hoverSignal = this.actor.connect(
-                'notify::hover',
-                () => this.onPointerChanged(),
-            );
-            this.sensorHoverSignal = this.edgeSensor.connect('notify::hover', () => {
-                if (this.edgeSensor.hover)
-                    this.visibility.show();
-            });
-            this.settingsSignal = this.settings.connect(
-                'changed',
-                () => this.applySettings(),
-            );
-            this.appStateSignal = this.appSystem.connect(
-                'app-state-changed',
-                () => this.refresh(),
-            );
-            this.favoritesSignal = this.favorites.connect(
-                'changed',
-                () => this.refresh(),
-            );
-            this.focusSignal = global.display.connect(
-                'notify::focus-window',
-                () => {
-                    this.updateIndicators();
-                    this.visibility.queueSmartHideCheck();
-                },
-            );
-            this.restackedSignal = global.display.connect(
-                'restacked',
-                () => this.visibility.queueSmartHideCheck(),
-            );
-            this.workspaceSignal = global.workspace_manager.connect(
-                'active-workspace-changed',
-                () => this.visibility.queueSmartHideCheck(),
-            );
-            this.windowCreatedSignal = global.display.connect(
-                'window-created',
-                (_display: Meta.Display, window: Meta.Window) => this.windowTracker.track(window),
-            );
-            // Recompute the dock's natural size whenever its content tree
-            // changes or Clutter reallocates it. The idle callback coalesces
-            // bursts of relayout notifications into one geometry update.
-            // Content changes made by refresh() already trigger a layout pass.
-            // Keep only the allocation notification here: actor-added/removed
-            // are not part of St.BoxLayout's typed signal signatures.
-            this.contentGeometrySignals.push(
-                this.content.connect('notify::allocation', () => this.queueLayoutUpdate()),
-            );
+            this.addToStage();
+            this.connectSignals();
             this.windowTracker.trackExisting();
             this.applySettings();
         } catch (error) {
             this.destroy();
             throw error;
         }
+    }
+
+
+    private addToStage(): void {
+        Main.layoutManager.addChrome(this.background, {
+            affectsStruts: false,
+            trackFullscreen: false,
+        });
+        Main.layoutManager.addChrome(this.actor, {
+            affectsStruts: false,
+            trackFullscreen: false,
+        });
+        Main.layoutManager.addChrome(this.edgeSensor, {
+            affectsStruts: false,
+            trackFullscreen: false,
+        });
+    }
+
+    private connectSignals(): void {
+        this.desktopThemeSignal = this.desktopSettings.connect(
+            'changed::color-scheme',
+            () => {
+                this.appearance.apply();
+                this.queueLayoutUpdate();
+            },
+        );
+        // Recalculate available dock space when the top panel changes
+        // size or position (for example after a scale/theme/layout change).
+        const panel = Main.panel as St.Widget;
+        for (const property of ['x', 'y', 'width', 'height']) {
+            this.panelGeometrySignals.push(panel.connect(
+                `notify::${property}`,
+                () => {
+                    if (this.destroyed)
+                        return;
+                    this.layout.position();
+                    this.layout.positionSensor();
+                },
+            ));
+        }
+        this.hoverSignal = this.actor.connect(
+            'notify::hover',
+            () => this.onPointerChanged(),
+        );
+        this.sensorHoverSignal = this.edgeSensor.connect('notify::hover', () => {
+            if (this.edgeSensor.hover)
+                this.visibility.show();
+        });
+        this.settingsSignal = this.settings.connect(
+            'changed',
+            () => this.applySettings(),
+        );
+        this.appStateSignal = this.appSystem.connect(
+            'app-state-changed',
+            () => this.refresh(),
+        );
+        this.favoritesSignal = this.favorites.connect(
+            'changed',
+            () => this.refresh(),
+        );
+        this.focusSignal = global.display.connect(
+            'notify::focus-window',
+            () => {
+                this.updateIndicators();
+                this.visibility.queueSmartHideCheck();
+            },
+        );
+        this.restackedSignal = global.display.connect(
+            'restacked',
+            () => this.visibility.queueSmartHideCheck(),
+        );
+        this.workspaceSignal = global.workspace_manager.connect(
+            'active-workspace-changed',
+            () => this.visibility.queueSmartHideCheck(),
+        );
+        this.windowCreatedSignal = global.display.connect(
+            'window-created',
+            (_display: Meta.Display, window: Meta.Window) => this.windowTracker.track(window),
+        );
+        // Recompute the dock's natural size whenever its content tree
+        // changes or Clutter reallocates it. The idle callback coalesces
+        // bursts of relayout notifications into one geometry update.
+        // Content changes made by refresh() already trigger a layout pass.
+        // Keep only the allocation notification here: actor-added/removed
+        // are not part of St.BoxLayout's typed signal signatures.
+        this.contentGeometrySignals.push(
+            this.content.connect('notify::allocation', () => this.queueLayoutUpdate()),
+        );
+        this.windowTracker.trackExisting();
+        this.applySettings();
     }
 
     handleDragOver(source: DockDragSource, dragActor: Clutter.Actor, x: number, y: number, time: number): number {
