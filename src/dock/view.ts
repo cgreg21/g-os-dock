@@ -528,12 +528,14 @@ export class DockView {
         try {
             for (const app of applications) {
                 const id = app.get_id();
-                let item = id ? previousById.get(id) : undefined;
-                if (item) {
-                    previousById.delete(id!);
-                } else {
-                    item = this.appItemFactory.create(app, size);
+                let item: DockAppButton | undefined;
+                if (id) {
+                    item = previousById.get(id);
+                    if (item)
+                        previousById.delete(id);
                 }
+                if (!item)
+                    item = this.appItemFactory.create(app, size);
 
                 this.updateItemPadding(item, size);
                 if (item.get_parent() !== this.content)
