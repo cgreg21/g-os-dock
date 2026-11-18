@@ -81,7 +81,9 @@ export class DockDragDrop {
             affectsStruts: false,
             trackFullscreen: false,
         });
-        this.removalZone.hide();
+        // Keep the large removal target visible at all times. It only becomes
+        // reactive while an item that can be removed is being dragged.
+        this.removalZone.show();
     }
 
     registerItem(item: DockDndItem, onStart: () => void = () => {}): void {
@@ -391,27 +393,15 @@ export class DockDragDrop {
     }
 
     private hideRemovalZone(): void {
+        // Visibility is permanent; only drop acceptance is disabled outside
+        // an eligible drag operation.
         this.removalZone.reactive = false;
-        if (this.destroyed || !this.removalZone.visible) {
-            this.removalZone.hide();
-            return;
-        }
-        this.animations.animate('removal-zone', this.removalZone as unknown as AnimationTarget, {
-            opacity: 0,
-            scaleX: 0.97,
-            scaleY: 0.97,
-        }, {
-            durationMs: 120,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => {
-                if (!this.destroyed && !this.removalZone.reactive) {
-                    this.removalZone.hide();
-                    this.removalZone.opacity = 255;
-                    this.removalZone.scale_x = 1;
-                    this.removalZone.scale_y = 1;
-                }
-            },
-        });
+        this.animations.cancel('removal-zone');
+        this.removalZone.opacity = 255;
+        this.removalZone.scale_x = 1;
+        this.removalZone.scale_y = 1;
+        if (!this.destroyed)
+            this.removalZone.show();
     }
 
     private handleRemovalDragOver(source: DockDragSource): number {
