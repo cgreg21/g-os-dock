@@ -2,6 +2,7 @@ import Adw from 'gi://Adw?version=1';
 import Gio from 'gi://Gio?version=2.0';
 import Gtk from 'gi://Gtk?version=4.0';
 import { addColorPicker } from './color-picker.js';
+import { addSwitch } from './settings-controls.js';
 
 export function addBackgroundPreferences(page: Adw.PreferencesPage, settings: Gio.Settings): void {
     const base = new Adw.PreferencesGroup({ title: 'Background and border' });
@@ -65,11 +66,6 @@ function addSpin(group: Adw.PreferencesGroup, settings: Gio.Settings, key: strin
     const row = new Adw.SpinRow({ title, adjustment: new Gtk.Adjustment({ lower, upper, step_increment: step, page_increment: step * 2, value: settings.get_int(key) }) });
     group.add(row);
     settings.bind(key, row, 'value', Gio.SettingsBindFlags.DEFAULT);
-}
-function addSwitch(group: Adw.PreferencesGroup, settings: Gio.Settings, key: string, title: string): void {
-    const row = new Adw.SwitchRow({ title });
-    group.add(row);
-    settings.bind(key, row, 'active', Gio.SettingsBindFlags.DEFAULT);
 }
 function addCombo(group: Adw.PreferencesGroup, settings: Gio.Settings, key: string, title: string, labels: string[], values: string[]): void {
     const row = new Adw.ComboRow({ title, model: new Gtk.StringList({ strings: labels }) });
