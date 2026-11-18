@@ -85,6 +85,9 @@ export class DockSettingsController {
             'dock-folders',
             'show-favorites-separator',
             'favorites-separator-size',
+            'hover-animation',
+            'hover-animation-intensity',
+            'hover-animation-duration',
         ], () => {
             callbacks.refresh();
             callbacks.positionDock();
