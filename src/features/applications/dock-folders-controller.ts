@@ -232,8 +232,8 @@ export class DockFoldersController {
             if (open) {
                 menu.actor.ease({
                     opacity: 255,
-                    scale_x: 1,
-                    scale_y: 1,
+                    scaleX: 1,
+                    scaleY: 1,
                     duration: 190,
                     mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
                 });
@@ -242,8 +242,8 @@ export class DockFoldersController {
                 menu.actor.reactive = false;
                 menu.actor.ease({
                     opacity: 0,
-                    scale_x: 0.94,
-                    scale_y: 0.94,
+                    scaleX: 0.94,
+                    scaleY: 0.94,
                     duration: 135,
                     mode: Clutter.AnimationMode.EASE_IN_CUBIC,
                     onComplete: () => menu.destroy(),
@@ -302,15 +302,10 @@ export class DockFoldersController {
         const label = new St.Label({
             text: app.get_name(),
             style_class: 'g-os-dock-folder-app-label',
-            x_align: Clutter.ActorAlign.CENTER,
-            y_align: Clutter.ActorAlign.CENTER,
-            ellipsize: 3,
-            max_width_chars: 12,
         });
         const box = new St.BoxLayout({
             orientation: Clutter.Orientation.VERTICAL,
             style_class: 'g-os-dock-folder-app-content',
-            x_align: Clutter.ActorAlign.CENTER,
         });
         box.add_child(icon);
         if (!compact)
