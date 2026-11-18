@@ -1,0 +1,195 @@
+import St from 'gi://St?version=51';
+import Clutter from 'gi://Clutter?version=51';
+import Shell from 'gi://Shell?version=51';
+import Gio from 'gi://Gio?version=2.0';
+import GLib from 'gi://GLib?version=2.0';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { DockDragDrop, type DockDndItem } from '../interaction/drag-and-drop.js';
+
+interface DockFolderRecord {
+    id: string;
+    name: string;
+    appIds: string[];
+}
+
+interface MountedFolder extends DockFolderRecord {
+    actor: St.Button;
+}
+
+function readFolders(settings: Gio.Settings): DockFolderRecord[] {
+    const folders: DockFolderRecord[] = [];
+    for (const raw of settings.get_strv('dock-folders')) {
+        try {
+            const value = JSON.parse(raw) as Partial<DockFolderRecord>;
+            if (typeof value.id !== 'string' || !value.id.startsWith('folder:') ||
+                !Array.isArray(value.appIds) ||
+                !value.appIds.every(id => typeof id === 'string'))
+                continue;
+            const appIds = [...new Set(value.appIds)].filter(Boolean);
+            if (appIds.length >= 2)
+                folders.push({ id: value.id, name: typeof value.name === 'string' ? value.name : 'Folder', appIds });
+        } catch (_error) {
+            // Ignore malformed records and preserve the remaining folders.
+        }
+    }
+    return folders;
+}
+
+/** Owns persistent application folders and their popup launchers. */
+export class DockFoldersController {
+    private folders: MountedFolder[] = [];
+    private destroyed = false;
+
+    constructor(
+        private readonly content: St.BoxLayout,
+        private readonly settings: Gio.Settings,
+        private readonly dragDrop: DockDragDrop,
+        private readonly appSystem: Shell.AppSystem,
+        private readonly onChanged: () => void,
+    ) {}
+
+    getHiddenAppIds(): Set<string> {
+        return new Set(readFolders(this.settings).flatMap(folder => folder.appIds));
+    }
+
+    sync(): void {
+        if (this.destroyed)
+            return;
+        const records = readFolders(this.settings);
+        const byId = new Map(this.folders.map(folder => [folder.id, folder]));
+        const next: MountedFolder[] = [];
+
+        for (const record of records) {
+            const validIds = record.appIds.filter(id => !!this.appSystem.lookup_app(id));
+            if (validIds.length < 2)
+                continue;
+            let folder = byId.get(record.id);
+            if (!folder) {
+                folder = { ...record, appIds: validIds, actor: this.createActor(record) };
+                this.content.add_child(folder.actor);
+            } else {
+                folder.name = record.name;
+                folder.appIds = validIds;
+            }
+            next.push(folder);
+        }
+
+        for (const folder of this.folders) {
+            if (next.some(candidate => candidate.id === folder.id))
+                continue;
+            this.dragDrop.unregisterItem(folder.actor);
+            folder.actor.get_parent()?.remove_child(folder.actor);
+            folder.actor.destroy();
+        }
+        this.folders = next;
+    }
+
+    getDndItems(): DockDndItem[] {
+        return this.folders.map(folder => ({
+            id: folder.id,
+            actor: folder.actor,
+            onCreateFolder: target => this.addToFolder(folder.id, target),
+        }));
+    }
+
+    addToFolder(sourceId: string, target: DockDndItem): void {
+        if (this.destroyed)
+            return;
+        const sourceFolder = this.folders.find(folder => folder.id === sourceId);
+        const sourceAppIds = sourceFolder
+            ? [...sourceFolder.appIds]
+            : sourceId.startsWith('app:') ? [sourceId.slice(4)] : [];
+        const targetFolder = this.folders.find(folder => folder.id === target.id);
+        const targetAppIds = targetFolder
+            ? [...targetFolder.appIds]
+            : target.id.startsWith('app:') ? [target.id.slice(4)] : [];
+        if (sourceAppIds.length === 0 || targetAppIds.length === 0)
+            return;
+
+        const members = [...new Set([...targetAppIds, ...sourceAppIds])];
+        if (members.length < 2)
+            return;
+        const records = readFolders(this.settings).filter(folder =>
+            folder.id !== sourceId && folder.id !== target.id,
+        );
+        const targetId = targetFolder?.id ?? `folder:${GLib.uuid_string_random()}`;
+        records.push({ id: targetId, name: targetFolder?.name ?? 'Folder', appIds: members });
+        this.settings.set_strv('dock-folders', records.map(folder => JSON.stringify(folder)));
+
+        const order = this.settings.get_strv('dock-item-order');
+        const firstIndex = Math.min(
+            ...[sourceId, target.id].map(id => {
+                const index = order.indexOf(id);
+                return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+            }),
+        );
+        const filtered = order.filter(id => id !== sourceId && id !== target.id);
+        if (firstIndex === Number.MAX_SAFE_INTEGER)
+            filtered.push(targetId);
+        else
+            filtered.splice(Math.min(firstIndex, filtered.length), 0, targetId);
+        this.settings.set_strv('dock-item-order', filtered);
+        this.onChanged();
+    }
+
+    destroy(): void {
+        if (this.destroyed)
+            return;
+        this.destroyed = true;
+        for (const folder of this.folders) {
+            this.dragDrop.unregisterItem(folder.actor);
+            folder.actor.get_parent()?.remove_child(folder.actor);
+            folder.actor.destroy();
+        }
+        this.folders = [];
+    }
+
+    private createActor(folder: DockFolderRecord): St.Button {
+        const icon = new St.Icon({
+            icon_name: 'folder-symbolic',
+            icon_size: 32,
+            style_class: 'g-os-dock-folder-icon',
+        });
+        const actor = new St.Button({
+            style_class: 'g-os-dock-item g-os-dock-folder',
+            reactive: true,
+            can_focus: true,
+            track_hover: true,
+            child: icon,
+            accessible_name: folder.name,
+            x_expand: false,
+            y_expand: false,
+        });
+        actor.connect('clicked', () => this.openFolder(folder.id));
+        this.dragDrop.registerItem({
+            id: folder.id,
+            actor,
+            onCreateFolder: target => this.addToFolder(folder.id, target),
+        });
+        return actor;
+    }
+
+    private openFolder(id: string): void {
+        const folder = this.folders.find(candidate => candidate.id === id);
+        if (!folder)
+            return;
+        const menu = new PopupMenu.PopupMenu(folder.actor, 0.5, 'TOP');
+        Main.uiGroup.add_child(menu.actor);
+        for (const appId of folder.appIds) {
+            const app = this.appSystem.lookup_app(appId);
+            if (!app)
+                continue;
+            const item = new PopupMenu.PopupMenuItem(app.get_name());
+            item.connect('activate', () => app.activate());
+            menu.addMenuItem(item);
+        }
+        menu.connect('open-state-changed', (_menu, open) => {
+            if (!open) {
+                menu.destroy();
+                menu.actor.destroy();
+            }
+        });
+        menu.open();
+    }
+}
