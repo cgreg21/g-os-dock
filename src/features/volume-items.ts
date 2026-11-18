@@ -88,7 +88,8 @@ export class DockVolumeItems {
                 // Avoid replacing the icon actor's GIcon when the mount icon is unchanged.
                 const icon = entry.mount.get_icon();
                 const iconKey = icon.to_string() ?? '';
-                if (existing.iconKey !== iconKey) {
+                // Some custom GIcons cannot be serialized; refresh those defensively.
+                if (!iconKey || existing.iconKey !== iconKey) {
                     existing.icon.set_gicon(icon);
                     existing.iconKey = iconKey;
                 }
