@@ -309,12 +309,21 @@ export class DockView {
             'icon-padding-left',
             'dock-item-order',
             'show-favorites-separator',
-            'favorites-separator-color',
-            'favorites-separator-opacity',
             'favorites-separator-size',
-            'favorites-separator-length',
         ], () => {
             this.refresh();
+            this.positionDock();
+        });
+
+        this.settingsObserver.watchMany(this.settings, [
+            'favorites-separator-color',
+            'favorites-separator-opacity',
+            'favorites-separator-length',
+        ], () => {
+            if (this.itemSize === 0)
+                return;
+            const position = this.settings.get_string('dock-position');
+            this.syncFavoritesSeparator(this.itemSize, position === 'left' || position === 'right');
             this.positionDock();
         });
 
