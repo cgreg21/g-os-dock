@@ -59,7 +59,7 @@ export class DockTrashItem {
             const monitor = this.monitor;
             this.cleanup.add(() => monitor.cancel());
             const signal = monitor.connect('changed', () => this.updateIcon());
-            this.cleanup.add(() => monitor.disconnect(signal));
+            this.cleanup.addSignal(monitor, signal);
         } catch (error) {
             logError(error as Error, 'Unable to monitor Trash');
         }
