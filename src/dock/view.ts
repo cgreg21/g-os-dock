@@ -181,6 +181,7 @@ export class DockView {
             hidePreviews: () => this.previews.hide(),
         });
         this.appItemFactory = new DockAppItemFactory({
+            content: this.content,
             favorites: this.favorites,
             dragDrop: this.dragDrop,
             previews: this.previews,
