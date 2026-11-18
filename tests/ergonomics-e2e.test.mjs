@@ -13,6 +13,10 @@ import {
 } from '../dist/features/layout/dock-positioner.js';
 import { calculateDockIconSize } from '../dist/features/layout/icon-sizing.js';
 import {
+    resolveDockKeyboardAction,
+    resolveWrappedDockIndex,
+} from '../dist/features/interaction/keyboard-navigation-state.js';
+import {
     mergeDockFolderMembers,
     resolveDockFolderDropOrder,
     resolveDockFolderRemoval,
@@ -153,4 +157,25 @@ test('E2E: invalid folder removal is a no-op rather than corrupting dock order',
         'folder:one',
         'app.missing',
     ), null);
+});
+
+test('E2E: keyboard navigation follows the dock axis and opens previews inward', () => {
+    const keys = { left: 1, right: 2, up: 3, down: 4, home: 5, end: 6, escape: 7 };
+    assert.equal(resolveDockKeyboardAction(1, 'bottom', keys), 'previous');
+    assert.equal(resolveDockKeyboardAction(2, 'bottom', keys), 'next');
+    assert.equal(resolveDockKeyboardAction(4, 'bottom', keys), 'previews');
+    assert.equal(resolveDockKeyboardAction(3, 'top', keys), 'previews');
+    assert.equal(resolveDockKeyboardAction(2, 'left', keys), 'previews');
+    assert.equal(resolveDockKeyboardAction(1, 'right', keys), 'previews');
+    assert.equal(resolveDockKeyboardAction(5, 'right', keys), 'first');
+    assert.equal(resolveDockKeyboardAction(6, 'right', keys), 'last');
+    assert.equal(resolveDockKeyboardAction(7, 'right', keys), 'escape');
+    assert.equal(resolveDockKeyboardAction(99, 'right', keys), null);
+});
+
+test('E2E: keyboard focus wraps instead of stopping at the first or last app', () => {
+    assert.equal(resolveWrappedDockIndex(-1, 5), 4);
+    assert.equal(resolveWrappedDockIndex(5, 5), 0);
+    assert.equal(resolveWrappedDockIndex(2, 5), 2);
+    assert.equal(resolveWrappedDockIndex(0, 0), null);
 });
