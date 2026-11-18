@@ -2,6 +2,7 @@ import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { DockDragDrop } from './drag-and-drop.js';
+import { DockTooltip } from './tooltip.js';
 
 /** Trash launcher with an icon reflecting whether the trash contains files. */
 export class DockTrashItem {
@@ -16,6 +17,7 @@ export class DockTrashItem {
         private settings: Gio.Settings,
         private iconSize: number,
         private dragDrop: DockDragDrop,
+        dockPosition: () => string,
     ) {
         this.icon = new St.Icon({
             icon_name: 'user-trash',
@@ -39,6 +41,7 @@ export class DockTrashItem {
                 logError(error as Error, 'Unable to open Trash');
             }
         });
+        new DockTooltip(this.button, 'Corbeille', dockPosition());
         this.content.add_child(this.button);
         this.dragDrop.registerItem({ id: 'system:trash', actor: this.button });
         this.watchTrash();
