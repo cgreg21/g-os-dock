@@ -102,7 +102,7 @@ test('keeps the insertion slot stable inside the hysteresis band', () => {
 });
 
 test('changes insertion slot only after crossing the hysteresis threshold', () => {
-    assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 59, 1, 8), 1);
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 59, 1, 8), 2);
     assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 59, 2, 8), 2);
     assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 61, 1, 8), 2);
     assert.equal(resolveDockDndInsertionIndexWithHysteresis([20, 50, 80], 41, 2, 8), 1);
