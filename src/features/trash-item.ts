@@ -4,13 +4,14 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { DockDragDrop } from './drag-and-drop.js';
 import { DockTooltip } from './tooltip.js';
 import { getIconPaddingStyle } from './icon-padding.js';
+import { CleanupManager } from './cleanup-manager.js';
 
 /** Trash launcher with an icon reflecting whether the trash contains files. */
 export class DockTrashItem {
     private button: St.Button;
     private icon: St.Icon;
     private monitor: Gio.FileMonitor | null = null;
-    private monitorSignal = 0;
+    private cleanup = new CleanupManager();
     private destroyed = false;
     private hasItems: boolean | null = null;
     private paddingStyle = '';
@@ -55,7 +56,10 @@ export class DockTrashItem {
         try {
             const trash = Gio.File.new_for_uri('trash:///');
             this.monitor = trash.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, null);
-            this.monitorSignal = this.monitor.connect('changed', () => this.updateIcon());
+            const monitor = this.monitor;
+            this.cleanup.add(() => monitor.cancel());
+            const signal = monitor.connect('changed', () => this.updateIcon());
+            this.cleanup.add(() => monitor.disconnect(signal));
         } catch (error) {
             logError(error as Error, 'Unable to monitor Trash');
         }
@@ -108,9 +112,7 @@ export class DockTrashItem {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        if (this.monitorSignal && this.monitor)
-            this.monitor.disconnect(this.monitorSignal);
-        this.monitor?.cancel();
+        this.cleanup.clear();
         this.monitor = null;
         this.dragDrop.unregisterItem(this.button);
         this.button.destroy();
