@@ -4,9 +4,8 @@ import Gio from 'gi://Gio?version=2.0';
 import { CleanupManager } from '../../core/cleanup-manager.js';
 
 /**
- * Converts stage pointer coordinates into a coordinate on the dock's main
- * axis. The dock surface is axis-aligned, so its transformed origin is enough
- * to make the result local to the surface.
+ * Converts stage coordinates into the dock's main-axis coordinate.
+ * Returns null when the pointer is outside the surface bounds.
  */
 export function resolveMagnificationPointerAxis(
     position: string,
@@ -14,21 +13,25 @@ export function resolveMagnificationPointerAxis(
     pointerY: number,
     surfaceX: number,
     surfaceY: number,
-): number {
-    return position === 'left' || position === 'right'
-        ? pointerY - surfaceY
-        : pointerX - surfaceX;
+    surfaceWidth: number,
+    surfaceHeight: number,
+): number | null {
+    const localX = pointerX - surfaceX;
+    const localY = pointerY - surfaceY;
+    if (localX < 0 || localY < 0 || localX > surfaceWidth || localY > surfaceHeight)
+        return null;
+
+    return position === 'left' || position === 'right' ? localY : localX;
 }
 
 /**
- * Step 1 of the magnifier rebuild: observe pointer position on the complete
- * content surface. This controller deliberately performs no animation,
- * scaling, button resizing, or layout changes.
+ * Pointer observation only: no animation, scaling, button resizing, or layout.
  */
 export class DockMagnificationController {
     private readonly items = new Set<St.Button>();
     private readonly cleanup = new CleanupManager();
     private readonly surface: Clutter.Actor;
+    private readonly originalReactive: boolean;
     private pointerAxis: number | null = null;
     private destroyed = false;
 
@@ -39,6 +42,7 @@ export class DockMagnificationController {
         _onSurfaceExtentChanged?: (leading: number, trailing: number, active?: boolean) => void,
     ) {
         this.surface = content.get_parent() ?? content;
+        this.originalReactive = this.surface.reactive;
         this.surface.reactive = true;
 
         this.cleanup.addSignal(this.surface, this.surface.connect('motion-event', (_actor, event) => {
@@ -60,11 +64,12 @@ export class DockMagnificationController {
             return;
         const [pointerX, pointerY] = event.get_coords();
         const [surfaceX, surfaceY] = this.surface.get_transformed_position();
+        const [surfaceWidth, surfaceHeight] = this.surface.get_transformed_size();
         const position = this.content.orientation === Clutter.Orientation.VERTICAL
             ? 'left'
             : 'bottom';
         this.pointerAxis = resolveMagnificationPointerAxis(
-            position, pointerX, pointerY, surfaceX, surfaceY,
+            position, pointerX, pointerY, surfaceX, surfaceY, surfaceWidth, surfaceHeight,
         );
     }
 
@@ -90,6 +95,7 @@ export class DockMagnificationController {
         this.destroyed = true;
         this.pointerAxis = null;
         this.cleanup.clear();
+        this.surface.reactive = this.originalReactive;
         this.items.clear();
     }
 
