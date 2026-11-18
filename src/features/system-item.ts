@@ -25,7 +25,12 @@ export class DockSystemItem {
         });
         this.updateIcon();
         new DockTooltip(this.button, 'Applications', this.dockPosition());
-        this.button.connect('clicked', () => Main.overview.toggleApps());
+        this.button.connect('clicked', () => {
+            if (Main.overview.visible)
+                Main.overview.hide();
+            else
+                Main.overview.showApps();
+        });
         this.button.connect('button-press-event', (_actor, event) => {
             if (event.get_button() !== 3) return Clutter.EVENT_PROPAGATE;
             this.showMenu();
