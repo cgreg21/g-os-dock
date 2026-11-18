@@ -3,7 +3,7 @@ import Gio from 'gi://Gio?version=2.0';
 import Gdk from 'gi://Gdk?version=4.0';
 import Gtk from 'gi://Gtk?version=4.0';
 import { addColorPicker } from './color-picker.js';
-import { addSwitch } from './settings-controls.js';
+import { addSpin, addSwitch } from './settings-controls.js';
 
 export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.Settings): void {
     const group = new Adw.PreferencesGroup({ title: 'Dock behavior' });
@@ -112,10 +112,4 @@ function addIconThemeSelector(group: Adw.PreferencesGroup, settings: Gio.Setting
     settings.connect('changed::system-icon-name', sync);
     group.add(row);
     sync();
-}
-
-function addSpin(group: Adw.PreferencesGroup, settings: Gio.Settings, key: string, title: string, lower: number, upper: number): void {
-    const row = new Adw.SpinRow({ title, adjustment: new Gtk.Adjustment({ lower, upper, step_increment: 1, page_increment: 5, value: settings.get_int(key) }) });
-    group.add(row);
-    settings.bind(key, row, 'value', Gio.SettingsBindFlags.DEFAULT);
 }
