@@ -5,6 +5,11 @@ import type { DockAppButton } from './app-item.js';
 import { dockCache } from './cache.js';
 import { dockStyles } from './style-manager.js';
 import { resolveWindowIndicatorState } from './window-indicator-state.js';
+import {
+    createIndicatorMarkerSignature,
+    createIndicatorMarkerStyle,
+    resolveIndicatorColor,
+} from './indicator-style.js';
 
 /** Updates configurable open, focused and minimized application indicators. */
 export class DockIndicators {
@@ -31,12 +36,12 @@ export class DockIndicators {
         const showCount = this.settings.get_boolean('show-window-count');
         const multiple = this.settings.get_string('indicator-mode') === 'multiple';
         const shape = this.settings.get_string('indicator-shape');
-        const color = this.validColor(this.settings.get_string('indicator-color'));
+        const color = resolveIndicatorColor(this.settings.get_string('indicator-color'));
         const opacity = Math.max(0, Math.min(1, this.settings.get_double('indicator-opacity')));
         const bottomOffset = this.settings.get_int('indicator-bottom-offset');
         const indicatorSize = this.settings.get_int('indicator-size');
         const borderSize = this.settings.get_int('indicator-border-size');
-        const borderColor = this.validColor(this.settings.get_string('indicator-border-color'));
+        const borderColor = resolveIndicatorColor(this.settings.get_string('indicator-border-color'));
         const borderOpacity = Math.max(0, Math.min(1, this.settings.get_double('indicator-border-opacity')));
 
         for (const item of items) {
@@ -72,8 +77,17 @@ export class DockIndicators {
                 const length = shape === 'line' ? indicatorSize * 2 : indicatorSize;
                 const thickness = indicatorSize;
                 const radius = shape === 'round' ? '999px' : '0px';
-                const signature = [markerCount, length, thickness, radius, color, opacity,
-                    borderSize, borderColor, borderOpacity].join(':');
+                const styleOptions = {
+                    length,
+                    thickness,
+                    radius,
+                    color,
+                    opacity,
+                    borderSize,
+                    borderColor,
+                    borderOpacity,
+                };
+                const signature = createIndicatorMarkerSignature(markerCount, styleOptions);
                 if (this.markerSignatures.get(item) !== signature) {
                     dockStyles.apply(item._gOsDockIndicator, dockCache.getOrCreate(
                         'indicator-marker-container-style',
@@ -85,11 +99,8 @@ export class DockIndicators {
                         const marker = new St.Widget();
                         marker.set_size(length, thickness);
                         const markerStyle = dockCache.getOrCreate(
-                            `indicator-marker-style:${length}:${thickness}:${radius}:${color}:${opacity}:${borderSize}:${borderColor}:${borderOpacity}`,
-                            () =>
-                                `width: ${length}px; height: ${thickness}px; ` +
-                                `border-radius: ${radius}; background-color: rgba(${color}, ${opacity}); ` +
-                                `border: ${borderSize}px solid rgba(${borderColor}, ${borderOpacity});`,
+                            `indicator-marker-style:${signature.slice(String(markerCount).length + 1)}`,
+                            () => createIndicatorMarkerStyle(styleOptions),
                         );
                         dockStyles.apply(marker, markerStyle);
                         item._gOsDockIndicator.add_child(marker);
@@ -133,12 +144,4 @@ export class DockIndicators {
         }
     }
 
-    private validColor(value: string): string {
-        return dockCache.getOrCreate(`indicator-color:${value}`, () => {
-            if (!/^#[0-9a-fA-F]{6}$/.test(value))
-                value = '#e6e6f0';
-            const hex = value.slice(1);
-            return `${parseInt(hex.slice(0, 2), 16)}, ${parseInt(hex.slice(2, 4), 16)}, ${parseInt(hex.slice(4, 6), 16)}`;
-        });
-    }
 }
