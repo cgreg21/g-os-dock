@@ -1,5 +1,6 @@
 import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
+import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import GLib from 'gi://GLib?version=2.0';
@@ -257,13 +258,13 @@ export class DockFoldersController {
         applications: Array<{ appId: string; app: Shell.App }>,
     ): St.BoxLayout {
         const grid = new St.BoxLayout({
-            vertical: true,
+            orientation: Clutter.Orientation.VERTICAL,
             style_class: 'g-os-dock-folder-grid',
         });
         const columns = 3;
         for (let index = 0; index < applications.length; index += columns) {
             const row = new St.BoxLayout({
-                vertical: false,
+                orientation: Clutter.Orientation.HORIZONTAL,
                 style_class: 'g-os-dock-folder-grid-row',
             });
             for (const entry of applications.slice(index, index + columns))
@@ -308,7 +309,7 @@ export class DockFoldersController {
             max_width_chars: 12,
         });
         const box = new St.BoxLayout({
-            vertical: true,
+            orientation: Clutter.Orientation.VERTICAL,
             style_class: 'g-os-dock-folder-app-content',
             x_align: Clutter.ActorAlign.CENTER,
         });
