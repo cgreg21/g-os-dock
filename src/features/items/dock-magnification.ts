@@ -108,8 +108,12 @@ export class DockMagnificationController {
             log('[G-OS Dock] magnification pointer: left surface');
             return Clutter.EVENT_PROPAGATE;
         }));
-        for (const key of ['dock-magnification-enabled', 'dock-magnification-scale']) {
+        for (const key of ['dock-magnification-enabled', 'dock-magnification-scale', 'dock-position']) {
             this.cleanup.addSignal(settings, settings.connect(`changed::${key}`, () => {
+                if (key === 'dock-position') {
+                    for (const visual of this.items.values())
+                        this.applyVisualAnchor(visual);
+                }
                 this.applyMagnification();
             }));
         }
