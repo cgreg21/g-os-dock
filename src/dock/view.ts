@@ -611,12 +611,16 @@ export class DockView {
         const favoriteIds = new Set(
             this.favorites.getFavorites().map(app => app.get_id()),
         );
-        const hasFavorite = this.itemActors.some(item =>
-            favoriteIds.has(item._gOsDockApp.get_id()),
-        );
-        const firstNonFavorite = this.itemActors.find(item =>
-            !favoriteIds.has(item._gOsDockApp.get_id()),
-        );
+        let hasFavorite = false;
+        let firstNonFavorite: DockAppButton | undefined;
+        for (const item of this.itemActors) {
+            if (favoriteIds.has(item._gOsDockApp.get_id())) {
+                hasFavorite = true;
+            } else {
+                firstNonFavorite = item;
+                break;
+            }
+        }
 
         if (!enabled || !hasFavorite || !firstNonFavorite) {
             this.removeFavoritesSeparator();
