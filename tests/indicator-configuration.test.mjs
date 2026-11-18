@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolveIndicatorMarkerConfiguration } from '../dist/features/indicator-configuration.js';
+import { normalizeIndicatorOpacity, resolveIndicatorMarkerConfiguration } from '../dist/features/indicator-configuration.js';
 
 const input = (overrides = {}) => ({
     count: 3,
@@ -51,4 +51,12 @@ test('uses square corners for non-round non-line shapes', () => {
         resolveIndicatorMarkerConfiguration(input({ shape: 'square' })).style.radius,
         '0px',
     );
+});
+
+test('clamps indicator opacity to the supported alpha range', () => {
+    assert.equal(normalizeIndicatorOpacity(-0.5), 0);
+    assert.equal(normalizeIndicatorOpacity(0), 0);
+    assert.equal(normalizeIndicatorOpacity(0.45), 0.45);
+    assert.equal(normalizeIndicatorOpacity(1), 1);
+    assert.equal(normalizeIndicatorOpacity(1.5), 1);
 });
