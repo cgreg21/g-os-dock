@@ -105,26 +105,37 @@ export function resolveMagnificationMainAxisSlots(
     itemScales: number[],
 ): [number, number][] {
     if (itemStarts.length !== itemExtents.length || itemStarts.length !== itemScales.length)
-        return itemStarts.map((start, index) => [start, itemExtents[index] ?? 0]);
+        return itemStarts.map((start, index): [number, number] => [start, itemExtents[index] ?? 0]);
 
     const valid = itemStarts.every(Number.isFinite)
         && itemExtents.every(value => Number.isFinite(value) && value > 0)
         && itemScales.every(value => Number.isFinite(value) && value >= 1);
     if (!valid)
-        return itemStarts.map((start, index) => [start, itemExtents[index]]);
+        return itemStarts.map((start, index): [number, number] => [start, itemExtents[index] ?? 0]);
 
-    const growth = itemExtents.map((extent, index) => extent * (itemScales[index] - 1));
-    const totalGrowth = growth.reduce((total, value) => total + value, 0);
+    const growth: number[] = [];
+    let totalGrowth = 0;
+    for (let index = 0; index < itemStarts.length; index++) {
+        const extent = itemExtents[index]!;
+        const scale = itemScales[index]!;
+        const itemGrowth = extent * (scale - 1);
+        growth.push(itemGrowth);
+        totalGrowth += itemGrowth;
+    }
+
     let precedingGrowth = 0;
-
-    return itemStarts.map((start, index) => {
-        const result: [number, number] = [
+    const slots: [number, number][] = [];
+    for (let index = 0; index < itemStarts.length; index++) {
+        const start = itemStarts[index]!;
+        const extent = itemExtents[index]!;
+        const itemGrowth = growth[index]!;
+        slots.push([
             start - totalGrowth / 2 + precedingGrowth,
-            itemExtents[index] + growth[index],
-        ];
-        precedingGrowth += growth[index];
-        return result;
-    });
+            extent + itemGrowth,
+        ]);
+        precedingGrowth += itemGrowth;
+    }
+    return slots;
 }
 
 /**
