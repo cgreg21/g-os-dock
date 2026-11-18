@@ -601,26 +601,42 @@ export class DockView {
     }
 
     private syncSystemItem(size: number): boolean {
-        const enabled = this.settings.get_boolean('show-system-icon');
-        if (!enabled) {
-            if (!this.systemItem)
-                return false;
-            this.systemItem.destroy();
-            this.systemItem = null;
-            return true;
-        }
-        if (!this.systemItem) {
-            this.systemItem = new DockSystemItem(
+        const result = this.syncOptionalItem(
+            this.systemItem,
+            this.settings.get_boolean('show-system-icon'),
+            () => new DockSystemItem(
                 this.content, this.settings, size,
                 () => this.settings.get_string('dock-position'),
                 this.dragDrop,
-            );
-            return true;
-        }
-        this.systemItem.setIconSize(size);
-        return false;
+            ),
+            size,
+        );
+        this.systemItem = result.item;
+        return result.changed;
     }
 
+    private syncOptionalItem<T extends {
+        setIconSize(size: number): void;
+        destroy(): void;
+    }>(
+        current: T | null,
+        enabled: boolean,
+        create: () => T,
+        size: number,
+    ): { item: T | null; changed: boolean } {
+        if (!enabled) {
+            if (!current)
+                return { item: null, changed: false };
+            current.destroy();
+            return { item: null, changed: true };
+        }
+
+        if (!current)
+            return { item: create(), changed: true };
+
+        current.setIconSize(size);
+        return { item: current, changed: false };
+    }
 
     private syncVolumeItems(size: number): boolean {
         if (!this.volumeItems) {
@@ -638,26 +654,20 @@ export class DockView {
     }
 
     private syncTrashItem(size: number): boolean {
-        const enabled = this.settings.get_boolean('show-trash-icon');
-        if (!enabled) {
-            if (!this.trashItem)
-                return false;
-            this.trashItem.destroy();
-            this.trashItem = null;
-            return true;
-        }
-        if (!this.trashItem) {
-            this.trashItem = new DockTrashItem(
+        const result = this.syncOptionalItem(
+            this.trashItem,
+            this.settings.get_boolean('show-trash-icon'),
+            () => new DockTrashItem(
                 this.content,
                 this.settings,
                 size,
                 this.dragDrop,
                 () => this.settings.get_string('dock-position'),
-            );
-            return true;
-        }
-        this.trashItem.setIconSize(size);
-        return false;
+            ),
+            size,
+        );
+        this.trashItem = result.item;
+        return result.changed;
     }
 
     /** Update per-side icon padding on retained actors when preferences change. */
