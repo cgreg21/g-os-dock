@@ -52,7 +52,10 @@ export class DockCache {
         this.entries.delete(key);
         this.entries.set(key, {
             value,
-            expiresAt: Date.now() + Math.max(0, ttlMs),
+            // Treat NaN as an immediate expiry; otherwise comparisons with
+            // the resulting NaN timestamp would make get() and getOrCreate()
+            // disagree about whether the entry is still valid.
+            expiresAt: Date.now() + (Number.isNaN(ttlMs) ? 0 : Math.max(0, ttlMs)),
         });
         this.evictOverflow();
         return value;
