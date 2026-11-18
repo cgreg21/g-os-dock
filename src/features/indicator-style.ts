@@ -16,13 +16,9 @@ export function resolveIndicatorColor(value: string): string {
     return `${parseInt(hex.slice(0, 2), 16)}, ${parseInt(hex.slice(2, 4), 16)}, ${parseInt(hex.slice(4, 6), 16)}`;
 }
 
-/** Stable cache key for a marker's complete visual configuration. */
-export function createIndicatorMarkerSignature(
-    markerCount: number,
-    options: IndicatorMarkerStyleOptions,
-): string {
+/** Stable cache key for one marker's visual style, excluding the number of markers. */
+export function createIndicatorMarkerStyleKey(options: IndicatorMarkerStyleOptions): string {
     return [
-        markerCount,
         options.length,
         options.thickness,
         options.radius,
@@ -32,6 +28,14 @@ export function createIndicatorMarkerSignature(
         options.borderColor,
         options.borderOpacity,
     ].join(':');
+}
+
+/** Stable signature for a complete indicator configuration, including marker count. */
+export function createIndicatorMarkerSignature(
+    markerCount: number,
+    options: IndicatorMarkerStyleOptions,
+): string {
+    return `${markerCount}:${createIndicatorMarkerStyleKey(options)}`;
 }
 
 /** Build the CSS used by one visual marker without depending on GNOME actors. */
