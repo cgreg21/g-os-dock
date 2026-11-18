@@ -12,6 +12,15 @@ import { DockMagnificationController } from './dock-magnification.js';
 /** Shared lifecycle and presentation primitives for interactive dock buttons. */
 export class DockItemBase {
     private static readonly magnificationControllers = new WeakMap<St.BoxLayout, DockMagnificationController>();
+    private static readonly magnificationSurfaceHandlers =
+        new WeakMap<St.BoxLayout, (leading: number, trailing: number) => void>();
+
+    static setMagnificationSurfaceHandler(
+        content: St.BoxLayout,
+        handler: (leading: number, trailing: number) => void,
+    ): void {
+        DockItemBase.magnificationSurfaceHandlers.set(content, handler);
+    }
     readonly cleanup = new CleanupManager();
     private tooltip: DockTooltip;
     private destroyed = false;
@@ -58,7 +67,7 @@ export class DockItemBase {
         if (this.content) {
             let controller = DockItemBase.magnificationControllers.get(this.content);
             if (!controller) {
-                controller = new DockMagnificationController(this.content, settings, this.dockPosition);
+                controller = new DockMagnificationController(\n                    this.content, settings, this.dockPosition,\n                    DockItemBase.magnificationSurfaceHandlers.get(this.content),\n                );
                 DockItemBase.magnificationControllers.set(this.content, controller);
             }
             controller.register(this.button);
