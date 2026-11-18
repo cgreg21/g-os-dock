@@ -11,6 +11,39 @@ export interface DockIconSizingOptions {
     vertical: boolean;
 }
 
+export interface DockSizingMetrics {
+    itemCount: number;
+    separatorSpace: number;
+}
+
+/** Resolve the item count and optional favorites separator cost for dock sizing. */
+export function resolveDockSizingMetrics(
+    applicationIds: readonly string[],
+    favoriteIds: ReadonlySet<string>,
+    additionalItemCount: number,
+    showFavoritesSeparator: boolean,
+    separatorSize: number,
+    spacing: number,
+): DockSizingMetrics {
+    let hasFavorites = false;
+    let hasRunningApps = false;
+    for (const id of applicationIds) {
+        if (favoriteIds.has(id))
+            hasFavorites = true;
+        else
+            hasRunningApps = true;
+        if (hasFavorites && hasRunningApps)
+            break;
+    }
+
+    return {
+        itemCount: applicationIds.length + Math.max(0, additionalItemCount),
+        separatorSpace: showFavoritesSeparator && hasFavorites && hasRunningApps
+            ? separatorSize + spacing
+            : 0,
+    };
+}
+
 /** Calculate a uniform icon size that fits the current dock content. */
 export function calculateDockIconSize(options: DockIconSizingOptions): number {
     const {
@@ -26,21 +59,14 @@ export function calculateDockIconSize(options: DockIconSizingOptions): number {
         vertical,
     } = options;
 
-    let hasFavorites = false;
-    let hasRunningApps = false;
-    for (const id of applicationIds) {
-        if (favoriteIds.has(id))
-            hasFavorites = true;
-        else
-            hasRunningApps = true;
-        if (hasFavorites && hasRunningApps)
-            break;
-    }
-
-    const separatorSpace = showFavoritesSeparator && hasFavorites && hasRunningApps
-        ? separatorSize + spacing
-        : 0;
-    const itemCount = applicationIds.length + Math.max(0, additionalItemCount);
+    const { itemCount, separatorSpace } = resolveDockSizingMetrics(
+        applicationIds,
+        favoriteIds,
+        additionalItemCount,
+        showFavoritesSeparator,
+        separatorSize,
+        spacing,
+    );
     const overhead = vertical ? 25 : 4;
     const fittedSize = itemCount > 0
         ? Math.floor(
