@@ -1,5 +1,6 @@
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
+import { dockCache } from './cache.js';
 
 /** Applies the user-configurable dock surface and spacing. */
 export class DockAppearance {
@@ -74,14 +75,19 @@ export class DockAppearance {
     }
 
     private color(value: string, fallback: string): string {
-        return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+        return dockCache.getOrCreate(`appearance-color:${value}:${fallback}`, () =>
+            /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback,
+        );
     }
 
     private rgba(hex: string, opacity: number): string {
-        const value = hex.replace('#', '');
-        const red = parseInt(value.slice(0, 2), 16);
-        const green = parseInt(value.slice(2, 4), 16);
-        const blue = parseInt(value.slice(4, 6), 16);
-        return `rgba(${red}, ${green}, ${blue}, ${Math.max(0, Math.min(1, opacity))})`;
+        const normalizedOpacity = Math.max(0, Math.min(1, opacity));
+        return dockCache.getOrCreate(`rgba:${hex}:${normalizedOpacity}`, () => {
+            const value = hex.replace('#', '');
+            const red = parseInt(value.slice(0, 2), 16);
+            const green = parseInt(value.slice(2, 4), 16);
+            const blue = parseInt(value.slice(4, 6), 16);
+            return `rgba(${red}, ${green}, ${blue}, ${normalizedOpacity})`;
+        });
     }
 }
