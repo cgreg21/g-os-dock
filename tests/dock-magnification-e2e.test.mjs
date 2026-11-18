@@ -178,7 +178,9 @@ test('E2E: magnification animates button dimensions alongside visual scale', () 
     assert.ok(controller.includes('this.settings.get_boolean'));
     assert.ok(controller.includes('resolveMagnificationButtonSize('));
     assert.ok(controller.includes('{ width: buttonWidth, height: buttonHeight }'));
-    assert.ok(controller.includes('this.buttonAnimationKeys'));
+    assert.ok(controller.includes("visual.connect('notify::scale-x'"));
+    assert.ok(controller.includes("visual.connect('notify::scale-y'"));
+    assert.ok(controller.includes('this.syncButtonSize(button, visual)'));
     assert.ok(controller.includes('this.content.queue_relayout()'));
     assert.ok(controller.includes('this.updateSurfaceInsets(scales)'));
     assert.ok(!controller.includes('dockStyles.apply(button'));
@@ -244,11 +246,12 @@ async function loadButtonSizeResolver() {
 test('E2E: button dimensions follow visual growth while CSS padding stays fixed', async () => {
     const { resolveMagnificationButtonSize } = await loadButtonSizeResolver();
     const base = 'padding: 3px 5px 7px 9px; min-width: 48px; min-height: 52px;';
-    assert.deepEqual(resolveMagnificationButtonSize(base, 40, 40, 2), [88, 92]);
-    assert.deepEqual(resolveMagnificationButtonSize(base, 40, 40, 1), [48, 52]);
-    assert.deepEqual(resolveMagnificationButtonSize(base, 40, 40, 4), [168, 172]);
-    assert.deepEqual(resolveMagnificationButtonSize(base, 0, 40, 2), [0, 0]);
-    assert.deepEqual(resolveMagnificationButtonSize(base, 40, 40, 0.5), [0, 0]);
+    assert.deepEqual(resolveMagnificationButtonSize(base, 40, 40, 2, 2), [88, 92]);
+    assert.deepEqual(resolveMagnificationButtonSize(base, 40, 40, 1, 1), [48, 52]);
+    assert.deepEqual(resolveMagnificationButtonSize(base, 40, 40, 4, 4), [168, 172]);
+    assert.deepEqual(resolveMagnificationButtonSize(base, 40, 40, 2, 3), [88, 132]);
+    assert.deepEqual(resolveMagnificationButtonSize(base, 0, 40, 2, 2), [0, 0]);
+    assert.deepEqual(resolveMagnificationButtonSize(base, 40, 40, 0.5, 1), [0, 0]);
 });
 
 test('E2E: button allocation and backdrop insets are recalculated from pointer scales', () => {
