@@ -44,6 +44,21 @@ test('tracks menus and disposes them when they close', () => {
     assert.deepEqual(menu.calls, ['close', 'destroy']);
 });
 
+test('registering the same menu twice does not duplicate manager entries', () => {
+    const manager = createManager();
+    const lifecycle = new PopupMenuLifecycle(manager);
+    const menu = createMenu();
+
+    assert.equal(lifecycle.track(menu), true);
+    assert.equal(lifecycle.track(menu), true);
+    assert.equal(lifecycle.size, 1);
+    assert.deepEqual(manager.calls, [['add', menu]]);
+
+    lifecycle.dispose(menu);
+    assert.deepEqual(manager.calls, [['add', menu], ['remove', menu]]);
+    assert.deepEqual(menu.calls, ['close', 'destroy']);
+});
+
 test('disposes each menu only once when close emits synchronously', () => {
     const manager = createManager();
     const lifecycle = new PopupMenuLifecycle(manager);
