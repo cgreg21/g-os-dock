@@ -1,4 +1,5 @@
 import St from 'gi://St?version=51';
+import Clutter from 'gi://Clutter?version=51';
 import Shell from 'gi://Shell?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import GLib from 'gi://GLib?version=2.0';
@@ -189,24 +190,142 @@ export class DockFoldersController {
         const folder = this.folders.find(candidate => candidate.id === id);
         if (!folder)
             return;
+
         const menu = new PopupMenu.PopupMenu(folder.actor, 0.5, getDockMenuSide(this.dockPosition()));
         Main.uiGroup.add_child(menu.actor);
-        for (const appId of folder.appIds) {
-            const app = this.appSystem.lookup_app(appId);
-            if (!app)
-                continue;
-            const item = new PopupMenu.PopupMenuItem(app.get_name());
-            item.connect('activate', () => app.activate());
-            menu.addMenuItem(item);
+        const mode = this.settings.get_string('folder-view-mode');
+        const applications = folder.appIds
+            .map(appId => ({ appId, app: this.appSystem.lookup_app(appId) }))
+            .filter(entry => !!entry.app);
+        const content = mode === 'stack'
+            ? this.createStackView(applications)
+            : this.createGridView(applications);
+        const viewItem = new PopupMenu.PopupBaseMenuItem({
+            reactive: false,
+            can_focus: false,
+            style_class: 'g-os-dock-folder-view-item',
+        });
+        viewItem.add_child(content);
+        menu.addMenuItem(viewItem);
+
+        const switchMode = new PopupMenu.PopupMenuItem(
+            mode === 'stack' ? 'Show as grid' : 'Show as stack',
+        );
+        switchMode.connect('activate', () => {
+            this.settings.set_string('folder-view-mode', mode === 'stack' ? 'grid' : 'stack');
+            menu.close();
+            this.openFolder(id);
+        });
+        menu.addMenuItem(switchMode);
+
+        for (const { appId, app } of applications) {
             const remove = new PopupMenu.PopupMenuItem(`Remove ${app.get_name()} from folder`);
             remove.connect('activate', () => this.removeFromFolder(id, appId));
             menu.addMenuItem(remove);
         }
+
+        let closing = false;
+        menu.actor.opacity = 0;
+        menu.actor.scale_x = 0.92;
+        menu.actor.scale_y = 0.92;
         menu.connect('open-state-changed', (_menu, open) => {
-            if (!open) {
-                menu.destroy();
+            if (open) {
+                menu.actor.ease({
+                    opacity: 255,
+                    scale_x: 1,
+                    scale_y: 1,
+                    duration: 190,
+                    mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+                });
+            } else if (!closing) {
+                closing = true;
+                menu.actor.reactive = false;
+                menu.actor.ease({
+                    opacity: 0,
+                    scale_x: 0.94,
+                    scale_y: 0.94,
+                    duration: 135,
+                    mode: Clutter.AnimationMode.EASE_IN_CUBIC,
+                    onComplete: () => menu.destroy(),
+                });
             }
         });
         menu.open();
+    }
+
+    private createGridView(
+        applications: Array<{ appId: string; app: Shell.App }>,
+    ): St.BoxLayout {
+        const grid = new St.BoxLayout({
+            vertical: true,
+            style_class: 'g-os-dock-folder-grid',
+        });
+        const columns = 3;
+        for (let index = 0; index < applications.length; index += columns) {
+            const row = new St.BoxLayout({
+                vertical: false,
+                style_class: 'g-os-dock-folder-grid-row',
+            });
+            for (const entry of applications.slice(index, index + columns))
+                row.add_child(this.createFolderAppButton(entry.app));
+            grid.add_child(row);
+        }
+        return grid;
+    }
+
+    private createStackView(
+        applications: Array<{ appId: string; app: Shell.App }>,
+    ): St.Widget {
+        const width = 236;
+        const height = 132;
+        const stack = new St.Widget({
+            style_class: 'g-os-dock-folder-stack',
+            layout_manager: new Clutter.FixedLayout(),
+            width,
+            height,
+        });
+        const visible = applications.slice(0, 8);
+        const columns = visible.length > 4 ? 4 : Math.max(1, visible.length);
+        visible.forEach(({ app }, index) => {
+            const button = this.createFolderAppButton(app, true);
+            const column = index % columns;
+            const row = Math.floor(index / columns);
+            button.set_position(12 + column * 48 + row * 7, 12 + row * 12);
+            button.set_size(68, 76);
+            stack.add_child(button);
+        });
+        return stack;
+    }
+
+    private createFolderAppButton(app: Shell.App, compact = false): St.Button {
+        const icon = app.create_icon_texture(compact ? 34 : 40);
+        const label = new St.Label({
+            text: app.get_name(),
+            style_class: 'g-os-dock-folder-app-label',
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+            ellipsize: 3,
+            max_width_chars: 12,
+        });
+        const box = new St.BoxLayout({
+            vertical: true,
+            style_class: 'g-os-dock-folder-app-content',
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+        box.add_child(icon);
+        if (!compact)
+            box.add_child(label);
+        const button = new St.Button({
+            child: box,
+            reactive: true,
+            can_focus: true,
+            track_hover: true,
+            style_class: 'g-os-dock-folder-app',
+            accessible_name: app.get_name(),
+            width: compact ? 60 : 76,
+            height: compact ? 64 : 82,
+        });
+        button.connect('clicked', () => app.activate());
+        return button;
     }
 }
