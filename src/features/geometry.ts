@@ -6,23 +6,25 @@ export interface DockRectangle {
     height: number;
 }
 
-/** Return true only when two valid rectangles share a positive-area intersection. */
-export function rectanglesOverlap(first: DockRectangle, second: DockRectangle): boolean {
-    if (![first.x, first.y, first.width, first.height,
-        second.x, second.y, second.width, second.height].every(Number.isFinite))
+/** Validate rectangle coordinates, dimensions, and calculated edges. */
+export function isValidRectangle(rectangle: DockRectangle): boolean {
+    if (![rectangle.x, rectangle.y, rectangle.width, rectangle.height].every(Number.isFinite) ||
+        rectangle.width <= 0 || rectangle.height <= 0)
         return false;
 
-    if (first.width <= 0 || first.height <= 0 ||
-        second.width <= 0 || second.height <= 0)
+    return Number.isFinite(rectangle.x + rectangle.width) &&
+        Number.isFinite(rectangle.y + rectangle.height);
+}
+
+/** Return true only when two valid rectangles share a positive-area intersection. */
+export function rectanglesOverlap(first: DockRectangle, second: DockRectangle): boolean {
+    if (!isValidRectangle(first) || !isValidRectangle(second))
         return false;
 
     const firstRight = first.x + first.width;
     const firstBottom = first.y + first.height;
     const secondRight = second.x + second.width;
     const secondBottom = second.y + second.height;
-
-    if (![firstRight, firstBottom, secondRight, secondBottom].every(Number.isFinite))
-        return false;
 
     return first.x < secondRight &&
         firstRight > second.x &&
@@ -31,13 +33,7 @@ export function rectanglesOverlap(first: DockRectangle, second: DockRectangle): 
 }
 /** Return the smallest valid rectangle containing both input rectangles. */
 export function unionRectangles(first: DockRectangle, second: DockRectangle): DockRectangle | null {
-    const values = [
-        first.x, first.y, first.width, first.height,
-        second.x, second.y, second.width, second.height,
-    ];
-    if (!values.every(Number.isFinite) ||
-        first.width <= 0 || first.height <= 0 ||
-        second.width <= 0 || second.height <= 0)
+    if (!isValidRectangle(first) || !isValidRectangle(second))
         return null;
 
     const left = Math.min(first.x, second.x);
