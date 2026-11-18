@@ -7,6 +7,7 @@ import {
     resolveDockSurfacePosition,
     type DockEdge,
 } from './dock-positioner.js';
+import { calculateAvailableDockSpace } from './icon-sizing.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -37,12 +38,16 @@ export class DockLayout {
             ? this.monitor.y
             : Math.min(this.monitor.y + this.monitor.height, panelBottom + edge);
 
-        if (vertical) {
-            return this.monitor.y + this.monitor.height - usableTop -
-                edge - padding - border;
-        }
-
-        return this.monitor.width - edge * 2 - padding - border;
+        return calculateAvailableDockSpace({
+            monitorWidth: this.monitor.width,
+            monitorY: this.monitor.y,
+            monitorHeight: this.monitor.height,
+            usableTop,
+            edgeDistance: edge,
+            padding,
+            border,
+            vertical,
+        });
     }
 
     position(): void {
