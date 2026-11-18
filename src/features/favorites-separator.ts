@@ -1,19 +1,28 @@
 export const FAVORITES_SEPARATOR_MARGIN = 4;
 
-export function hasFavoritesSeparatorTarget(
+/** Find the first non-favorite item after the favorite section. */
+export function resolveFavoritesSeparatorTargetIndex(
     applicationIds: readonly (string | null)[],
     favoriteIds: ReadonlySet<string>,
-): boolean {
+): number {
     let hasFavorite = false;
-    for (const id of applicationIds) {
+    for (let index = 0; index < applicationIds.length; index++) {
+        const id = applicationIds[index];
         if (id && favoriteIds.has(id)) {
             hasFavorite = true;
             continue;
         }
         if (hasFavorite)
-            return true;
+            return index;
     }
-    return false;
+    return -1;
+}
+
+export function hasFavoritesSeparatorTarget(
+    applicationIds: readonly (string | null)[],
+    favoriteIds: ReadonlySet<string>,
+): boolean {
+    return resolveFavoritesSeparatorTargetIndex(applicationIds, favoriteIds) >= 0;
 }
 
 /** Calculate the separator's exact cost along the dock's main axis. */
@@ -40,18 +49,9 @@ export function resolveFavoritesSeparatorTarget<T extends IdentifiedDockItem>(
     applications: readonly T[],
     favoriteIds: ReadonlySet<string>,
 ): T | null {
-    let hasFavorite = false;
-
-    for (const application of applications) {
-        const id = application.get_id();
-        if (id && favoriteIds.has(id)) {
-            hasFavorite = true;
-            continue;
-        }
-
-        if (hasFavorite)
-            return application;
-    }
-
-    return null;
+    const index = resolveFavoritesSeparatorTargetIndex(
+        applications.map(application => application.get_id()),
+        favoriteIds,
+    );
+    return index >= 0 ? applications[index] : null;
 }
