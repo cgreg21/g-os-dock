@@ -12,6 +12,7 @@
 .g-os-dock-item {
   padding: 2px;
   border-radius: 12px;
+  transition-duration: 130ms;
 }
 
 .g-os-dock-item:hover {
@@ -32,6 +33,7 @@
 }
 
 .g-os-dock-running-indicator {
+  transition-duration: 150ms;
   width: 5px;
   height: 5px;
   border-radius: 999px;
@@ -46,6 +48,7 @@
 }
 
 .g-os-dock-window-count {
+  transition-duration: 140ms;
   min-width: 16px;
   min-height: 16px;
   padding: 1px 4px;
