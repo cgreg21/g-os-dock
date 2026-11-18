@@ -28,13 +28,11 @@ test('E2E: magnification uses a frame-driven raised-cosine wave with smoothed po
 
 test('E2E: magnification reflows neighboring slots and keeps the pointer anchored', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
-    assert.ok(controller.includes('const bounds = new Array<number>(count + 1)'));
-    assert.ok(controller.includes('const expanded = new Array<number>(count + 1)'));
-    assert.ok(controller.includes('const slotSize = bounds[i + 1]! - bounds[i]!'));
-    assert.ok(controller.includes('shift = this.cursor - mapped'));
-    assert.ok(controller.includes('mappedCenter - entry.center'));
-    assert.ok(controller.includes('entry.actor.translation_x = translation'));
-    assert.ok(controller.includes('entry.actor.translation_y = translation'));
+    assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
+    assert.ok(controller.includes('item.button.get_allocation_box()'));
+    assert.ok(controller.includes('The button remains the fixed layout slot'));
+    assert.ok(!controller.includes('GAP_COMPRESSION'));
+    assert.ok(!controller.includes('expanded[i + 1]'));
 });
 
 test('E2E: magnification keeps every icon anchored to the screen-facing edge', () => {
@@ -94,8 +92,8 @@ test('E2E: dock background expands with the live magnification wave on all orien
     const layout = read('../src/features/layout/layout.ts');
 
     assert.ok(controller.includes('onSurfaceExtentChanged?.('));
-    assert.ok(controller.includes('Math.max(0, bounds[0]! - expandedStart)'));
-    assert.ok(controller.includes('Math.max(0, expandedEnd - bounds[count]!)'));
+    assert.ok(controller.includes('firstExtent * (first.scale - 1) / 2'));
+    assert.ok(controller.includes('lastExtent * (last.scale - 1) / 2'));
     assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0)'));
     assert.ok(base.includes('setMagnificationSurfaceHandler'));
     assert.ok(base.includes('magnificationSurfaceHandlers.get(this.content)'));
@@ -127,9 +125,33 @@ test('E2E: dock backdrop blur is configurable and updates with appearance settin
 
 test('E2E: magnification compresses flexible gaps without clipping enlarged icons', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
-    assert.ok(controller.includes('GAP_COMPRESSION = 0.35'));
-    assert.ok(controller.includes('const flexibleGap = Math.max(0, slotSize - iconSize)'));
-    assert.ok(controller.includes('flexibleGap * DockMagnificationController.GAP_COMPRESSION'));
-    assert.ok(controller.includes('Math.max(iconSize * entry.scale, compressedSlot)'));
-    assert.ok(controller.includes('(entry.scale - 1) / (maximum - 1)'));
+    assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
+    assert.ok(controller.includes('item.button.get_allocation_box()'));
+    assert.ok(controller.includes('this.setVisualPivot(visual)'));
+    assert.ok(!controller.includes('GAP_COMPRESSION'));
+    assert.ok(!controller.includes('entry.button.set_scale'));
+    assert.ok(!controller.includes('entry.button.translation_x'));
+    assert.ok(!controller.includes('entry.button.translation_y'));
+});
+
+
+test('E2E: only visual icons scale; button padding and dock gaps remain fixed', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    const base = read('../src/features/items/dock-item-base.ts');
+    const app = read('../src/features/applications/app-item.ts');
+    const system = read('../src/features/items/system-item.ts');
+    const trash = read('../src/features/items/trash-item.ts');
+    const volumes = read('../src/features/items/volume-items.ts');
+    const folders = read('../src/features/applications/dock-folders-controller.ts');
+
+    assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
+    assert.ok(!controller.includes('item.button.set_scale'));
+    assert.ok(!controller.includes('item.button.translation_x'));
+    assert.ok(!controller.includes('item.button.translation_y'));
+    assert.ok(base.includes('controller.register(this.button, visualActor'));
+    assert.ok(app.includes('base.setIconPadding(this.dependencies.settings, size, icon)'));
+    assert.ok(system.includes('this.item.setIconPadding(this.settings, this.iconSize, icon)'));
+    assert.ok(trash.includes('this.item.setIconPadding(this.settings, this.iconSize, this.icon)'));
+    assert.ok(volumes.includes('item.item.setIconPadding(this.settings, size, item.icon)'));
+    assert.ok(folders.includes('folder.actor.get_child() ?? folder.actor'));
 });
