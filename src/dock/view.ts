@@ -658,8 +658,7 @@ export class DockView {
         }
 
         if (!enabled || !hasFavorite || !firstNonFavorite) {
-            this.applicationItems.destroy();
-        this.removeFavoritesSeparator();
+            this.removeFavoritesSeparator();
             return;
         }
 
@@ -901,6 +900,7 @@ export class DockView {
         this.previews.destroy();
         this.windowTracker.destroy();
         this.contextMenu.destroy();
+        this.applicationItems.destroy();
         this.removeFavoritesSeparator();
         this.systemItem?.destroy();
         this.systemItem = null;
