@@ -19,6 +19,16 @@ export class SettingsObserver {
         );
     }
 
+    watchMany(settings: SettingsSignalSource, keys: readonly string[], callback: () => void): void {
+        if (this.destroyed)
+            return;
+        for (const key of new Set(keys)) {
+            if (key.length === 0)
+                continue;
+            this.watch(settings, key, callback);
+        }
+    }
+
     watchAll(settings: SettingsSignalSource, callback: () => void): void {
         if (this.destroyed)
             return;
