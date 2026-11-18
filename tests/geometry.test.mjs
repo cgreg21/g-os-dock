@@ -36,3 +36,13 @@ test('rejects non-finite rectangle coordinates and dimensions', () => {
     assert.equal(rectanglesOverlap(dock, { x: 110, y: Number.POSITIVE_INFINITY, width: 20, height: 20 }), false);
     assert.equal(rectanglesOverlap(dock, { x: 110, y: 110, width: Number.POSITIVE_INFINITY, height: 20 }), false);
 });
+
+test('rejects rectangles whose calculated edges overflow', () => {
+    const dock = { x: 0, y: 0, width: 100, height: 100 };
+    assert.equal(rectanglesOverlap(dock, {
+        x: Number.MAX_VALUE, y: 10, width: Number.MAX_VALUE, height: 20,
+    }), false);
+    assert.equal(rectanglesOverlap(dock, {
+        x: 10, y: Number.MAX_VALUE, width: 20, height: Number.MAX_VALUE,
+    }), false);
+});
