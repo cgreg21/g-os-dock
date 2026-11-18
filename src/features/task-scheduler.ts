@@ -25,7 +25,7 @@ export class TaskScheduler {
         if (sourceId === undefined)
             return;
         this.sources.delete(key);
-        this.backend.remove(sourceId);
+        this.removeSource(sourceId);
     }
 
     cancelAll(): void {
@@ -57,9 +57,22 @@ export class TaskScheduler {
             if (this.destroyed || this.sources.get(key) !== sourceId)
                 return false;
             this.sources.delete(key);
-            callback();
+            try {
+                callback();
+            } catch (error) {
+                logError(error as Error, `Dock scheduled task failed: ${key}`);
+            }
             return false;
         });
         this.sources.set(key, sourceId);
+    }
+
+    private removeSource(sourceId: number): void {
+        try {
+            this.backend.remove(sourceId);
+        } catch (error) {
+            // The source may already have completed or been removed by GLib.
+            logError(error as Error, 'Unable to cancel dock scheduled task');
+        }
     }
 }
