@@ -3,26 +3,12 @@ import Gio from 'gi://Gio?version=2.0';
 import Gdk from 'gi://Gdk?version=4.0';
 import Gtk from 'gi://Gtk?version=4.0';
 import { addColorPicker } from './color-picker.js';
-import { addSpin, addSwitch } from './settings-controls.js';
+import { addCombo, addSpin, addSwitch } from './settings-controls.js';
 
 export function addGeneralPreferences(page: Adw.PreferencesPage, settings: Gio.Settings): void {
     const group = new Adw.PreferencesGroup({ title: 'Dock behavior' });
     page.add(group);
-    const position = new Adw.ComboRow({
-        title: 'Dock position',
-        model: new Gtk.StringList({ strings: ['Bottom', 'Top', 'Left', 'Right'] }),
-    });
-    const positions = ['bottom', 'top', 'left', 'right'];
-    position.selected = Math.max(0, positions.indexOf(settings.get_string('dock-position')));
-    position.connect('notify::selected', () => {
-        const value = positions[position.selected];
-        if (value) settings.set_string('dock-position', value);
-    });
-    settings.connect('changed::dock-position', () => {
-        const index = positions.indexOf(settings.get_string('dock-position'));
-        if (index >= 0) position.selected = index;
-    });
-    group.add(position);
+    addCombo(group, settings, 'dock-position', 'Dock position', ['Bottom', 'Top', 'Left', 'Right'], ['bottom', 'top', 'left', 'right']);
     addSwitch(group, settings, 'show-on-all-monitors', 'Show on all monitors');
     addSwitch(group, settings, 'auto-hide', 'Automatically hide the dock');
     addSwitch(group, settings, 'smart-hide', 'Hide when a window overlaps the dock');
