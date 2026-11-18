@@ -544,9 +544,7 @@ export class DockView {
         }
 
         const thickness = this.settings.get_int('favorites-separator-size');
-        const length = Math.max(4, Math.round(
-            size * this.settings.get_int('favorites-separator-length') / 100,
-        ));
+        const length = Math.max(4, this.settings.get_int('favorites-separator-length'));
         const color = this.settings.get_string('favorites-separator-color');
         const opacity = this.settings.get_double('favorites-separator-opacity');
         this.favoritesSeparator.set_size(
