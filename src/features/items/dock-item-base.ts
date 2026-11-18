@@ -13,11 +13,11 @@ import { DockMagnificationController } from './dock-magnification.js';
 export class DockItemBase {
     private static readonly magnificationControllers = new WeakMap<St.BoxLayout, DockMagnificationController>();
     private static readonly magnificationSurfaceHandlers =
-        new WeakMap<St.BoxLayout, (leading: number, trailing: number) => void>();
+        new WeakMap<St.BoxLayout, (leading: number, trailing: number, active?: boolean) => void>();
 
     static setMagnificationSurfaceHandler(
         content: St.BoxLayout,
-        handler: (leading: number, trailing: number) => void,
+        handler: (leading: number, trailing: number, active?: boolean) => void,
     ): void {
         DockItemBase.magnificationSurfaceHandlers.set(content, handler);
     }
