@@ -84,7 +84,8 @@ export class DockTrashItem {
             this.icon.icon_name = hasItems ? 'user-trash-full' : 'user-trash';
             this.hasItems = hasItems;
         }
-        this.icon.icon_size = this.iconSize;
+        if (this.icon.icon_size !== this.iconSize)
+            this.icon.icon_size = this.iconSize;
         const paddingStyle = getIconPaddingStyle(this.settings, this.iconSize);
         if (this.paddingStyle !== paddingStyle) {
             this.button.set_style(paddingStyle);
