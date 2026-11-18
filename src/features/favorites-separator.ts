@@ -1,5 +1,33 @@
 export const FAVORITES_SEPARATOR_MARGIN = 4;
 
+export function hasFavoritesSeparatorTarget(
+    applicationIds: readonly (string | null)[],
+    favoriteIds: ReadonlySet<string>,
+): boolean {
+    let hasFavorite = false;
+    for (const id of applicationIds) {
+        if (id && favoriteIds.has(id)) {
+            hasFavorite = true;
+            continue;
+        }
+        if (hasFavorite)
+            return true;
+    }
+    return false;
+}
+
+/** Calculate the separator's exact cost along the dock's main axis. */
+export function calculateFavoritesSeparatorSpace(
+    visible: boolean,
+    thickness: number,
+    margin: number,
+    spacing: number,
+): number {
+    return visible
+        ? Math.max(0, thickness) + Math.max(0, margin) * 2 + Math.max(0, spacing)
+        : 0;
+}
+
 export interface IdentifiedDockItem {
     get_id(): string | null;
 }
