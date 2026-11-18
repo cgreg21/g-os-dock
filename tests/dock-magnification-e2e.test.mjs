@@ -26,11 +26,12 @@ test('E2E: magnification uses a frame-driven raised-cosine wave with smoothed po
     assert.ok(controller.includes('MAX_FRAME_DT = 1 / 30'));
 });
 
-test('E2E: magnification keeps dock slots fixed while tracking the pointer wave', () => {
+test('E2E: magnification recalculates button slots while tracking the pointer wave', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes('item.visual.set_scale(item.scale, item.scale)'));
+    assert.ok(controller.includes('item.button.set_style(`${item.baseStyle} min-width: ${width}px; min-height: ${height}px;`)'));
     assert.ok(controller.includes('item.button.get_allocation_box()'));
-    assert.ok(controller.includes('min-width: ${Math.ceil(requestedWidth)}px; min-height: ${Math.ceil(requestedHeight)}px;'));
+    assert.ok(controller.includes('min-width: ${width}px; min-height: ${height}px;'));
     assert.ok(controller.includes('this.content.queue_relayout()'));
     assert.ok(controller.includes('item.visual.translation_y = -mainAxisGrowth / 2'));
     assert.ok(controller.includes('item.visual.translation_y = mainAxisGrowth / 2'));
@@ -171,7 +172,7 @@ test('E2E: magnification resizes button slots and the dock surface without chang
     const view = read('../src/dock/view.ts');
     const padding = read('../src/features/layout/icon-padding.ts');
 
-    assert.ok(controller.includes('min-width: ${Math.ceil(requestedWidth)}px; min-height: ${Math.ceil(requestedHeight)}px;'));
+    assert.ok(controller.includes('min-width: ${width}px; min-height: ${height}px;'));
     assert.ok(controller.includes('item.button.set_style(item.baseStyle)'));
     assert.ok(controller.includes('this.content.queue_relayout()'));
     assert.ok(view.includes('this.layout.position(false)'));
