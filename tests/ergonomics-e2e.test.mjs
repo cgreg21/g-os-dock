@@ -86,7 +86,7 @@ test('E2E: hiding and revealing the dock moves it fully beyond the selected edge
 test('E2E: drag preview ignores pointer jitter but follows deliberate movement', () => {
     const midpoints = [40, 100, 160, 220];
     let index = 1;
-    for (const pointer of [94, 99, 101, 97, 105, 108]) {
+    for (const pointer of [94, 99, 101, 97, 105, 108, 111]) {
         index = resolveDockDndInsertionIndexWithHysteresis(midpoints, pointer, index, 10);
     }
     assert.equal(index, 2, 'pointer should cross the next slot only after the hysteresis margin');
