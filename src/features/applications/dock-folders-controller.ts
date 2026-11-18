@@ -21,6 +21,7 @@ interface DockFolderRecord {
 
 interface MountedFolder extends DockFolderRecord {
     actor: St.Button;
+    iconSize: number;
 }
 
 function readFolders(settings: Gio.Settings): DockFolderRecord[] {
@@ -53,6 +54,7 @@ export class DockFoldersController {
         private readonly dragDrop: DockDragDrop,
         private readonly appSystem: Shell.AppSystem,
         private readonly dockPosition: () => string,
+        private readonly getItemSize: () => number,
         private readonly onChanged: () => void,
     ) {}
 
@@ -64,6 +66,7 @@ export class DockFoldersController {
         if (this.destroyed)
             return;
         const records = readFolders(this.settings);
+        const iconSize = Math.max(16, this.getItemSize() || 32);
         const byId = new Map(this.folders.map(folder => [folder.id, folder]));
         const next: MountedFolder[] = [];
 
@@ -73,11 +76,17 @@ export class DockFoldersController {
                 continue;
             let folder = byId.get(record.id);
             if (!folder) {
-                folder = { ...record, appIds: validIds, actor: this.createActor(record) };
+                folder = { ...record, appIds: validIds, iconSize, actor: this.createActor(record, iconSize) };
                 this.content.add_child(folder.actor);
             } else {
                 folder.name = record.name;
                 folder.appIds = validIds;
+                if (folder.iconSize !== iconSize) {
+                    folder.actor.set_child(this.createFolderPreview(folder, iconSize));
+                    folder.iconSize = iconSize;
+                } else if (folder.appIds.join('\\0') !== validIds.join('\\0')) {
+                    folder.actor.set_child(this.createFolderPreview(folder, iconSize));
+                }
             }
             next.push(folder);
         }
@@ -161,18 +170,14 @@ export class DockFoldersController {
         this.folders = [];
     }
 
-    private createActor(folder: DockFolderRecord): St.Button {
-        const icon = new St.Icon({
-            icon_name: 'folder-symbolic',
-            icon_size: 32,
-            style_class: 'g-os-dock-folder-icon',
-        });
+    private createActor(folder: DockFolderRecord, iconSize: number): St.Button {
+        const preview = this.createFolderPreview(folder, iconSize);
         const actor = new St.Button({
             style_class: 'g-os-dock-item g-os-dock-folder',
             reactive: true,
             can_focus: true,
             track_hover: true,
-            child: icon,
+            child: preview,
             accessible_name: folder.name,
             x_expand: false,
             y_expand: false,
@@ -184,6 +189,41 @@ export class DockFoldersController {
             onCreateFolder: target => this.addToFolder(folder.id, target),
         });
         return actor;
+    }
+
+    /** Render four live application icons in a square preview matching the dock slot. */
+    private createFolderPreview(folder: DockFolderRecord, size: number): St.Widget {
+        const preview = new St.BoxLayout({
+            orientation: Clutter.Orientation.VERTICAL,
+            style_class: 'g-os-dock-folder-preview',
+            width: size,
+            height: size,
+        });
+        const iconSize = Math.max(8, Math.floor((size - 4) / 2));
+        for (let rowIndex = 0; rowIndex < 2; rowIndex++) {
+            const row = new St.BoxLayout({
+                orientation: Clutter.Orientation.HORIZONTAL,
+                style_class: 'g-os-dock-folder-preview-row',
+            });
+            for (let columnIndex = 0; columnIndex < 2; columnIndex++) {
+                const appId = folder.appIds[rowIndex * 2 + columnIndex];
+                const app = appId ? this.appSystem.lookup_app(appId) : null;
+                const cell = new St.Widget({
+                    width: iconSize,
+                    height: iconSize,
+                    x_expand: false,
+                    y_expand: false,
+                });
+                if (app) {
+                    const icon = app.create_icon_texture(iconSize);
+                    icon.set_size(iconSize, iconSize);
+                    cell.add_child(icon);
+                }
+                row.add_child(cell);
+            }
+            preview.add_child(row);
+        }
+        return preview;
     }
 
     private openFolder(id: string): void {
