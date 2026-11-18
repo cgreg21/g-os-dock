@@ -95,7 +95,8 @@ export class DockFoldersController {
             let folder = byId.get(record.id);
             if (!folder) {
                 folder = this.createMountedFolder(record, validIds, iconSize);
-                this.content.add_child(folder.actor);
+                if (folder.actor.get_parent() !== this.content)
+                    this.content.add_child(folder.actor);
                 this.animateIn(folder.actor);
             } else {
                 const membersChanged = folder.appIds.join('\\0') !== validIds.join('\\0');
@@ -256,7 +257,7 @@ export class DockFoldersController {
         };
         mounted.actor.connect('clicked', () => this.openFolder(folder.id));
         mounted.base = new DockItemBase(
-            null,
+            this.content,
             mounted.actor,
             folder.name,
             this.dockPosition,
