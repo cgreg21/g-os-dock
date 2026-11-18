@@ -86,8 +86,8 @@ test('calculates the exact main-axis separator cost', () => {
     assert.equal(calculateFavoritesSeparatorSpace(false, 2, 4, 6), 0);
 });
 
-test('normalizes negative separator dimensions to zero', () => {
-    assert.equal(calculateFavoritesSeparatorSpace(true, -2, -4, -6), 0);
+test('normalizes separator thickness to one pixel and other dimensions to zero', () => {
+    assert.equal(calculateFavoritesSeparatorSpace(true, -2, -4, -6), 1);
 });
 
 test('resolves the separator target index from generic application IDs', () => {
