@@ -17,6 +17,7 @@ interface DockFolderRecord {
     id: string;
     name: string;
     appIds: string[];
+    viewMode?: 'grid' | 'stack';
 }
 
 interface MountedFolder extends DockFolderRecord {
@@ -35,7 +36,14 @@ function readFolders(settings: Gio.Settings): DockFolderRecord[] {
                 continue;
             const appIds = [...new Set(value.appIds)].filter(Boolean);
             if (appIds.length >= 2)
-                folders.push({ id: value.id, name: typeof value.name === 'string' ? value.name : 'Folder', appIds });
+                folders.push({
+                    id: value.id,
+                    name: typeof value.name === 'string' ? value.name : 'Folder',
+                    appIds,
+                    ...(value.viewMode === 'grid' || value.viewMode === 'stack'
+                        ? { viewMode: value.viewMode }
+                        : {}),
+                });
         } catch (_error) {
             // Ignore malformed records and preserve the remaining folders.
         }
@@ -100,6 +108,33 @@ export class DockFoldersController {
         this.folders = next;
     }
 
+    renameFolder(folderId: string, name: string): void {
+        const folder = this.folders.find(candidate => candidate.id === folderId);
+        const normalizedName = name.trim().slice(0, 48);
+        if (!folder || !normalizedName || normalizedName === folder.name)
+            return;
+        this.updateFolderRecord(folderId, record => ({ ...record, name: normalizedName }));
+        this.onChanged();
+    }
+
+    setFolderViewMode(folderId: string, viewMode: 'grid' | 'stack'): void {
+        const folder = this.folders.find(candidate => candidate.id === folderId);
+        if (!folder || folder.viewMode === viewMode)
+            return;
+        this.updateFolderRecord(folderId, record => ({ ...record, viewMode }));
+        this.onChanged();
+    }
+
+    private updateFolderRecord(
+        folderId: string,
+        update: (folder: DockFolderRecord) => DockFolderRecord,
+    ): void {
+        const records = readFolders(this.settings).map(folder =>
+            folder.id === folderId ? update(folder) : folder,
+        );
+        this.settings.set_strv('dock-folders', records.map(folder => JSON.stringify(folder)));
+    }
+
     removeFromFolder(folderId: string, appId: string): void {
         const folder = this.folders.find(candidate => candidate.id === folderId);
         if (!folder || !folder.appIds.includes(appId))
@@ -146,7 +181,14 @@ export class DockFoldersController {
             folder.id !== sourceId && folder.id !== target.id,
         );
         const targetId = targetFolder?.id ?? `folder:${GLib.uuid_string_random()}`;
-        records.push({ id: targetId, name: targetFolder?.name ?? 'Folder', appIds: members });
+        records.push({
+            id: targetId,
+            name: targetFolder?.name ?? sourceFolder?.name ?? 'Folder',
+            appIds: members,
+            ...(targetFolder?.viewMode ?? sourceFolder?.viewMode
+                ? { viewMode: targetFolder?.viewMode ?? sourceFolder?.viewMode }
+                : {}),
+        });
         this.settings.set_strv('dock-folders', records.map(folder => JSON.stringify(folder)));
 
         const order = this.settings.get_strv('dock-item-order');
@@ -232,7 +274,7 @@ export class DockFoldersController {
 
         const menu = new PopupMenu.PopupMenu(folder.actor, 0.5, getDockMenuSide(this.dockPosition()));
         Main.uiGroup.add_child(menu.actor);
-        const mode = this.settings.get_string('folder-view-mode');
+        const mode = folder.viewMode ?? this.settings.get_string('folder-view-mode');
         const applications = folder.appIds
             .map(appId => ({ appId, app: this.appSystem.lookup_app(appId) }))
             .filter(entry => !!entry.app);
@@ -248,14 +290,44 @@ export class DockFoldersController {
         menu.addMenuItem(viewItem);
 
         const switchMode = new PopupMenu.PopupMenuItem(
-            mode === 'stack' ? 'Show as grid' : 'Show as stack',
+            mode === 'stack' ? 'Use grid for this folder' : 'Use stack for this folder',
         );
         switchMode.connect('activate', () => {
-            this.settings.set_string('folder-view-mode', mode === 'stack' ? 'grid' : 'stack');
+            this.setFolderViewMode(id, mode === 'stack' ? 'grid' : 'stack');
             menu.close();
             this.openFolder(id);
         });
         menu.addMenuItem(switchMode);
+
+        const renameItem = new PopupMenu.PopupBaseMenuItem({
+            reactive: false,
+            can_focus: false,
+            style_class: 'g-os-dock-folder-rename-item',
+        });
+        const nameEntry = new St.Entry({
+            text: folder.name,
+            hint_text: 'Folder name',
+            can_focus: true,
+            x_expand: true,
+        });
+        const renameButton = new St.Button({
+            label: 'Rename',
+            can_focus: true,
+            reactive: true,
+            style_class: 'button',
+        });
+        const applyRename = () => {
+            const nextName = nameEntry.get_text().trim();
+            if (!nextName)
+                return;
+            this.renameFolder(id, nextName);
+            menu.close();
+        };
+        renameButton.connect('clicked', applyRename);
+        nameEntry.clutter_text.connect('activate', applyRename);
+        renameItem.add_child(nameEntry);
+        renameItem.add_child(renameButton);
+        menu.addMenuItem(renameItem);
 
         for (const { appId, app } of applications) {
             const remove = new PopupMenu.PopupMenuItem(`Remove ${app.get_name()} from folder`);
