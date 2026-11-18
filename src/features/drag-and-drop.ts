@@ -103,8 +103,13 @@ export class DockDragDrop {
 
         this.clearDragDelegate(actor);
 
-        if (itemId && this.removingItemId === itemId)
+        if (itemId && this.removingItemId === itemId) {
             this.removingItemId = null;
+            actor.remove_all_transitions();
+            actor.opacity = 255;
+            actor.scale_x = 1;
+            actor.scale_y = 1;
+        }
 
         if (this.draggedItem?.actor === actor) {
             actor.remove_style_class_name('dragging');
