@@ -86,3 +86,24 @@ test('E2E: folder items participate in shared magnification and keep lifecycle c
     assert.ok(folders.includes('this.animateIn(folder.actor)'));
     assert.ok(folders.includes('this.animateOut(folder)'));
 });
+
+test('E2E: dock background expands with the live magnification wave on all orientations', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    const base = read('../src/features/items/dock-item-base.ts');
+    const view = read('../src/dock/view.ts');
+    const layout = read('../src/features/layout/layout.ts');
+
+    assert.ok(controller.includes('onSurfaceExtentChanged?.('));
+    assert.ok(controller.includes('Math.max(0, bounds[0]! - expandedStart)'));
+    assert.ok(controller.includes('Math.max(0, expandedEnd - bounds[count]!)'));
+    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0)'));
+    assert.ok(base.includes('setMagnificationSurfaceHandler'));
+    assert.ok(base.includes('magnificationSurfaceHandlers.get(this.content)'));
+    assert.ok(view.includes('this.layout.setMagnificationInsets(leading, trailing)'));
+    assert.ok(layout.includes('setMagnificationInsets(leading: number, trailing: number)'));
+    assert.ok(layout.includes('this.backgroundBaseWidth + leading + trailing'));
+    assert.ok(layout.includes('this.backgroundBaseHeight + leading + trailing'));
+    assert.ok(layout.includes('this.backgroundBaseX - leading'));
+    assert.ok(layout.includes('this.backgroundBaseY - leading'));
+    assert.ok(layout.includes('this.background.remove_transition(property)'));
+});
