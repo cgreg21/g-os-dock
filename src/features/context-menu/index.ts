@@ -11,7 +11,11 @@ export class AppContextMenu {
     private menus: PopupMenu.PopupMenu[] = [];
     private destroyed = false;
 
-    constructor(actor: St.Widget, private favorites: ReturnType<typeof AppFavorites.getAppFavorites>) {
+    constructor(
+        actor: St.Widget,
+        private favorites: ReturnType<typeof AppFavorites.getAppFavorites>,
+        private dockPosition: () => string,
+    ) {
         this.manager = new PopupMenu.PopupMenuManager(actor);
     }
 
@@ -19,7 +23,10 @@ export class AppContextMenu {
         if (this.destroyed)
             return;
 
-        const menu = new PopupMenu.PopupMenu(source, 0.5, St.Side.TOP);
+        const position = this.dockPosition();
+        const side = position === 'top' ? St.Side.BOTTOM : position === 'bottom' ? St.Side.TOP :
+            position === 'left' ? St.Side.RIGHT : St.Side.LEFT;
+        const menu = new PopupMenu.PopupMenu(source, 0.5, side);
         Main.uiGroup.add_child(menu.actor);
         this.manager.addMenu(menu);
         this.menus.push(menu);
