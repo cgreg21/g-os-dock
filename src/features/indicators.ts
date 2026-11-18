@@ -11,6 +11,7 @@ import {
     resolveIndicatorColor,
 } from './indicator-style.js';
 import { resolveIndicatorMarkerLayout } from './indicator-layout.js';
+import { resolveIndicatorMarkerConfiguration } from './indicator-configuration.js';
 import { resolveIndicatorPresentation } from './indicator-presentation.js';
 import { resolveActiveIndicatorTransition } from './active-indicator-state.js';
 
@@ -75,20 +76,19 @@ export class DockIndicators {
             if (item._gOsDockIndicator) {
                 if (item._gOsDockIndicator.visible !== presentation.visible)
                     item._gOsDockIndicator.visible = presentation.visible;
-                const markerCount = multiple ? Math.max(1, state.count) : 1;
-                const length = shape === 'line' ? indicatorSize * 2 : indicatorSize;
-                const thickness = indicatorSize;
-                const radius = shape === 'round' ? '999px' : '0px';
-                const styleOptions = {
-                    length,
-                    thickness,
-                    radius,
+                const configuration = resolveIndicatorMarkerConfiguration({
+                    count: state.count,
+                    multiple,
+                    shape,
+                    size: indicatorSize,
                     color,
                     opacity,
                     borderSize,
                     borderColor,
                     borderOpacity,
-                };
+                });
+                const { count: markerCount, style: styleOptions } = configuration;
+                const { length, thickness } = styleOptions;
                 const signature = createIndicatorMarkerSignature(markerCount, styleOptions);
                 if (this.markerSignatures.get(item) !== signature) {
                     dockStyles.apply(item._gOsDockIndicator, dockCache.getOrCreate(
