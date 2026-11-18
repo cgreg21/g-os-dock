@@ -84,7 +84,7 @@ export class DockAppItemFactory {
             `min-width: ${size + padLeft + padRight}px; ` +
             `min-height: ${size + padTop + padBottom}px;`;
         item.set_style(item._gOsDockPaddingStyle);
-        new DockTooltip(item, app.get_name(), this.dependencies.dockPosition());
+        new DockTooltip(item, app.get_name(), this.dependencies.dockPosition);
 
         try {
             item._gOsDockApp = app;
