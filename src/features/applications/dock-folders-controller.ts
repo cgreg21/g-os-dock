@@ -79,13 +79,12 @@ export class DockFoldersController {
                 folder = { ...record, appIds: validIds, iconSize, actor: this.createActor(record, iconSize) };
                 this.content.add_child(folder.actor);
             } else {
+                const membersChanged = folder.appIds.join('\\0') !== validIds.join('\\0');
                 folder.name = record.name;
                 folder.appIds = validIds;
-                if (folder.iconSize !== iconSize) {
+                if (folder.iconSize !== iconSize || membersChanged) {
                     folder.actor.set_child(this.createFolderPreview(folder, iconSize));
                     folder.iconSize = iconSize;
-                } else if (folder.appIds.join('\\0') !== validIds.join('\\0')) {
-                    folder.actor.set_child(this.createFolderPreview(folder, iconSize));
                 }
             }
             next.push(folder);
