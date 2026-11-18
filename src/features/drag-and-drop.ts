@@ -87,11 +87,7 @@ export class DockDragDrop {
     unregisterItem(actor: St.Widget): void {
         this.draggables.delete(actor);
 
-        const draggableActor = actor as St.Widget & {
-            _delegate?: { actor?: St.Widget };
-        };
-        if (draggableActor._delegate?.actor === actor)
-            delete draggableActor._delegate;
+        this.clearDragDelegate(actor);
 
         if (this.draggedItem?.actor === actor) {
             actor.remove_style_class_name('dragging');
@@ -161,6 +157,14 @@ export class DockDragDrop {
         ordered.splice(target, 0, items[sourceIndex]!);
         this.persistOrder(ordered.map(item => item.id));
         return true;
+    }
+
+    private clearDragDelegate(actor: St.Widget): void {
+        const draggableActor = actor as St.Widget & {
+            _delegate?: { actor?: St.Widget };
+        };
+        if (draggableActor._delegate?.actor === actor)
+            delete draggableActor._delegate;
     }
 
     private getDropIndex(items: DockDndItem[], x: number, y: number): number {
@@ -320,6 +324,10 @@ export class DockDragDrop {
     destroy(): void {
         this.hideRemovalZone();
         this.endPreview();
+        for (const actor of this.draggables.keys()) {
+            actor.remove_style_class_name('dragging');
+            this.clearDragDelegate(actor);
+        }
         this.draggables.clear();
         Main.layoutManager.removeChrome(this.removalZone);
         this.removalZone.destroy();
