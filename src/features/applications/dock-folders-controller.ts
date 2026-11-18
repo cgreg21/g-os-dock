@@ -6,6 +6,11 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { getDockMenuSide } from '../layout/menu-position.js';
 import { DockDragDrop, type DockDndItem } from '../interaction/drag-and-drop.js';
+import {
+    mergeDockFolderMembers,
+    resolveDockFolderDropOrder,
+    resolveDockFolderRemoval,
+} from './folder-state.js';
 
 interface DockFolderRecord {
     id: string;
@@ -90,21 +95,16 @@ export class DockFoldersController {
         const folder = this.folders.find(candidate => candidate.id === folderId);
         if (!folder || !folder.appIds.includes(appId))
             return;
-        const remaining = folder.appIds.filter(id => id !== appId);
-        const records = readFolders(this.settings).filter(candidate => candidate.id !== folderId);
-        const order = this.settings.get_strv('dock-item-order');
-        const index = order.indexOf(folderId);
-        const nextOrder = order.filter(id => id !== folderId);
-        if (remaining.length >= 2) {
-            records.push({ id: folderId, name: folder.name, appIds: remaining });
-            const folderIndex = index < 0 ? nextOrder.length : Math.min(index, nextOrder.length);
-            nextOrder.splice(folderIndex + 1, 0, `app:${appId}`);
-        } else {
-            const restoredIds = [...remaining, appId].map(id => `app:${id}`);
-            nextOrder.splice(index < 0 ? nextOrder.length : Math.min(index, nextOrder.length), 0, ...restoredIds);
-        }
-        this.settings.set_strv('dock-item-order', nextOrder);
-        this.settings.set_strv('dock-folders', records.map(candidate => JSON.stringify(candidate)));
+        const state = resolveDockFolderRemoval(
+            readFolders(this.settings),
+            this.settings.get_strv('dock-item-order'),
+            folderId,
+            appId,
+        );
+        if (!state)
+            return;
+        this.settings.set_strv('dock-item-order', state.order);
+        this.settings.set_strv('dock-folders', state.folders.map(candidate => JSON.stringify(candidate)));
         this.onChanged();
     }
 
@@ -130,7 +130,7 @@ export class DockFoldersController {
         if (sourceAppIds.length === 0 || targetAppIds.length === 0)
             return;
 
-        const members = [...new Set([...targetAppIds, ...sourceAppIds])];
+        const members = mergeDockFolderMembers(targetAppIds, sourceAppIds);
         if (members.length < 2)
             return;
         const records = readFolders(this.settings).filter(folder =>
@@ -141,18 +141,10 @@ export class DockFoldersController {
         this.settings.set_strv('dock-folders', records.map(folder => JSON.stringify(folder)));
 
         const order = this.settings.get_strv('dock-item-order');
-        const firstIndex = Math.min(
-            ...[sourceId, target.id].map(id => {
-                const index = order.indexOf(id);
-                return index < 0 ? Number.MAX_SAFE_INTEGER : index;
-            }),
+        this.settings.set_strv(
+            'dock-item-order',
+            resolveDockFolderDropOrder(order, sourceId, target.id, targetId),
         );
-        const filtered = order.filter(id => id !== sourceId && id !== target.id);
-        if (firstIndex === Number.MAX_SAFE_INTEGER)
-            filtered.push(targetId);
-        else
-            filtered.splice(Math.min(firstIndex, filtered.length), 0, targetId);
-        this.settings.set_strv('dock-item-order', filtered);
         this.onChanged();
     }
 
