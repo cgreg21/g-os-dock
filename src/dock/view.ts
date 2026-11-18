@@ -327,34 +327,6 @@ export class DockView {
         this.favoriteOrder.persist(ids);
     }
 
-    private getAvailableSpace(vertical: boolean): number {
-        const edge = this.settings.get_int('edge-distance');
-        const border = this.settings.get_int('border-size') * 2;
-        const padding = vertical
-            ? this.settings.get_int('background-padding-top') +
-                this.settings.get_int('background-padding-bottom')
-            : this.settings.get_int('background-padding-left') +
-                this.settings.get_int('background-padding-right');
-        const panel = Main.panel as St.Widget;
-        const [panelX, panelY] = panel.get_transformed_position();
-        const panelBottom = panelY + panel.height;
-        const panelOverlapsMonitorTop =
-            panelX < this.monitor.x + this.monitor.width &&
-            panelX + panel.width > this.monitor.x &&
-            panelY <= this.monitor.y + 2 &&
-            panelBottom > this.monitor.y;
-        const usableTop = panelOverlapsMonitorTop
-            ? Math.min(this.monitor.y + this.monitor.height, panelBottom + edge)
-            : this.monitor.y;
-
-        if (vertical) {
-            return this.monitor.y + this.monitor.height - usableTop -
-                edge - padding - border;
-        }
-
-        return this.monitor.width - edge * 2 - padding - border;
-    }
-
     private getIconSize(
         applications: Shell.App[],
         available: number,
@@ -409,7 +381,7 @@ export class DockView {
         const configuredSize = this.settings.get_int('icon-size');
         const volumeItemsChanged = syncVolumes ? this.dockItems.syncVolumes(configuredSize) : false;
         const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
-        const available = this.getAvailableSpace(vertical);
+        const available = this.layout.availableSpace(vertical);
         const size = this.getIconSize(applications, available, vertical, configuredSize);
 
         const structureChanged = this.syncApplicationItems(applications, size);
