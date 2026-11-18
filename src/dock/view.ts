@@ -432,10 +432,15 @@ export class DockView {
             (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
             (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER),
         );
+        const children = this.content.get_children();
         for (const [index, item] of actors.entries()) {
-            const current = this.content.get_children().indexOf(item.actor);
-            if (current >= 0 && current !== index)
-                this.content.set_child_at_index(item.actor, index);
+            const current = children.indexOf(item.actor);
+            if (current < 0 || current === index)
+                continue;
+
+            this.content.set_child_at_index(item.actor, index);
+            children.splice(current, 1);
+            children.splice(index, 0, item.actor);
         }
     }
 
