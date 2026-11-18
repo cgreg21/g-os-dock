@@ -372,6 +372,10 @@ export class DockView {
         // Application reconciliation may change the effective icon size.
         // Sync folders afterwards so they inherit the exact same current slot size.
         this.folders.sync();
+        // Folder actors are created after the refresh controller's first order
+        // pass. Reapply the shared mixed-item order now that every dock item
+        // (applications, folders and system items) is mounted.
+        this.itemOrder.apply();
         this.positionDock();
     }
 
