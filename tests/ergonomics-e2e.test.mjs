@@ -139,6 +139,18 @@ test('E2E: removing an app preserves the folder and restores the app beside it',
     assert.deepEqual(state.order, ['app:before', 'folder:one', 'app:app.b', 'app:after']);
 });
 
+test('E2E: removing an app preserves its folder-specific grid or stack setting', () => {
+    const state = resolveDockFolderRemoval(
+        [{ ...folder('folder:stack', ['app.a', 'app.b', 'app.c']), viewMode: 'stack' }],
+        ['folder:stack'],
+        'folder:stack',
+        'app.b',
+    );
+    assert.deepEqual(state.folders, [
+        { ...folder('folder:stack', ['app.a', 'app.c']), viewMode: 'stack' },
+    ]);
+});
+
 test('E2E: removing down to one app dissolves the folder and restores both apps', () => {
     const state = resolveDockFolderRemoval(
         [folder('folder:one', ['app.a', 'app.b'])],
