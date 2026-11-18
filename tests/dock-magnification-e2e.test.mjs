@@ -170,7 +170,7 @@ test('E2E: visual anchors preserve the outer edge in all dock orientations', () 
     assert.ok(controller.includes("visual.set_pivot_point(0.5, position === 'top' ? 0 : 1)"));
 });
 
-test('E2E: magnification respects settings and never resizes buttons or dock layout', () => {
+test('E2E: magnification respects settings and resizes button allocations through CSS', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes("'dock-magnification-enabled'"));
     assert.ok(controller.includes("'dock-magnification-scale'"));
@@ -178,8 +178,10 @@ test('E2E: magnification respects settings and never resizes buttons or dock lay
     assert.ok(controller.includes('this.settings.get_boolean'));
     assert.ok(!controller.includes('button.scale_x'));
     assert.ok(!controller.includes('button.scale_y'));
+    assert.ok(controller.includes('resolveMagnificationButtonStyle(baseStyle, scale)'));
+    assert.ok(controller.includes('this.content.queue_relayout()'));
+    assert.ok(controller.includes('this.updateSurfaceInsets(scales)'));
     assert.ok(!controller.includes('button.set_size('));
-    assert.ok(!controller.includes('queue_relayout('));
 });
 
 async function loadButtonLayoutResolvers() {
@@ -224,4 +226,37 @@ test('E2E: invalid button layout geometry safely preserves the original slot', a
     assert.deepEqual(resolveMagnificationMainAxisLayout(10, 40, 2, 30, 20), [10, 40]);
     assert.deepEqual(resolveMagnificationCrossAxisLayout(10, 0, 2, true), [10, 0]);
     assert.deepEqual(resolveMagnificationCrossAxisLayout(10, 40, Number.NaN, true), [10, 40]);
+});
+
+
+async function loadButtonStyleResolver() {
+    const source = read('../src/features/items/dock-magnification.ts');
+    const match = source.match(/export function resolveMagnificationButtonStyle\\([\\s\\S]*?\\n}\\n/);
+    assert.ok(match, 'the button style resolver must be present');
+    const javascript = match[0]
+        .replace('export function', 'function')
+        .replace(/:\\s*(?:string|number)/g, '');
+    const moduleSource = javascript + '\\nexport { resolveMagnificationButtonStyle };\\n';
+    const encoded = Buffer.from(moduleSource).toString('base64');
+    return import('data:text/javascript;base64,' + encoded);
+}
+
+test('E2E: button magnification scales both dimensions and preserves padding', async () => {
+    const { resolveMagnificationButtonStyle } = await loadButtonStyleResolver();
+    const base = 'padding: 3px 5px 7px 9px; min-width: 48px; min-height: 52px;';
+    assert.equal(
+        resolveMagnificationButtonStyle(base, 2),
+        'padding: 3px 5px 7px 9px; min-width: 96px; min-height: 104px;',
+    );
+    assert.equal(resolveMagnificationButtonStyle(base, 1), base);
+    assert.equal(resolveMagnificationButtonStyle(base, 0.5), base);
+});
+
+test('E2E: button allocation and backdrop insets are recalculated from pointer scales', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    assert.ok(controller.includes('private readonly baseStyles = new Map<St.Button, string>()'));
+    assert.ok(controller.includes('this.content.queue_relayout()'));
+    assert.ok(controller.includes('this.onSurfaceExtentChanged(leading, trailing, this.pointerAxis !== null)'));
+    assert.ok(controller.includes('this.resetButtonAllocations()'));
+    assert.ok(controller.includes('this.onSurfaceExtentChanged?.(0, 0, false)'));
 });
