@@ -94,6 +94,40 @@ export function resolveMagnificationItemScale(
 
 
 /**
+ * Resolves a complete row/column from immutable reference slots.
+ * Growth is accumulated before each item, while half of the total growth is
+ * removed from the leading edge so the complete group stays centered.
+ * The original inter-slot gaps are therefore preserved at every scale.
+ */
+export function resolveMagnificationMainAxisSlots(
+    itemStarts: number[],
+    itemExtents: number[],
+    itemScales: number[],
+): [number, number][] {
+    if (itemStarts.length !== itemExtents.length || itemStarts.length !== itemScales.length)
+        return itemStarts.map((start, index) => [start, itemExtents[index] ?? 0]);
+
+    const valid = itemStarts.every(Number.isFinite)
+        && itemExtents.every(value => Number.isFinite(value) && value > 0)
+        && itemScales.every(value => Number.isFinite(value) && value >= 1);
+    if (!valid)
+        return itemStarts.map((start, index) => [start, itemExtents[index]]);
+
+    const growth = itemExtents.map((extent, index) => extent * (itemScales[index] - 1));
+    const totalGrowth = growth.reduce((total, value) => total + value, 0);
+    let precedingGrowth = 0;
+
+    return itemStarts.map((start, index) => {
+        const result: [number, number] = [
+            start - totalGrowth / 2 + precedingGrowth,
+            itemExtents[index] + growth[index],
+        ];
+        precedingGrowth += growth[index];
+        return result;
+    });
+}
+
+/**
  * Resolves one button's main-axis slot while preserving the gaps between
  * buttons. The total growth is distributed equally at both ends so the
  * magnified row or column remains centered around its original allocation.
