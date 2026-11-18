@@ -322,19 +322,21 @@ export class DockView {
             this.settings.get_strv('dock-item-order')
                 .map((id, index) => [id, index]),
         );
-        result.sort((a, b) => {
-            const aId = a.get_id();
-            const bId = b.get_id();
-            const aFavorite = favoriteIds.has(aId);
-            const bFavorite = favoriteIds.has(bId);
-
-            if (aFavorite !== bFavorite)
-                return aFavorite ? -1 : 1;
-
-            return (order.get(`app:${aId}`) ?? Number.MAX_SAFE_INTEGER) -
-                (order.get(`app:${bId}`) ?? Number.MAX_SAFE_INTEGER);
+        const ordered = result.map((app, index) => {
+            const id = app.get_id();
+            return {
+                app,
+                index,
+                favorite: favoriteIds.has(id),
+                rank: order.get(`app:${id}`) ?? Number.MAX_SAFE_INTEGER,
+            };
         });
-        return result;
+        ordered.sort((a, b) =>
+            Number(b.favorite) - Number(a.favorite) ||
+            a.rank - b.rank ||
+            a.index - b.index,
+        );
+        return ordered.map(item => item.app);
     }
 
     private getDndItems(): DockDndItem[] {
