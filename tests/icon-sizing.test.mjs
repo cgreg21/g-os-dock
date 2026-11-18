@@ -55,6 +55,7 @@ test('reserves one badge height for each application showing a window count', ()
         additionalItemCount: 0,
         availableSpace: 200,
         configuredSize: 100,
+        spacing: 0,
         vertical: true,
     };
     assert.equal(calculateDockIconSize({ ...options, windowCountBadgeCount: 1 }), 87);
