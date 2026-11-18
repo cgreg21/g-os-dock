@@ -18,6 +18,7 @@ import { DockFoldersController } from '../features/applications/dock-folders-con
 import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
 import { DockItemsController } from '../features/dock-items-controller.js';
+import { DockItemBase } from '../features/items/dock-item-base.js';
 import { DockFavoritesSeparatorController } from '../features/favorites-separator-controller.js';
 import { DockItemOrderController } from '../features/dock-item-order-controller.js';
 import { FavoriteOrderController } from '../features/favorite-order-controller.js';
@@ -163,6 +164,10 @@ export class DockView {
             this.monitor,
             this.settings,
             () => this.destroyed,
+        );
+        DockItemBase.setMagnificationSurfaceHandler(
+            this.content,
+            (leading, trailing) => this.layout.setMagnificationInsets(leading, trailing),
         );
         this.indicators = new DockIndicators(this.settings, () => this.destroyed);
         this.windowTracker = new WindowTracker(
