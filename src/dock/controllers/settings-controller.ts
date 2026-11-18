@@ -42,6 +42,7 @@ export class DockSettingsController {
         watch(settings, [
             'theme',
             'acrylic-enabled',
+            'background-blur',
             'background-color',
             'background-opacity',
             'border-color',
