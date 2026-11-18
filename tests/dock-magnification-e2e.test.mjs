@@ -10,7 +10,7 @@ async function loadAxisResolver() {
     assert.ok(match, 'the pure pointer-axis resolver must be present');
     const javascript = match[0]
         .replace('export function', 'function')
-        .replace(/: (?:string|number)(?: \\| null)?/g, '');
+        .replace(/:\s*(?:string|number)(?:\s*\|\s*null)?/g, '');
     const moduleSource = javascript + '\nexport { resolveMagnificationPointerAxis };\n';
     const encoded = Buffer.from(moduleSource).toString('base64');
     return import('data:text/javascript;base64,' + encoded);
