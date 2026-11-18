@@ -5,6 +5,7 @@ import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { DockDragDrop } from './drag-and-drop.js';
+import { DockTooltip } from './tooltip.js';
 
 /** Configurable app-grid launcher and GNOME system actions. */
 export class DockSystemItem {
@@ -23,6 +24,7 @@ export class DockSystemItem {
             accessible_name: 'Applications and system actions',
         });
         this.updateIcon();
+        new DockTooltip(this.button, 'Applications', this.dockPosition());
         this.button.connect('clicked', () => Main.overview.showApps());
         this.button.connect('button-press-event', (_actor, event) => {
             if (event.get_button() !== 3) return Clutter.EVENT_PROPAGATE;
