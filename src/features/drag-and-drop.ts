@@ -99,14 +99,7 @@ export class DockDragDrop {
         const items = this.getItems();
         const dragged = items.find(item => item.id === sourceId);
         const targets = items.filter(item => item.id !== sourceId);
-        const vertical = this.isVertical();
-        const coordinate = vertical ? y : x;
-        let index = 0;
-        for (const item of targets) {
-            const midpoint = this.getItemMidpoint(item.actor, vertical);
-            if (midpoint !== null && coordinate > midpoint)
-                index++;
-        }
+        const index = this.getDropIndex(targets, x, y);
         const favoriteCount = targets.filter(item =>
             item.app && this.isFavorite(item),
         ).length;
@@ -134,18 +127,8 @@ export class DockDragDrop {
         if (sourceIndex < 0)
             return false;
         const remaining = items.filter(item => item.id !== sourceId);
-        const vertical = this.isVertical();
-        const coordinate = vertical ? y : x;
-        let target = this.previewIndex;
-        if (target === null) {
-            target = 0;
-            for (const item of remaining) {
-                const midpoint = this.getItemMidpoint(item.actor, vertical);
-                if (midpoint !== null && coordinate > midpoint)
-                    target++;
-            }
-        }
-        target = Math.max(0, Math.min(target, remaining.length));
+        // Use the final pointer position, not a potentially stale hover index.
+        const target = this.getDropIndex(remaining, x, y);
         const dragged = items[sourceIndex]!;
         const favoriteCount = remaining.filter(item =>
             item.app && this.isFavorite(item),
@@ -163,6 +146,18 @@ export class DockDragDrop {
         ordered.splice(target, 0, items[sourceIndex]!);
         this.persistOrder(ordered.map(item => item.id));
         return true;
+    }
+
+    private getDropIndex(items: DockDndItem[], x: number, y: number): number {
+        const vertical = this.isVertical();
+        const coordinate = vertical ? y : x;
+        let index = 0;
+        for (const item of items) {
+            const midpoint = this.getItemMidpoint(item.actor, vertical);
+            if (midpoint !== null && coordinate > midpoint)
+                index++;
+        }
+        return Math.max(0, Math.min(index, items.length));
     }
 
     private isFavorite(item: DockDndItem): boolean {
