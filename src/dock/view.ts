@@ -389,6 +389,10 @@ export class DockView {
     private getItemOrderRanks(ids: string[]): ReadonlyMap<string, number> {
         const key = `dock-item-order-ranks:${JSON.stringify(ids)}`;
         return dockCache.getOrCreate(key, () =>
+            new Map(ids.map((id, index) => [id, index])),
+        );
+    }
+
     private getApplications(): Shell.App[] {
         const ranks = this.getItemOrderRanks(this.settings.get_strv('dock-item-order'));
         return resolveApplicationOrder(
