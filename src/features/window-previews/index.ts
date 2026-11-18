@@ -11,6 +11,7 @@ import { createWindowPreviewCard } from './card.js';
 import { dockCache } from '../cache.js';
 import { SettingsObserver } from '../settings-observer.js';
 import { TaskScheduler } from '../task-scheduler.js';
+import { ChromeActorManager } from '../chrome-actor-manager.js';
 
 /**
  * Owns the lifecycle and rendering of application window previews.
@@ -18,6 +19,10 @@ import { TaskScheduler } from '../task-scheduler.js';
  */
 export class WindowPreviews {
     private actor: St.BoxLayout | null = null;
+    private chromeActors = new ChromeActorManager<St.Widget>(
+        (actor, options) => Main.layoutManager.addChrome(actor, options),
+        actor => Main.layoutManager.removeChrome(actor),
+    );
     private scheduler = new TaskScheduler({
         timeout: (delay, callback) => GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, callback),
         idle: callback => GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, callback),
@@ -112,7 +117,7 @@ export class WindowPreviews {
             previews.add_child(preview.card);
         }
 
-        Main.layoutManager.addChrome(previews, { affectsStruts: false, trackFullscreen: false });
+        this.chromeActors.add(previews, { affectsStruts: false, trackFullscreen: false });
         this.actor = previews;
         this.keySignal = previews.connect('key-press-event', (_actor: St.Widget, event: Clutter.Event) => {
             if (event.get_key_symbol() !== Clutter.KEY_Escape)
@@ -163,7 +168,7 @@ export class WindowPreviews {
             if (this.keySignal) {
                 try { this.actor.disconnect(this.keySignal); } catch (_error) { /* already destroyed */ }
             }
-            Main.layoutManager.removeChrome(this.actor);
+            this.chromeActors.remove(this.actor);
             this.actor.destroy();
             this.actor = null;
             this.hoverSignal = 0;
@@ -177,6 +182,7 @@ export class WindowPreviews {
         this.destroyed = true;
         this.settingsObserver.destroy();
         this.scheduler.destroy();
+        this.chromeActors.destroy();
         this.hide();
     }
 
