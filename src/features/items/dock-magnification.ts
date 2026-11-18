@@ -176,10 +176,16 @@ export class DockMagnificationController {
         const vertical = this.content.orientation === Clutter.Orientation.VERTICAL;
         const boundedMaxScale = Math.max(1, Math.min(4, maxScale));
         for (const [button, visual] of this.items) {
-            const [itemX, itemY] = visual.get_transformed_position();
-            const [itemWidth, itemHeight] = visual.get_transformed_size();
-            const itemStart = vertical ? itemY - surfaceY : itemX - surfaceX;
-            const itemExtent = vertical ? itemHeight : itemWidth;
+            // Read the unscaled slot geometry for its center and the visual's
+            // unscaled allocation for its extent. Using the visual's transformed
+            // bounds here would feed the current scale back into the next frame.
+            const [buttonX, buttonY] = button.get_transformed_position();
+            const [buttonWidth, buttonHeight] = button.get_transformed_size();
+            const itemExtent = vertical ? visual.height : visual.width;
+            const itemCenter = vertical
+                ? buttonY + buttonHeight / 2 - surfaceY
+                : buttonX + buttonWidth / 2 - surfaceX;
+            const itemStart = itemCenter - itemExtent / 2;
             scales.set(button, resolveMagnificationItemScale(
                 this.pointerAxis, itemStart, itemExtent, influenceRadiusFactor, boundedMaxScale,
             ));
