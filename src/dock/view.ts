@@ -502,17 +502,22 @@ export class DockView {
         if (this.destroyed)
             return;
 
-            const structureChanged = this.syncApplicationItems(applications, size);
-            const systemItemChanged = this.syncSystemItem(size);
-            const trashItemChanged = this.syncTrashItem(size);
-            this.volumeItems?.setIconSize(size);
-            this.applySavedItemOrder();
-            this.syncFavoritesSeparator(size, vertical);
-            if (structureChanged || systemItemChanged || trashItemChanged || volumeItemsChanged)
-                this.layout.position();
-        } catch (error) {
-            throw error;
-        }
+        const applications = this.getApplications();
+        const configuredSize = this.settings.get_int('icon-size');
+        const volumeItemsChanged = this.syncVolumeItems(configuredSize);
+        const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
+        const available = this.getAvailableSpace(vertical);
+        const size = this.getIconSize(applications, available, vertical, configuredSize);
+
+        const structureChanged = this.syncApplicationItems(applications, size);
+        const systemItemChanged = this.syncSystemItem(size);
+        const trashItemChanged = this.syncTrashItem(size);
+        this.volumeItems?.setIconSize(size);
+        this.applySavedItemOrder();
+        this.syncFavoritesSeparator(size, vertical);
+
+        if (structureChanged || systemItemChanged || trashItemChanged || volumeItemsChanged)
+            this.layout.position();
 
         this.updateIndicators();
         this.visibility.queueSmartHideCheck();
