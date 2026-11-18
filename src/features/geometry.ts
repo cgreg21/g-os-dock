@@ -12,8 +12,13 @@ export function isValidRectangle(rectangle: DockRectangle): boolean {
         rectangle.width <= 0 || rectangle.height <= 0)
         return false;
 
-    return Number.isFinite(rectangle.x + rectangle.width) &&
-        Number.isFinite(rectangle.y + rectangle.height);
+    const right = rectangle.x + rectangle.width;
+    const bottom = rectangle.y + rectangle.height;
+
+    // A positive dimension can disappear when added to a much larger
+    // coordinate because JavaScript numbers have finite precision.
+    return Number.isFinite(right) && right > rectangle.x &&
+        Number.isFinite(bottom) && bottom > rectangle.y;
 }
 
 /** Return true only when two valid rectangles share a positive-area intersection. */
