@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateAvailableDockSpace, calculateDockIconSize } from '../dist/features/icon-sizing.js';
+import { calculateAvailableDockSpace, calculateDockIconSize, resolveDockSizingMetrics } from '../dist/features/icon-sizing.js';
 
 const defaults = {
     applicationIds: ['favorite', 'running'],
@@ -95,4 +95,46 @@ test('preserves negative available space for impossible layouts', () => {
         border: 4,
         vertical: true,
     }), -34);
+});
+
+test('resolves application count and favorites separator cost generically', () => {
+    assert.deepEqual(
+        resolveDockSizingMetrics(
+            ['favorite', 'running', 'other'],
+            new Set(['favorite']),
+            2,
+            true,
+            3,
+            7,
+        ),
+        { itemCount: 5, separatorSpace: 10 },
+    );
+});
+
+test('does not reserve separator cost when one application group is absent', () => {
+    assert.deepEqual(
+        resolveDockSizingMetrics(
+            ['favorite-a', 'favorite-b'],
+            new Set(['favorite-a', 'favorite-b']),
+            -2,
+            true,
+            3,
+            7,
+        ),
+        { itemCount: 2, separatorSpace: 0 },
+    );
+});
+
+test('does not reserve separator cost when the separator is disabled', () => {
+    assert.deepEqual(
+        resolveDockSizingMetrics(
+            ['favorite', 'running'],
+            new Set(['favorite']),
+            1,
+            false,
+            3,
+            7,
+        ),
+        { itemCount: 3, separatorSpace: 0 },
+    );
 });
