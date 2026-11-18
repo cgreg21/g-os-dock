@@ -42,8 +42,11 @@ export class DockIndicators {
             const active = !!focused && windows.includes(focused);
             const minimized = windows.length > 0 && windows.every(window => window.minimized);
             // Dim the application icon itself when all of its windows are minimized.
-            if (item._gOsDockIcon)
-                item._gOsDockIcon.opacity = minimized ? 128 : 255;
+            if (item._gOsDockIcon) {
+                const opacity = minimized ? 128 : 255;
+                if (item._gOsDockIcon.opacity !== opacity)
+                    item._gOsDockIcon.opacity = opacity;
+            }
             const shouldShow = enabled && (
                 (showOpen && running) ||
                 (showFocused && active) ||
@@ -101,8 +104,10 @@ export class DockIndicators {
 
             if (item._gOsDockBadge) {
                 const count = windows.length;
-                item._gOsDockBadge.text = showCount && count > 1 ? String(count) : '';
-                item._gOsDockBadge.visible = showCount && count > 1;
+                const badgeText = showCount && count > 1 ? String(count) : '';
+                if (item._gOsDockBadge.text !== badgeText)
+                    item._gOsDockBadge.text = badgeText;
+                item._gOsDockBadge.visible = badgeText !== '';
             }
 
         }
