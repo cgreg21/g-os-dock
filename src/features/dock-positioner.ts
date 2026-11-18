@@ -51,6 +51,50 @@ export function resolveDockEdgeSensor(options: DockEdgeSensorOptions): DockRecta
     }
 }
 
+/** Resolve the dock surface origin inside its monitor and edge constraints. */
+export function resolveDockSurfacePosition(
+    monitor: DockRectangle,
+    size: DockSize,
+    edge: DockEdge,
+    edgeDistance: number,
+    usableTop = monitor.y,
+): DockPoint {
+    const minX = monitor.x + edgeDistance;
+    const maxX = Math.max(
+        minX,
+        monitor.x + monitor.width - size.width - edgeDistance,
+    );
+    const minY = usableTop;
+    const maxY = Math.max(
+        minY,
+        monitor.y + monitor.height - size.height - edgeDistance,
+    );
+
+    let x = monitor.x + Math.round((monitor.width - size.width) / 2);
+    let y = monitor.y + monitor.height - size.height - edgeDistance;
+    if (edge === 'top') {
+        y = usableTop;
+    } else if (edge === 'left' || edge === 'right') {
+        x = edge === 'left'
+            ? minX
+            : monitor.x + monitor.width - size.width - edgeDistance;
+        y = usableTop + Math.round(
+            (monitor.y + monitor.height - usableTop - size.height - edgeDistance) / 2,
+        );
+    }
+
+    return DockPositioner.clamp(
+        { x, y },
+        size,
+        {
+            x: minX,
+            y: minY,
+            width: maxX - minX + size.width,
+            height: maxY - minY + size.height,
+        },
+    );
+}
+
 /** Resolve the translation needed to move a dock completely beyond one edge. */
 export function resolveHiddenTranslation(edge: DockEdge, size: DockSize): DockPoint {
     return {
