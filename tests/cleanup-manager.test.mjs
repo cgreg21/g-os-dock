@@ -45,3 +45,39 @@ test('continues releasing resources when one cleanup callback fails', () => {
     assert.deepEqual(calls, ['last', 'first']);
     assert.equal(manager.size, 0);
 });
+
+test('disconnects registered signals through the shared cleanup manager', () => {
+    const manager = new CleanupManager();
+    const disconnected = [];
+    const emitter = {
+        disconnect(id) {
+            disconnected.push(id);
+        },
+    };
+
+    manager.addSignal(emitter, 12);
+    manager.addSignal(emitter, 34);
+    assert.equal(manager.size, 2);
+
+    manager.clear();
+    manager.clear();
+
+    assert.deepEqual(disconnected, [34, 12]);
+    assert.equal(manager.size, 0);
+});
+
+test('disconnects a signal immediately when registered after clearing', () => {
+    const manager = new CleanupManager();
+    const disconnected = [];
+    const emitter = {
+        disconnect(id) {
+            disconnected.push(id);
+        },
+    };
+
+    manager.clear();
+    manager.addSignal(emitter, 56);
+
+    assert.deepEqual(disconnected, [56]);
+    assert.equal(manager.size, 0);
+});
