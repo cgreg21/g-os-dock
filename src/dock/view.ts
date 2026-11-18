@@ -27,6 +27,7 @@ import { LifecycleScope } from '../features/lifecycle-scope.js';
 import { resolveApplicationOrder } from '../features/application-order.js';
 import { DockRefreshController } from './refresh-controller.js';
 import { DockApplicationActivationController } from '../features/application-activation-controller.js';
+import { resolveFavoritesSeparatorTarget } from '../features/favorites-separator.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -365,19 +366,15 @@ export class DockView {
         const favoriteIds = new Set(
             this.favorites.getFavorites().map(app => app.get_id()),
         );
-        let hasFavorite = false;
-        let firstNonFavorite: St.Widget | null = null;
-        for (const item of this.itemActors) {
-            if (favoriteIds.has(item._gOsDockApp.get_id())) {
-                hasFavorite = true;
-            } else {
-                firstNonFavorite = item;
-                break;
-            }
-        }
+        const firstNonFavorite = resolveFavoritesSeparatorTarget(
+            this.itemActors.map(item => item._gOsDockApp),
+            favoriteIds,
+        );
 
         this.favoritesSeparator.sync(
-            enabled && hasFavorite ? firstNonFavorite : null,
+            enabled ? this.itemActors.find(item =>
+                item._gOsDockApp === firstNonFavorite,
+            ) ?? null : null,
             vertical,
         );
     }
