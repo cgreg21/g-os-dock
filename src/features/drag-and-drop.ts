@@ -89,8 +89,11 @@ export class DockDragDrop {
     unregisterItem(actor: St.Widget): void {
         const registration = this.draggables.get(actor);
         if (registration) {
+            const signalObject = registration.draggable as DND.Draggable & {
+                disconnect: (signal: number) => void;
+            };
             for (const signal of registration.signals)
-                registration.draggable.disconnect(signal);
+                signalObject.disconnect(signal);
             this.draggables.delete(actor);
         }
 
