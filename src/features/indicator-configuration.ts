@@ -1,4 +1,5 @@
 import type { IndicatorMarkerStyleOptions } from './indicator-style.js';
+import { normalizeUnitInterval } from './color-utils.js';
 
 export interface IndicatorMarkerConfigurationInput {
     count: number;
@@ -39,5 +40,5 @@ export function resolveIndicatorMarkerConfiguration(
 
 /** Clamp a visual opacity setting to the CSS alpha range. */
 export function normalizeIndicatorOpacity(value: number): number {
-    return Math.max(0, Math.min(1, value));
+    return normalizeUnitInterval(value);
 }
