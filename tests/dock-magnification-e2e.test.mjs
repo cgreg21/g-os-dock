@@ -6,12 +6,12 @@ const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 async function loadAxisResolver() {
     const source = read('../src/features/items/dock-magnification.ts');
-    const match = source.match(/export function resolveMagnificationPointerAxis\\([\\s\\S]*?\\n}\\n/);
+    const match = source.match(/export function resolveMagnificationPointerAxis\([\s\S]*?\n}\n/);
     assert.ok(match, 'the pure pointer-axis resolver must be present');
     const javascript = match[0].replace('export function', 'function');
-    const moduleSource = `${javascript}\\nexport { resolveMagnificationPointerAxis };\\n`;
+    const moduleSource = javascript + '\nexport { resolveMagnificationPointerAxis };\n';
     const encoded = Buffer.from(moduleSource).toString('base64');
-    return import(`data:text/javascript;base64,${encoded}`);
+    return import('data:text/javascript;base64,' + encoded);
 }
 
 test('E2E: the complete dock surface receives pointer motion and boundary events', () => {
