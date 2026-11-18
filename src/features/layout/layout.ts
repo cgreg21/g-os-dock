@@ -20,6 +20,12 @@ const DOCK_RESIZE_DURATION_MS = 230;
 export class DockLayout {
     private readonly animations = new AnimationManager();
     private hasPositioned = false;
+    private backgroundBaseX = 0;
+    private backgroundBaseY = 0;
+    private backgroundBaseWidth = 0;
+    private backgroundBaseHeight = 0;
+    private magnificationLeading = 0;
+    private magnificationTrailing = 0;
     constructor(
         private actor: St.Widget,
         private background: St.Widget,
@@ -32,6 +38,34 @@ export class DockLayout {
 
     destroy(): void {
         this.animations.destroy();
+    }
+
+    /**
+     * Expands the decorative surface to follow the live magnification wave.
+     * Insets are measured along the dock's main axis and do not alter icon layout.
+     */
+    setMagnificationInsets(leading: number, trailing: number): void {
+        if (this.isDestroyed())
+            return;
+        this.magnificationLeading = Number.isFinite(leading) ? Math.max(0, leading) : 0;
+        this.magnificationTrailing = Number.isFinite(trailing) ? Math.max(0, trailing) : 0;
+        this.applyMagnificationInsets();
+    }
+
+    private applyMagnificationInsets(): void {
+        if (this.isDestroyed())
+            return;
+        const vertical = isVerticalDockPosition(this.settings.get_string('dock-position'));
+        const leading = this.magnificationLeading;
+        const trailing = this.magnificationTrailing;
+        const x = vertical ? this.backgroundBaseX : this.backgroundBaseX - leading;
+        const y = vertical ? this.backgroundBaseY - leading : this.backgroundBaseY;
+        const width = vertical ? this.backgroundBaseWidth : this.backgroundBaseWidth + leading + trailing;
+        const height = vertical ? this.backgroundBaseHeight + leading + trailing : this.backgroundBaseHeight;
+        for (const property of ['width', 'height', 'x', 'y'])
+            this.background.remove_transition(property);
+        this.background.set_size(Math.ceil(width), Math.ceil(height));
+        this.background.set_position(Math.round(x), Math.round(y));
     }
 
     availableSpace(vertical: boolean): number {
@@ -152,6 +186,10 @@ export class DockLayout {
         // background margins are added (or are asymmetric).
         const x = actorX + paddingLeft + (contentWidth - backgroundWidth) / 2;
         const y = actorY;
+        this.backgroundBaseX = x;
+        this.backgroundBaseY = y;
+        this.backgroundBaseWidth = backgroundWidth;
+        this.backgroundBaseHeight = backgroundHeight;
         if (!this.hasPositioned) {
             this.background.set_size(backgroundWidth, backgroundHeight);
             this.background.set_position(Math.round(x), Math.round(y));
@@ -168,6 +206,8 @@ export class DockLayout {
             },
             { durationMs: DOCK_RESIZE_DURATION_MS, mode: Clutter.AnimationMode.EASE_OUT_CUBIC },
         );
+        if (this.magnificationLeading > 0 || this.magnificationTrailing > 0)
+            this.applyMagnificationInsets();
     }
 
     private getPanelBottom(): number | null {
