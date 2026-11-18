@@ -16,6 +16,47 @@ async function loadAxisResolver() {
     return import('data:text/javascript;base64,' + encoded);
 }
 
+async function loadScaleResolver() {
+    const source = read('../src/features/items/dock-magnification.ts');
+    const match = source.match(/export function resolveMagnificationScale\\([\\s\\S]*?\\n}\\n/);
+    assert.ok(match, 'the pure magnification-scale resolver must be present');
+    const javascript = match[0]
+        .replace('export function', 'function')
+        .replace(/: number/g, '');
+    const moduleSource = javascript + '\\nexport { resolveMagnificationScale };\\n';
+    const encoded = Buffer.from(moduleSource).toString('base64');
+    return import('data:text/javascript;base64,' + encoded);
+}
+
+test('E2E: magnification peaks at the pointer and falls off smoothly', async () => {
+    const { resolveMagnificationScale } = await loadScaleResolver();
+    assert.equal(resolveMagnificationScale(50, 50, 100, 4), 4);
+    assert.equal(resolveMagnificationScale(150, 50, 100, 4), 1);
+    assert.equal(resolveMagnificationScale(151, 50, 100, 4), 1);
+    assert.ok(resolveMagnificationScale(75, 50, 100, 4) > 1);
+    assert.ok(resolveMagnificationScale(75, 50, 100, 4) < 4);
+});
+
+test('E2E: magnification influence is symmetric and decreases with distance', async () => {
+    const { resolveMagnificationScale } = await loadScaleResolver();
+    const left = resolveMagnificationScale(25, 50, 100, 3);
+    const right = resolveMagnificationScale(75, 50, 100, 3);
+    const nearer = resolveMagnificationScale(60, 50, 100, 3);
+    const farther = resolveMagnificationScale(90, 50, 100, 3);
+    assert.equal(left, right);
+    assert.ok(nearer > farther);
+    assert.ok(farther > 1);
+});
+
+test('E2E: invalid wave parameters safely return the base scale', async () => {
+    const { resolveMagnificationScale } = await loadScaleResolver();
+    assert.equal(resolveMagnificationScale(10, 10, 0, 4), 1);
+    assert.equal(resolveMagnificationScale(10, 10, -1, 4), 1);
+    assert.equal(resolveMagnificationScale(10, 10, 20, 0.9), 1);
+    assert.equal(resolveMagnificationScale(Number.NaN, 10, 20, 4), 1);
+    assert.equal(resolveMagnificationScale(10, Number.POSITIVE_INFINITY, 20, 4), 1);
+});
+
 test('E2E: the complete dock surface receives pointer motion and boundary events', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes("this.surface.connect('motion-event'"));
