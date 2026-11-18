@@ -53,6 +53,8 @@ export class DockDragDrop {
         actor => Main.layoutManager.removeChrome(actor),
     );
     private removalZone: St.Widget | null = null;
+    private smokeActors = new Set<St.Widget>();
+    private smokeSequence = 0;
 
     constructor(
         private actor: St.Widget,
@@ -410,6 +412,65 @@ export class DockDragDrop {
             : DND.DragMotionResult.NO_DROP;
     }
 
+    /** Emit short-lived smoke puffs at the icon's stage position. */
+    private spawnRemovalSmoke(actor: St.Widget): void {
+        const [stageX, stageY] = actor.get_transformed_position();
+        const width = Math.max(1, actor.width);
+        const height = Math.max(1, actor.height);
+        const centerX = stageX + width / 2;
+        const centerY = stageY + height / 2;
+        const puffs = [
+            { x: -13, y: 4, size: 17, drift: -18, rise: -58, duration: 620 },
+            { x: 7, y: 0, size: 21, drift: 13, rise: -72, duration: 760 },
+            { x: -3, y: -9, size: 14, drift: -7, rise: -48, duration: 540 },
+            { x: 15, y: 10, size: 16, drift: 24, rise: -64, duration: 700 },
+            { x: -17, y: 12, size: 13, drift: -25, rise: -43, duration: 580 },
+            { x: 2, y: 13, size: 19, drift: 5, rise: -82, duration: 820 },
+        ];
+
+        for (const puff of puffs) {
+            const smoke = new St.Widget({
+                reactive: false,
+                can_focus: false,
+                style: 'background-color: rgba(190, 195, 205, 0.58); ' +
+                    'border-radius: 999px;',
+            });
+            smoke.set_size(puff.size, puff.size);
+            smoke.set_position(
+                centerX - puff.size / 2 + puff.x,
+                centerY - puff.size / 2 + puff.y,
+            );
+            smoke.opacity = 0;
+            smoke.scale_x = 0.45;
+            smoke.scale_y = 0.45;
+            this.smokeActors.add(smoke);
+            this.chromeActors.add(smoke, {
+                affectsStruts: false,
+                trackFullscreen: false,
+            });
+            smoke.opacity = 155;
+            const key = `removal-smoke:${++this.smokeSequence}`;
+            this.animations.animate(key, smoke as unknown as AnimationTarget, {
+                opacity: 0,
+                scaleX: 2.15,
+                scaleY: 2.15,
+                translationX: puff.drift,
+                translationY: puff.rise,
+            }, {
+                durationMs: puff.duration,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => this.destroySmokePuff(smoke),
+            });
+        }
+    }
+
+    private destroySmokePuff(smoke: St.Widget): void {
+        if (!this.smokeActors.delete(smoke))
+            return;
+        this.chromeActors.remove(smoke);
+        smoke.destroy();
+    }
+
     private acceptRemovalDrop(source: DockDragSource): boolean {
         if (this.destroyed || this.removingItemId)
             return false;
@@ -418,6 +479,7 @@ export class DockDragDrop {
             return false;
         this.removingItemId = item.id;
         this.removingActor = item.actor;
+        this.spawnRemovalSmoke(item.actor);
         this.animations.animate(`remove:${item.id}`, item.actor as unknown as AnimationTarget, {
             opacity: 0,
             scaleX: 0.08,
@@ -462,6 +524,11 @@ export class DockDragDrop {
             return;
         this.destroyed = true;
         this.animations.destroy();
+        for (const smoke of [...this.smokeActors]) {
+            this.chromeActors.remove(smoke);
+            smoke.destroy();
+        }
+        this.smokeActors.clear();
         if (this.removingActor) {
             this.removingActor = null;
             this.removingItemId = null;
