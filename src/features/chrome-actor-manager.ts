@@ -23,7 +23,11 @@ export class ChromeActorManager<T extends object> {
     remove(actor: T): void {
         if (!this.actors.delete(actor))
             return;
-        this.removeActor(actor);
+        try {
+            this.removeActor(actor);
+        } catch (error) {
+            logError(error as Error, 'Unable to remove dock chrome actor');
+        }
     }
 
     destroy(): void {
