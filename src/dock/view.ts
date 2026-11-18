@@ -169,7 +169,7 @@ export class DockView {
             this.content,
             (leading, trailing, active) => {
                 this.layout.setMagnificationInsets(leading, trailing, active);
-                this.layout.position(false);
+                this.layout.position(true);
             },
         );
         this.indicators = new DockIndicators(this.settings, () => this.destroyed);
