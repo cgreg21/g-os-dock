@@ -23,8 +23,14 @@ test('uses the same axis-independent insertion calculation for all dock edges', 
     assert.equal(resolveDockDndInsertionIndex(verticalMidpoints, 90), 2);
 });
 
-test('ignores unavailable or non-finite actor midpoints', () => {
-    assert.equal(resolveDockDndInsertionIndex([10, null, Number.NaN, 40], 50), 2);
+test('rejects incomplete or non-finite geometry instead of guessing a drop index', () => {
+    assert.equal(resolveDockDndInsertionIndex([10, null, 40], 50), null);
+    assert.equal(resolveDockDndInsertionIndex([10, Number.NaN, 40], 50), null);
+    assert.equal(resolveDockDndInsertionIndex([10, 40], Number.NaN), null);
+});
+
+test('resolves an empty dock to its only insertion slot', () => {
+    assert.equal(resolveDockDndInsertionIndex([], 50), 0);
 });
 
 test('allows a favorite to move within the favorite section', () => {

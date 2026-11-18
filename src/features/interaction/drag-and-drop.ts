@@ -174,6 +174,10 @@ export class DockDragDrop {
         }
         const targets = items.filter(item => item.id !== sourceId);
         const index = this.getDropIndex(targets, x, y);
+        if (index === null) {
+            this.previewSlot?.hide();
+            return DND.DragMotionResult.NO_DROP;
+        }
         const favoriteCount = targets.filter(item =>
             item.app && this.isFavorite(item),
         ).length;
@@ -208,6 +212,8 @@ export class DockDragDrop {
         const remaining = items.filter(item => item.id !== sourceId);
         // Use the final pointer position, not a potentially stale hover index.
         const target = this.getDropIndex(remaining, x, y);
+        if (target === null)
+            return false;
         const dragged = items[sourceIndex]!;
         const favoriteCount = remaining.filter(item =>
             item.app && this.isFavorite(item),
@@ -238,7 +244,7 @@ export class DockDragDrop {
             delete draggableActor._delegate;
     }
 
-    private getDropIndex(items: DockDndItem[], x: number, y: number): number {
+    private getDropIndex(items: DockDndItem[], x: number, y: number): number | null {
         const vertical = this.isVertical();
         const coordinate = vertical ? y : x;
         const midpoints = items.map(item => this.getItemMidpoint(item.actor, vertical));
@@ -288,9 +294,8 @@ export class DockDragDrop {
         // actors such as the favorites separator are intentionally ignored.
         const children = this.content.get_children();
         const reference = targets[target]?.actor;
-        const childIndex = reference
-            ? children.indexOf(reference)
-            : children.length - 1;
+        const referenceIndex = reference ? children.indexOf(reference) : -1;
+        const childIndex = referenceIndex >= 0 ? referenceIndex : children.length - 1;
         this.content.set_child_at_index(
             this.previewSlot,
             Math.max(0, Math.min(childIndex, children.length - 1)),
@@ -388,6 +393,9 @@ export class DockDragDrop {
     }
 
     private getItemMidpoint(item: St.Widget, vertical: boolean): number | null {
+        const extent = vertical ? item.height : item.width;
+        if (!Number.isFinite(extent) || extent <= 0)
+            return null;
         const [x, y] = item.get_transformed_position();
         const [valid, localX, localY] = this.actor.transform_stage_point(
             x + item.width / 2, y + item.height / 2,
