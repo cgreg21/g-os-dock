@@ -469,6 +469,12 @@ export class DockView {
     private getAvailableSpace(vertical: boolean): number {
         const edge = this.settings.get_int('edge-distance');
         const border = this.settings.get_int('border-size') * 2;
+        const verticalPadding =
+            this.settings.get_int('background-padding-top') +
+            this.settings.get_int('background-padding-bottom');
+        const horizontalPadding =
+            this.settings.get_int('background-padding-left') +
+            this.settings.get_int('background-padding-right');
         const panel = Main.panel as St.Widget;
         const [panelX, panelY] = panel.get_transformed_position();
         const panelBottom = panelY + panel.height;
@@ -482,14 +488,11 @@ export class DockView {
             : this.monitor.y;
 
         if (vertical) {
-            return this.monitor.y + this.monitor.height - usableTop - edge -
-                this.settings.get_int('background-padding-top') -
-                this.settings.get_int('background-padding-bottom') - border;
+            return this.monitor.y + this.monitor.height - usableTop -
+                edge - verticalPadding - border;
         }
 
-        return this.monitor.width - edge * 2 -
-            this.settings.get_int('background-padding-left') -
-            this.settings.get_int('background-padding-right') - border;
+        return this.monitor.width - edge * 2 - horizontalPadding - border;
     }
 
     private getIconSize(
