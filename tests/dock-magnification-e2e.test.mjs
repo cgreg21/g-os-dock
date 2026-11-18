@@ -107,3 +107,19 @@ test('E2E: dock background expands with the live magnification wave on all orien
     assert.ok(layout.includes('this.backgroundBaseY - leading'));
     assert.ok(layout.includes('this.background.remove_transition(property)'));
 });
+
+
+test('E2E: dock backdrop blur is configurable and updates with appearance settings', () => {
+    const schema = read('../schemas/org.gnome.shell.extensions.g-os-dock.gschema.xml');
+    const preferences = read('../src/preferences/appearance.ts');
+    const appearance = read('../src/features/appearance/appearance.ts');
+    const settings = read('../src/dock/controllers/settings-controller.ts');
+
+    assert.match(schema, /name="background-blur" type="i"><range min="0" max="64"\/><default>20<\/default>/);
+    assert.ok(preferences.includes("'background-blur'"));
+    assert.ok(preferences.includes("'Background blur radius (px)'"));
+    assert.ok(appearance.includes('Shell.BlurMode.BACKGROUND'));
+    assert.ok(appearance.includes('set_radius(normalizedRadius)'));
+    assert.ok(appearance.includes('normalizedRadius === 0'));
+    assert.ok(settings.includes("'background-blur'"));
+});
