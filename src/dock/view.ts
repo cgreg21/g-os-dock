@@ -286,7 +286,7 @@ export class DockView {
         this.connectPanelGeometrySignals();
         this.connectPointerSignals();
         this.settingsController.connectSettings();
-        // Runtime signals are owned by DockRuntimeSignalsController.
+        this.runtimeSignals.connect();
         this.connectContentGeometrySignal();
     }
 
