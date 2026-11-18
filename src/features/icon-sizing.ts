@@ -22,16 +22,14 @@ export function calculateUniformItemSize(options: UniformItemSizingOptions): num
         minimumSize,
     } = options;
 
-    return calculateUniformItemSize({
-        availableSpace,
-        itemCount,
-        spacing,
-        additionalSpace: separatorSpace,
-        overhead,
-        itemPadding: iconPadding,
-        configuredSize,
-        minimumSize: 16,
-    });
+    const fittedSize = itemCount > 0
+        ? Math.floor(
+            (availableSpace - additionalSpace - spacing * Math.max(0, itemCount - 1)) /
+            itemCount,
+        ) - overhead - itemPadding
+        : configuredSize;
+
+    return Math.min(configuredSize, Math.max(minimumSize, fittedSize));
 }
 
 export interface DockIconSizingOptions {
@@ -103,15 +101,17 @@ export function calculateDockIconSize(options: DockIconSizingOptions): number {
         separatorSize,
         spacing,
     );
-    const overhead = vertical ? 25 : 4;
-    const fittedSize = itemCount > 0
-        ? Math.floor(
-            (availableSpace - separatorSpace - spacing * Math.max(0, itemCount - 1)) /
-            itemCount,
-        ) - overhead - iconPadding
-        : configuredSize;
 
-    return Math.min(configuredSize, Math.max(16, fittedSize));
+    return calculateUniformItemSize({
+        availableSpace,
+        itemCount,
+        spacing,
+        additionalSpace: separatorSpace,
+        overhead: vertical ? 25 : 4,
+        itemPadding: iconPadding,
+        configuredSize,
+        minimumSize: 16,
+    });
 }
 
 export interface DockAvailableSpaceOptions {
