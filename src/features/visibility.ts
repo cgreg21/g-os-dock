@@ -4,6 +4,7 @@ import Meta from 'gi://Meta?version=51';
 import St from 'gi://St?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { rectanglesOverlap, unionRectangles } from './geometry.js';
+import { TaskScheduler } from './task-scheduler.js';
 
 const HIDE_DELAY_MS = 650;
 const SMART_HIDE_DELAY_MS = 80;
@@ -11,8 +12,11 @@ const SLIDE_DURATION_MS = 240;
 
 /** Controls dock visibility, auto-hide and overlap-aware smart-hide. */
 export class DockVisibility {
-    private smartHideSource = 0;
-    private hideSource = 0;
+    private scheduler = new TaskScheduler({
+        timeout: (delay, callback) => GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, callback),
+        idle: callback => GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, callback),
+        remove: sourceId => GLib.Source.remove(sourceId),
+    });
     private destroyed = false;
     private initialized = false;
 
@@ -109,13 +113,8 @@ export class DockVisibility {
     queueSmartHideCheck(): void {
         if (this.isInactive() || !this.settings.get_boolean('smart-hide'))
             return;
-        if (this.smartHideSource)
-            GLib.source_remove(this.smartHideSource);
-
-        this.smartHideSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, SMART_HIDE_DELAY_MS, () => {
-            this.smartHideSource = 0;
+        this.scheduler.timeout('smart-hide-check', SMART_HIDE_DELAY_MS, () => {
             this.checkWindowOverlap();
-            return GLib.SOURCE_REMOVE;
         });
     }
 
@@ -127,19 +126,14 @@ export class DockVisibility {
         if (!this.settings.get_boolean('auto-hide') || this.actor.hover || this.edgeSensor.hover)
             return;
 
-        this.hideSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, HIDE_DELAY_MS, () => {
-            this.hideSource = 0;
+        this.scheduler.timeout('auto-hide', HIDE_DELAY_MS, () => {
             if (!this.isInactive() && !this.actor.hover && !this.edgeSensor.hover)
                 this.hide();
-            return GLib.SOURCE_REMOVE;
         });
     }
 
     cancelHide(): void {
-        if (!this.hideSource)
-            return;
-        GLib.source_remove(this.hideSource);
-        this.hideSource = 0;
+        this.scheduler.cancel('auto-hide');
     }
 
     show(): void {
@@ -213,10 +207,7 @@ export class DockVisibility {
             return;
 
         this.destroyed = true;
-        this.cancelHide();
-        if (this.smartHideSource)
-            GLib.source_remove(this.smartHideSource);
-        this.smartHideSource = 0;
+        this.scheduler.destroy();
         this.actor.remove_all_transitions();
         this.background.remove_all_transitions();
     }
