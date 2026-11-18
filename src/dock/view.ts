@@ -341,11 +341,22 @@ export class DockView {
                 this.favorites.addFavorite(id);
         }
         const currentFavorites = this.favorites.getFavorites().map(app => app.get_id());
-        const orderedFavorites = appIds.filter(id => currentFavorites.includes(id));
+        const currentPositions = new Map(
+            currentFavorites.map((id, index) => [id, index]),
+        );
+        const orderedFavorites = appIds.filter(id => currentPositions.has(id));
+
         for (const [index, id] of orderedFavorites.entries()) {
-            const current = this.favorites.getFavorites().findIndex(app => app.get_id() === id);
-            if (current >= 0 && current !== index)
+            const current = currentPositions.get(id);
+            if (current !== undefined && current !== index) {
                 this.favorites.moveFavoriteToPos(id, index);
+                currentFavorites.splice(current, 1);
+                currentFavorites.splice(index, 0, id);
+                currentPositions.clear();
+                currentFavorites.forEach((favoriteId, position) =>
+                    currentPositions.set(favoriteId, position),
+                );
+            }
         }
     }
 
