@@ -127,6 +127,7 @@ export class DockView {
             this.settings,
             this.dragDrop,
             this.appSystem,
+            () => this.settings.get_string('dock-position'),
             () => this.refresh(),
         );
         this.previews = new WindowPreviews(
