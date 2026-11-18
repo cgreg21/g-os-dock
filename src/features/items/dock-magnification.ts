@@ -48,10 +48,31 @@ export function resolveMagnificationScale(
 }
 
 /**
+ * Resolves one item's influence from its actual main-axis geometry.
+ * The influence radius scales with the item's rendered extent, so different
+ * icon sizes and slot dimensions do not require fixed pixel assumptions.
+ */
+export function resolveMagnificationItemScale(
+    pointerAxis: number,
+    itemStart: number,
+    itemExtent: number,
+    influenceRadiusFactor: number,
+    maxScale: number,
+): number {
+    if (![pointerAxis, itemStart, itemExtent, influenceRadiusFactor, maxScale].every(Number.isFinite)
+        || itemExtent <= 0 || influenceRadiusFactor <= 0)
+        return 1;
+
+    const itemCenter = itemStart + itemExtent / 2;
+    const influenceRadius = itemExtent * influenceRadiusFactor;
+    return resolveMagnificationScale(pointerAxis, itemCenter, influenceRadius, maxScale);
+}
+
+/**
  * Pointer observation only: no animation, scaling, button resizing, or layout.
  */
 export class DockMagnificationController {
-    private readonly items = new Set<St.Button>();
+    private readonly items = new Map<St.Button, Clutter.Actor>();
     private readonly cleanup = new CleanupManager();
     private readonly surface: Clutter.Actor;
     private readonly originalReactive: boolean;
@@ -103,9 +124,29 @@ export class DockMagnificationController {
         return this.pointerAxis;
     }
 
-    register(button: St.Button, _visual: Clutter.Actor, _baseStyle: string): void {
+    register(button: St.Button, visual: Clutter.Actor, _baseStyle: string): void {
         if (!this.destroyed)
-            this.items.add(button);
+            this.items.set(button, visual);
+    }
+
+    /** Calculate each registered item's scale without applying it to actors. */
+    getItemScales(influenceRadiusFactor = 2.5, maxScale = 4): ReadonlyMap<St.Button, number> {
+        const scales = new Map<St.Button, number>();
+        if (this.destroyed || this.pointerAxis === null)
+            return scales;
+
+        const [surfaceX, surfaceY] = this.surface.get_transformed_position();
+        const vertical = this.content.orientation === Clutter.Orientation.VERTICAL;
+        for (const [button, visual] of this.items) {
+            const [itemX, itemY] = visual.get_transformed_position();
+            const [itemWidth, itemHeight] = visual.get_transformed_size();
+            const itemStart = vertical ? itemY - surfaceY : itemX - surfaceX;
+            const itemExtent = vertical ? itemHeight : itemWidth;
+            scales.set(button, resolveMagnificationItemScale(
+                this.pointerAxis, itemStart, itemExtent, influenceRadiusFactor, maxScale,
+            ));
+        }
+        return scales;
     }
 
     unregister(button: St.Button): void {
