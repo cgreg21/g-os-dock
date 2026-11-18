@@ -6,6 +6,7 @@ import {
     resolveDockEdgeSensor,
     resolveDockSurfacePosition,
     type DockEdge,
+    isVerticalDockPosition,
 } from './dock-positioner.js';
 import { calculateAvailableDockSpace } from './icon-sizing.js';
 
@@ -55,7 +56,7 @@ export class DockLayout {
             return;
 
         const position = this.settings.get_string('dock-position');
-        const vertical = position === 'left' || position === 'right';
+        const vertical = isVerticalDockPosition(position);
         const orientation = vertical
             ? Clutter.Orientation.VERTICAL
             : Clutter.Orientation.HORIZONTAL;
