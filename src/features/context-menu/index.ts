@@ -4,6 +4,7 @@ import Meta from 'gi://Meta?version=51';
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { getDockMenuSide } from '../menu-position.js';
 
 /** Keeps application context-menu construction and cleanup out of DockView. */
 export class AppContextMenu {
@@ -23,10 +24,7 @@ export class AppContextMenu {
         if (this.destroyed)
             return;
 
-        const position = this.dockPosition();
-        const side = position === 'top' ? St.Side.BOTTOM : position === 'bottom' ? St.Side.TOP :
-            position === 'left' ? St.Side.RIGHT : St.Side.LEFT;
-        const menu = new PopupMenu.PopupMenu(source, 0.5, side);
+        const menu = new PopupMenu.PopupMenu(source, 0.5, getDockMenuSide(this.dockPosition()));
         Main.uiGroup.add_child(menu.actor);
         this.manager.addMenu(menu);
         this.menus.push(menu);
