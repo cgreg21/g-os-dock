@@ -387,9 +387,15 @@ export class DockView {
     private syncFavoriteOrder(appIds: string[], pinningBoundary: number): void {
         // Persist the dock order before pinning: addFavorite emits favorites.changed
         // and can synchronously trigger a dock refresh.
-        for (const id of appIds.slice(0, pinningBoundary)) {
-            if (!this.favorites.isFavorite(id))
-                this.favorites.addFavorite(id);
+        const favoriteIds = new Set(
+            this.favorites.getFavorites().map(app => app.get_id()),
+        );
+        for (let index = 0; index < pinningBoundary && index < appIds.length; index++) {
+            const id = appIds[index];
+            if (!id || favoriteIds.has(id))
+                continue;
+            this.favorites.addFavorite(id);
+            favoriteIds.add(id);
         }
 
         const currentFavorites = this.favorites.getFavorites().map(app => app.get_id());
