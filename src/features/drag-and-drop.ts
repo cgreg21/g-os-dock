@@ -28,7 +28,7 @@ export type DockDragSource = {
 export class DockDragDrop {
     private draggedItem: DockDndItem | null = null;
     private previewSlot: St.Widget | null = null;
-    private draggables = new Map<St.Widget, DND.Draggable>();
+    private draggables = new Map<St.Widget, { draggable: DND.Draggable; signals: number[] }>();
     private removingItemId: string | null = null;
     private removalZone: St.Widget;
     private removalZoneDelegate: {
@@ -72,20 +72,27 @@ export class DockDragDrop {
             getDragActorSource: () => actor,
         };
         const draggable = DND.makeDraggable(actor, { dragActorOpacity: 210 });
-        this.draggables.set(actor, draggable);
-        draggable.connect('drag-begin', () => {
-            this.draggedItem = item;
-            this.showRemovalZone();
-            onStart();
-            actor.add_style_class_name('dragging');
-            this.beginPreview(item);
-        });
-        draggable.connect('drag-end', () => this.finishDrag(actor));
-        draggable.connect('drag-cancelled', () => this.finishDrag(actor));
+        const signals = [
+            draggable.connect('drag-begin', () => {
+                this.draggedItem = item;
+                this.showRemovalZone();
+                onStart();
+                actor.add_style_class_name('dragging');
+                this.beginPreview(item);
+            }),
+            draggable.connect('drag-end', () => this.finishDrag(actor)),
+            draggable.connect('drag-cancelled', () => this.finishDrag(actor)),
+        ];
+        this.draggables.set(actor, { draggable, signals });
     }
 
     unregisterItem(actor: St.Widget): void {
-        this.draggables.delete(actor);
+        const registration = this.draggables.get(actor);
+        if (registration) {
+            for (const signal of registration.signals)
+                registration.draggable.disconnect(signal);
+            this.draggables.delete(actor);
+        }
 
         this.clearDragDelegate(actor);
 
@@ -324,11 +331,10 @@ export class DockDragDrop {
     destroy(): void {
         this.hideRemovalZone();
         this.endPreview();
-        for (const actor of this.draggables.keys()) {
+        for (const actor of [...this.draggables.keys()]) {
             actor.remove_style_class_name('dragging');
-            this.clearDragDelegate(actor);
+            this.unregisterItem(actor);
         }
-        this.draggables.clear();
         Main.layoutManager.removeChrome(this.removalZone);
         this.removalZone.destroy();
     }
