@@ -32,6 +32,8 @@ export function calculateUniformItemSize(options: UniformItemSizingOptions): num
     return Math.min(configuredSize, Math.max(minimumSize, fittedSize));
 }
 
+export const WINDOW_COUNT_BADGE_SPACE = 25;
+
 export interface DockIconSizingOptions {
     applicationIds: readonly string[];
     favoriteIds: ReadonlySet<string>;
@@ -42,6 +44,7 @@ export interface DockIconSizingOptions {
     separatorSize: number;
     separatorMargin: number;
     additionalItemCount: number;
+    windowCountBadgeCount: number;
     iconPadding: number;
     vertical: boolean;
 }
@@ -105,6 +108,7 @@ export function calculateDockIconSize(options: DockIconSizingOptions): number {
         separatorSize,
         separatorMargin,
         additionalItemCount,
+        windowCountBadgeCount,
         iconPadding,
         vertical,
     } = options;
@@ -124,7 +128,10 @@ export function calculateDockIconSize(options: DockIconSizingOptions): number {
         itemCount,
         spacing,
         additionalSpace: separatorSpace,
-        overhead: vertical ? 25 : 4,
+        additionalSpace: separatorSpace + (vertical
+            ? Math.max(0, windowCountBadgeCount) * WINDOW_COUNT_BADGE_SPACE
+            : 0),
+        overhead: vertical ? 0 : 4,
         itemPadding: iconPadding,
         configuredSize,
         minimumSize: 16,
