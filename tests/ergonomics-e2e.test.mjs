@@ -611,3 +611,16 @@ test('E2E: folder application grids use the same translucent card treatment as w
     assert.match(stylesheet, /\.g-os-dock-folder-app-card\s*\{[^}]*background-color:\s*rgba\(255,\s*255,\s*255,\s*0\.07\)/s);
     assert.match(stylesheet, /\.g-os-dock-folder-app-card:hover[\s\S]*background-color:\s*rgba\(255,\s*255,\s*255,\s*0\.16\)/);
 });
+
+test('E2E: initial dock refresh applies persisted mixed order after mounting folders', () => {
+    const view = readFileSync(new URL('../src/dock/view.ts', import.meta.url), 'utf8');
+    const refreshStart = view.indexOf('private refresh(syncVolumes = false)');
+    const refreshEnd = view.indexOf('private syncFavoritesSeparator', refreshStart);
+    const refresh = view.slice(refreshStart, refreshEnd);
+    const folderSync = refresh.indexOf('this.folders.sync()');
+    const orderApply = refresh.indexOf('this.itemOrder.apply()', folderSync);
+    const position = refresh.indexOf('this.positionDock()', orderApply);
+    assert.ok(folderSync >= 0, 'folders must be mounted during refresh');
+    assert.ok(orderApply > folderSync, 'shared mixed-item order must run after folders are mounted');
+    assert.ok(position > orderApply, 'dock geometry must be recalculated after restoring item order');
+});
