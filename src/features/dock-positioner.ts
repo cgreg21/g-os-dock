@@ -7,6 +7,16 @@ export function isVerticalDockPosition(position: string): boolean {
     return position === 'left' || position === 'right';
 }
 
+/** Resolve the side opposite the dock edge for popup placement. */
+export function resolveOppositeDockEdge(position: string): DockEdge {
+    switch (position) {
+        case 'top': return 'bottom';
+        case 'bottom': return 'top';
+        case 'left': return 'right';
+        default: return 'left';
+    }
+}
+
 export interface DockSize {
     width: number;
     height: number;
@@ -136,22 +146,20 @@ export class DockPositioner {
         padding = 0,
     ): DockPoint {
         let x = anchor.x + (anchor.width - size.width) / 2;
-        let y = anchor.y - size.height - gap;
+        let y = anchor.y + (anchor.height - size.height) / 2;
 
-        switch (dockEdge) {
+        switch (resolveOppositeDockEdge(dockEdge)) {
             case 'top':
-                y = anchor.y + anchor.height + gap;
-                break;
-            case 'bottom':
                 y = anchor.y - size.height - gap;
                 break;
+            case 'bottom':
+                y = anchor.y + anchor.height + gap;
+                break;
             case 'left':
-                x = anchor.x + anchor.width + gap;
-                y = anchor.y + (anchor.height - size.height) / 2;
+                x = anchor.x - size.width - gap;
                 break;
             case 'right':
-                x = anchor.x - size.width - gap;
-                y = anchor.y + (anchor.height - size.height) / 2;
+                x = anchor.x + anchor.width + gap;
                 break;
         }
 
