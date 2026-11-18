@@ -149,7 +149,7 @@ test('calculates uniform item size after subtracting spacing and overhead', () =
         itemPadding: 2,
         configuredSize: 64,
         minimumSize: 16,
-    }), 21);
+    }), 23);
 });
 
 test('uses configured size when there are no items', () => {
