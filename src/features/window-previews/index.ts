@@ -20,6 +20,9 @@ export class WindowPreviews {
     private hoverSignal = 0;
     private keySignal = 0;
     private destroyed = false;
+    private windowManagerSettings = new Gio.Settings({
+        schema_id: 'org.gnome.desktop.wm.preferences',
+    });
 
     constructor(
         private settings: Gio.Settings,
@@ -95,9 +98,7 @@ export class WindowPreviews {
         previews.set_style('spacing: 8px; padding: 8px; border-radius: 14px; background-color: rgba(24,26,33,0.96); border: 1px solid rgba(255,255,255,0.18);');
         if (this.settings.get_boolean('dev-mode'))
             previews.add_style_class_name('g-os-dock-dev');
-        const buttonLayout = new Gio.Settings({
-            schema_id: 'org.gnome.desktop.wm.preferences',
-        }).get_string('button-layout');
+        const buttonLayout = this.windowManagerSettings.get_string('button-layout');
         const closeOnLeft = (buttonLayout.split(':')[0] ?? '').split(',').includes('close');
         let firstPreviewButton: St.Button | null = null;
         for (const [index, window] of windows.entries()) {
