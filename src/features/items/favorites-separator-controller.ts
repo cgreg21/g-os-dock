@@ -85,6 +85,8 @@ export class DockFavoritesSeparatorController {
             x_align: Clutter.ActorAlign.CENTER,
             y_align: Clutter.ActorAlign.CENTER,
         });
+        (actor as St.Widget & { _gOsDockStructuralRole?: string })
+            ._gOsDockStructuralRole = 'favorites-separator';
         this.content.add_child(actor);
         this.actor = actor;
         return actor;

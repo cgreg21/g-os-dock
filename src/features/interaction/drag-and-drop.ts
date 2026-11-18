@@ -6,7 +6,12 @@ import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { dockCache } from '../../core/cache.js';
 import { ChromeActorManager } from '../../core/chrome-actor-manager.js';
-import { canDropDockItemAtIndex, resolveDockDndInsertionIndex } from './dnd-geometry.js';
+import {
+    canDropDockItemAtIndex,
+    isDockDndFavoriteBoundaryInsertion,
+    resolveDockDndInsertionIndex,
+    resolveDockDndPreviewChildIndex,
+} from './dnd-geometry.js';
 
 export interface DockDndItem {
     id: string;
@@ -286,16 +291,38 @@ export class DockDragDrop {
         if (!this.previewSlot || !this.draggedItem)
             return;
         this.previewSlot.show();
+        const draggedItem = this.draggedItem;
         const targets = items ?? this.getItems().filter(item =>
-            item.id !== this.draggedItem?.id,
+            item.id !== draggedItem.id,
         );
         const target = Math.max(0, Math.min(index, targets.length));
         // Resolve the slot from registered dock items only. Structural
         // actors such as the favorites separator are intentionally ignored.
         const children = this.content.get_children();
-        const reference = targets[target]?.actor;
-        const referenceIndex = reference ? children.indexOf(reference) : -1;
-        const childIndex = referenceIndex >= 0 ? referenceIndex : children.length - 1;
+        const referenceItem = targets[target];
+        const referenceIndex = referenceItem ? children.indexOf(referenceItem.actor) : -1;
+        const favoriteCount = targets.filter(item =>
+            item.app && this.isFavorite(item),
+        ).length;
+        const applicationsBefore = targets
+            .slice(0, target)
+            .filter(item => item.app).length;
+        const isFavoriteBoundary = isDockDndFavoriteBoundaryInsertion(
+            !!draggedItem.app && this.isFavorite(draggedItem),
+            !!referenceItem?.app && this.isFavorite(referenceItem),
+            applicationsBefore,
+            favoriteCount,
+        );
+        const separatorIndex = children.findIndex(child =>
+            (child as St.Widget & { _gOsDockStructuralRole?: string })
+                ._gOsDockStructuralRole === 'favorites-separator',
+        );
+        const childIndex = resolveDockDndPreviewChildIndex(
+            referenceIndex,
+            separatorIndex,
+            children.length - 1,
+            isFavoriteBoundary,
+        );
         this.content.set_child_at_index(
             this.previewSlot,
             Math.max(0, Math.min(childIndex, children.length - 1)),

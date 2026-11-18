@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
     canDropDockItemAtIndex,
+    isDockDndFavoriteBoundaryInsertion,
     resolveDockDndInsertionIndex,
+    resolveDockDndPreviewChildIndex,
 } from '../dist/features/interaction/dnd-geometry.js';
 
 test('resolves insertion before the first item, including the first midpoint', () => {
@@ -44,4 +46,22 @@ test('rejects a favorite moved beyond the favorite section', () => {
 
 test('allows a non-favorite application to be dropped into the favorite section', () => {
     assert.equal(canDropDockItemAtIndex(false, 0, 3), true);
+});
+
+test('previews a favorite before the separator when moved to the end of favorites', () => {
+    assert.equal(isDockDndFavoriteBoundaryInsertion(true, false, 2, 2), true);
+    assert.equal(resolveDockDndPreviewChildIndex(5, 4, 8, true), 4);
+});
+
+test('keeps a non-favorite dragged from the running section after the separator', () => {
+    assert.equal(isDockDndFavoriteBoundaryInsertion(false, false, 3, 3), false);
+    assert.equal(resolveDockDndPreviewChildIndex(5, 4, 8, false), 5);
+});
+
+test('does not move the separator when a favorite is inserted before another favorite', () => {
+    assert.equal(isDockDndFavoriteBoundaryInsertion(true, true, 1, 2), false);
+});
+
+test('uses the end slot when no registered target actor is mounted', () => {
+    assert.equal(resolveDockDndPreviewChildIndex(-1, 4, 8, false), 8);
 });

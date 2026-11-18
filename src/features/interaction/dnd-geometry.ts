@@ -29,3 +29,28 @@ export function canDropDockItemAtIndex(
 ): boolean {
     return !draggedIsFavorite || applicationsBefore <= favoriteCount;
 }
+
+/**
+ * Resolve the visual ghost slot while preserving the favorites separator.
+ */
+export function resolveDockDndPreviewChildIndex(
+    referenceIndex: number,
+    separatorIndex: number,
+    fallbackIndex: number,
+    isFavoriteBoundary: boolean,
+): number {
+    if (isFavoriteBoundary && separatorIndex >= 0 && separatorIndex < referenceIndex)
+        return separatorIndex;
+    return referenceIndex >= 0 ? referenceIndex : fallbackIndex;
+}
+
+/** Only a favorite dragged to the end of the remaining favorites crosses this boundary. */
+export function isDockDndFavoriteBoundaryInsertion(
+    draggedIsFavorite: boolean,
+    referenceIsFavorite: boolean,
+    applicationsBefore: number,
+    favoriteCount: number,
+): boolean {
+    return draggedIsFavorite && !referenceIsFavorite &&
+        applicationsBefore === favoriteCount;
+}
