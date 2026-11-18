@@ -74,7 +74,7 @@ export class DockIndicators {
             if (item._gOsDockIndicator) {
                 if (item._gOsDockIndicator.visible !== presentation.visible)
                     item._gOsDockIndicator.visible = presentation.visible;
-                const markerCount = multiple ? Math.max(1, count) : 1;
+                const markerCount = multiple ? Math.max(1, state.count) : 1;
                 const length = shape === 'line' ? indicatorSize * 2 : indicatorSize;
                 const thickness = indicatorSize;
                 const radius = shape === 'round' ? '999px' : '0px';
