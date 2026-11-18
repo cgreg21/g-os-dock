@@ -142,17 +142,17 @@ export class DockVolumeItems {
             accessible_name: entry.mount.get_name(),
             child: icon,
         });
-        button.connect('clicked', () => {
+        const name = entry.mount.get_name();
+        const item = new DockItemBase(
+            this.content, button, name, this.dockPosition, this.dragDrop, entry.id,
+        );
+        item.cleanup.addSignal(button, button.connect('clicked', () => {
             try {
                 Gio.AppInfo.launch_default_for_uri(entry.mount.get_root().get_uri(), null);
             } catch (error) {
                 logError(error as Error, 'Unable to open mounted volume');
             }
-        });
-        const name = entry.mount.get_name();
-        const item = new DockItemBase(
-            this.content, button, name, this.dockPosition, this.dragDrop, entry.id,
-        );
+        }));
         item.setIconPadding(this.settings, this.iconSize);
         this.items.set(entry.id, {
             button, item, icon, mount: entry.mount, name,
