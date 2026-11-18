@@ -422,7 +422,6 @@ export class DockFoldersController {
                 });
             } else if (!closing) {
                 closing = true;
-                this.folderMenus.delete(menu);
                 this.menuManager.removeMenu(menu);
                 menu.actor.reactive = false;
                 menu.actor.ease({
@@ -431,7 +430,10 @@ export class DockFoldersController {
                     scaleY: 0.94,
                     duration: 135,
                     mode: Clutter.AnimationMode.EASE_IN_CUBIC,
-                    onComplete: () => menu.destroy(),
+                    onComplete: () => {
+                        if (this.folderMenus.delete(menu))
+                            menu.destroy();
+                    },
                 });
             }
         });
