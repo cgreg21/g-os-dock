@@ -3,320 +3,93 @@ import Clutter from 'gi://Clutter?version=51';
 import Gio from 'gi://Gio?version=2.0';
 import { CleanupManager } from '../../core/cleanup-manager.js';
 
-interface MagnifiedItem {
-    button: St.Button;
-    visual: Clutter.Actor;
-    start: number;
-    end: number;
-    center: number;
-    scale: number;
-    baseButtonWidth: number | null;
-    baseButtonHeight: number | null;
-    requestedWidth: number | null;
-    requestedHeight: number | null;
-    baseVisualWidth: number | null;
-    baseVisualHeight: number | null;
-    baseStyle: string;
+/**
+ * Converts stage pointer coordinates into a coordinate on the dock's main
+ * axis. The dock surface is axis-aligned, so its transformed origin is enough
+ * to make the result local to the surface.
+ */
+export function resolveMagnificationPointerAxis(
+    position: string,
+    pointerX: number,
+    pointerY: number,
+    surfaceX: number,
+    surfaceY: number,
+): number {
+    return position === 'left' || position === 'right'
+        ? pointerY - surfaceY
+        : pointerX - surfaceX;
 }
 
 /**
- * Frame-driven dock magnifier. Icon scale is converted into matching button
- * dimensions so the content layout and dock surface follow the live wave.
- * CSS padding and BoxLayout spacing remain unchanged; size updates use Clutter
- * allocations rather than reparsing CSS on every pointer frame.
+ * Step 1 of the magnifier rebuild: observe pointer position on the complete
+ * content surface. This controller deliberately performs no animation,
+ * scaling, button resizing, or layout changes.
  */
 export class DockMagnificationController {
-    private readonly items = new Map<St.Button, MagnifiedItem>();
+    private readonly items = new Set<St.Button>();
     private readonly cleanup = new CleanupManager();
-    private destroyed = false;
-    private timeline: Clutter.Timeline | null = null;
-    private cursor: number | null = null;
-    private rawPointer: number | null = null;
-    private envelope = 0;
-    private envelopeVelocity = 0;
-    private targetEnvelope = 0;
     private readonly surface: Clutter.Actor;
-
-    private static readonly CURSOR_TAU = 0.045;
-    private static readonly SPRING_OMEGA = 20;
-    private static readonly MAX_FRAME_DT = 1 / 30;
+    private pointerAxis: number | null = null;
+    private destroyed = false;
 
     constructor(
         private readonly content: St.BoxLayout,
-        private readonly settings: Gio.Settings,
-        private readonly dockPosition: () => string,
-        private readonly onSurfaceExtentChanged?: (leading: number, trailing: number, active?: boolean) => void,
+        _settings: Gio.Settings,
+        _dockPosition: () => string,
+        _onSurfaceExtentChanged?: (leading: number, trailing: number, active?: boolean) => void,
     ) {
         this.surface = content.get_parent() ?? content;
         this.surface.reactive = true;
+
         this.cleanup.addSignal(this.surface, this.surface.connect('motion-event', (_actor, event) => {
-            const [x, y] = event.get_coords();
-            this.rawPointer = this.isVertical() ? y : x;
-            this.targetEnvelope = this.settings.get_boolean('dock-magnification-enabled') ? 1 : 0;
-            this.startTimeline();
+            this.updatePointer(event);
             return Clutter.EVENT_PROPAGATE;
         }));
         this.cleanup.addSignal(this.surface, this.surface.connect('enter-event', (_actor, event) => {
-            const [x, y] = event.get_coords();
-            this.rawPointer = this.isVertical() ? y : x;
-            if (this.settings.get_boolean('dock-magnification-enabled')) {
-                this.targetEnvelope = 1;
-                this.startTimeline();
-            }
+            this.updatePointer(event);
             return Clutter.EVENT_PROPAGATE;
         }));
         this.cleanup.addSignal(this.surface, this.surface.connect('leave-event', () => {
-            this.targetEnvelope = 0;
-            this.startTimeline();
+            this.pointerAxis = null;
             return Clutter.EVENT_PROPAGATE;
         }));
-        this.cleanup.addSignal(settings, settings.connect('changed::dock-magnification-enabled', () => {
-            this.targetEnvelope = settings.get_boolean('dock-magnification-enabled') && this.rawPointer !== null ? 1 : 0;
-            if (this.targetEnvelope > 0 || this.envelope > 0)
-                this.startTimeline();
-        }));
-        this.cleanup.addSignal(settings, settings.connect('changed::dock-magnification-scale', () => {
-            if (this.envelope > 0)
-                this.startTimeline();
-        }));
-        this.cleanup.addSignal(settings, settings.connect('changed::dock-position', () => {
-            for (const item of this.items.values())
-                this.setVisualPivot(item.visual);
-            if (this.envelope > 0)
-                this.startTimeline();
-        }));
     }
 
-    register(button: St.Button, visual: Clutter.Actor, baseStyle: string): void {
+    private updatePointer(event: Clutter.Event): void {
         if (this.destroyed)
             return;
-        const existing = this.items.get(button);
-        if (existing) {
-            existing.baseStyle = baseStyle;
-            existing.baseButtonWidth = null;
-            existing.baseButtonHeight = null;
-            existing.requestedWidth = null;
-            existing.requestedHeight = null;
-            existing.baseVisualWidth = null;
-            existing.baseVisualHeight = null;
-            if (existing.visual !== visual) {
-                this.resetVisual(existing.visual);
-                existing.visual = visual;
-                this.setVisualPivot(visual);
-            }
-            return;
-        }
-        this.setVisualPivot(visual);
-        this.items.set(button, {
-            button, visual, start: 0, end: 0, center: 0, scale: 1,
-            baseButtonWidth: null, baseButtonHeight: null,
-            requestedWidth: null, requestedHeight: null,
-            baseVisualWidth: null, baseVisualHeight: null, baseStyle,
-        });
-        if (this.envelope > 0)
-            this.startTimeline();
+        const [pointerX, pointerY] = event.get_coords();
+        const [surfaceX, surfaceY] = this.surface.get_transformed_position();
+        const position = this.content.orientation === Clutter.Orientation.VERTICAL
+            ? 'left'
+            : 'bottom';
+        this.pointerAxis = resolveMagnificationPointerAxis(
+            position, pointerX, pointerY, surfaceX, surfaceY,
+        );
     }
 
-    private isVertical(): boolean {
-        return ['left', 'right'].includes(this.dockPosition());
+    /** Local pointer coordinate on the dock's main axis, or null outside it. */
+    getPointerAxis(): number | null {
+        return this.pointerAxis;
     }
 
-    private setVisualPivot(actor: Clutter.Actor): void {
-        switch (this.dockPosition()) {
-        case 'top':
-            actor.set_pivot_point(0.5, 0);
-            break;
-        case 'left':
-            actor.set_pivot_point(0, 0.5);
-            break;
-        case 'right':
-            actor.set_pivot_point(1, 0.5);
-            break;
-        default:
-            actor.set_pivot_point(0.5, 1);
-            break;
-        }
+    register(button: St.Button, _visual: Clutter.Actor, _baseStyle: string): void {
+        if (!this.destroyed)
+            this.items.add(button);
     }
 
     unregister(button: St.Button): void {
-        const item = this.items.get(button);
-        if (!item)
-            return;
         this.items.delete(button);
-        this.resetVisual(item.visual);
-        this.restoreButtonSize(item);
-        item.button.set_style(item.baseStyle);
         if (this.items.size === 0)
             this.destroy();
-        else if (this.envelope > 0)
-            this.applyWave();
-    }
-
-    private startTimeline(): void {
-        if (this.destroyed || this.timeline || this.items.size === 0)
-            return;
-        this.timeline = Clutter.Timeline.new_for_actor(this.surface, 3600 * 1000);
-        this.timeline.set_repeat_count(-1);
-        this.timeline.connect('new-frame', () => this.onFrame());
-        this.timeline.start();
-    }
-
-    private stopTimeline(): void {
-        if (!this.timeline)
-            return;
-        this.timeline.stop();
-        this.timeline = null;
-    }
-
-    private onFrame(): void {
-        if (this.destroyed || !this.surface.get_stage()) {
-            this.stopTimeline();
-            return;
-        }
-        const delta = this.timeline?.get_delta() ?? 0;
-        const dt = Math.min(Math.max(delta / 1000, 0), DockMagnificationController.MAX_FRAME_DT);
-        if (this.rawPointer !== null) {
-            if (this.cursor === null)
-                this.cursor = this.rawPointer;
-            else
-                this.cursor += (this.rawPointer - this.cursor) *
-                    (1 - Math.exp(-dt / DockMagnificationController.CURSOR_TAU));
-        }
-
-        const omega = DockMagnificationController.SPRING_OMEGA;
-        this.envelopeVelocity += (-2 * omega * this.envelopeVelocity -
-            omega * omega * (this.envelope - this.targetEnvelope)) * dt;
-        this.envelope += this.envelopeVelocity * dt;
-        this.envelope = Math.max(0, Math.min(1, this.envelope));
-
-        if (this.targetEnvelope === 0 && this.envelope < 0.002 &&
-            Math.abs(this.envelopeVelocity) < 0.02) {
-            this.envelope = 0;
-            this.envelopeVelocity = 0;
-            this.resetAllVisuals();
-            this.onSurfaceExtentChanged?.(0, 0, false);
-            this.stopTimeline();
-            return;
-        }
-        if (this.envelope > 0 && this.cursor !== null)
-            this.applyWave();
-        else
-            this.resetAllVisuals();
-    }
-
-    /** Recalculate button slots from the icon scale while keeping CSS padding and spacing fixed. */
-    private applyWave(): void {
-        if (this.destroyed || this.cursor === null || !this.content.has_allocation())
-            return;
-        const vertical = this.isVertical();
-        const contentPosition = this.content.get_transformed_position();
-        const contentOrigin = vertical ? contentPosition[1] : contentPosition[0];
-        const entries: MagnifiedItem[] = [];
-        for (const item of this.items.values()) {
-            if (!item.button.visible || !item.button.has_allocation() ||
-                !item.visual.visible || !item.visual.has_allocation())
-                continue;
-            const box = item.button.get_allocation_box();
-            const start = contentOrigin + (vertical ? box.y1 : box.x1);
-            const extent = vertical ? box.get_height() : box.get_width();
-            item.start = start;
-            item.end = start + extent;
-            item.center = start + extent / 2;
-            entries.push(item);
-        }
-        entries.sort((a, b) => a.start - b.start);
-        if (entries.length === 0)
-            return;
-
-        const maximum = Math.max(1, Math.min(4,
-            this.settings.get_int('dock-magnification-scale') / 100));
-        const averageSize = entries.reduce((sum, item) => sum + item.end - item.start, 0) / entries.length;
-        const effectWidth = averageSize * 6;
-        const min = this.cursor - effectWidth / 2;
-        let layoutChanged = false;
-        for (const item of entries) {
-            const theta = Math.max(0, Math.min(2 * Math.PI,
-                ((item.center - min) / effectWidth) * 2 * Math.PI));
-            const hann = (1 - Math.cos(theta)) / 2;
-            item.scale = 1 + this.envelope * (maximum - 1) * hann;
-            if (item.baseButtonWidth === null || item.baseButtonHeight === null) {
-                const allocation = item.button.get_allocation_box();
-                item.baseButtonWidth = allocation.get_width();
-                item.baseButtonHeight = allocation.get_height();
-            }
-            if (item.baseVisualWidth === null || item.baseVisualHeight === null) {
-                item.baseVisualWidth = item.visual.width;
-                item.baseVisualHeight = item.visual.height;
-            }
-
-            // Resize the actual button slot from the icon's scale. Use the
-            // actor size API instead of CSS parsing; padding and spacing stay
-            // at their configured values.
-            const width = item.baseButtonWidth +
-                item.baseVisualWidth * (item.scale - 1);
-            const height = item.baseButtonHeight +
-                item.baseVisualHeight * (item.scale - 1);
-            if (item.requestedWidth === null || Math.abs(item.requestedWidth - width) > 0.25 ||
-                item.requestedHeight === null || Math.abs(item.requestedHeight - height) > 0.25) {
-                item.button.set_size(width, height);
-                item.requestedWidth = width;
-                item.requestedHeight = height;
-                layoutChanged = true;
-            }
-
-            item.visual.set_scale(item.scale, item.scale);
-            item.visual.translation_x = 0;
-            item.visual.translation_y = 0;
-        }
-
-        if (layoutChanged) {
-            this.content.queue_relayout();
-            this.onSurfaceExtentChanged?.(0, 0, true);
-        }
-    }
-
-    private resetVisual(actor: Clutter.Actor): void {
-        for (const property of ['scale-x', 'scale-y', 'translation-x', 'translation-y'])
-            actor.remove_transition(property);
-        actor.set_scale(1, 1);
-        actor.translation_x = 0;
-        actor.translation_y = 0;
-    }
-
-    private restoreButtonSize(item: MagnifiedItem): void {
-        if (item.baseButtonWidth !== null && item.baseButtonHeight !== null)
-            item.button.set_size(item.baseButtonWidth, item.baseButtonHeight);
-        item.baseButtonWidth = null;
-        item.baseButtonHeight = null;
-        item.requestedWidth = null;
-        item.requestedHeight = null;
-    }
-
-    private resetAllVisuals(): void {
-        let layoutChanged = false;
-        for (const item of this.items.values()) {
-            this.resetVisual(item.visual);
-            if (item.requestedWidth !== null || item.requestedHeight !== null)
-                layoutChanged = true;
-            this.restoreButtonSize(item);
-            item.button.set_style(item.baseStyle);
-            item.baseVisualWidth = null;
-            item.baseVisualHeight = null;
-        }
-        if (layoutChanged)
-            this.content.queue_relayout();
     }
 
     destroy(): void {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        this.stopTimeline();
+        this.pointerAxis = null;
         this.cleanup.clear();
-        this.rawPointer = null;
-        this.cursor = null;
-        this.resetAllVisuals();
-        this.onSurfaceExtentChanged?.(0, 0, false);
         this.items.clear();
     }
 
