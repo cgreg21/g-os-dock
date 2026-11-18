@@ -14,11 +14,12 @@ import { DockAppearance } from '../features/appearance.js';
 import { DockLayout } from '../features/layout.js';
 import { DockIndicators } from '../features/indicators.js';
 import { WindowTracker } from '../features/window-tracker.js';
-import { DockAppItemFactory, type DockAppButton } from '../features/app-item.js';
+import { DockAppItemFactory } from '../features/app-item.js';
 import { DockApplicationItemsController } from '../features/application-items-controller.js';
 import { DockKeyboardNavigation } from '../features/keyboard-navigation.js';
 import { WindowPreviews } from '../features/window-previews/index.js';
 import { DockItemsController } from '../features/dock-items-controller.js';
+import { DockFavoritesSeparatorController } from '../features/favorites-separator-controller.js';
 import { dockCache } from '../features/cache.js';
 import { SettingsObserver } from '../features/settings-observer.js';
 import { LifecycleScope } from '../features/lifecycle-scope.js';
@@ -59,9 +60,7 @@ export class DockView {
     private appItemFactory: DockAppItemFactory;
     private keyboard: DockKeyboardNavigation;
     private dockItems: DockItemsController;
-    private favoritesSeparator: St.Widget | null = null;
-    private favoritesSeparatorStyle = '';
-    private favoritesSeparatorSize = '';
+    private favoritesSeparator: DockFavoritesSeparatorController;
 
     constructor(index: number, monitor: MonitorGeometry, settings: Gio.Settings) {
         this.monitor = monitor;
@@ -179,6 +178,10 @@ export class DockView {
             this.dragDrop,
             () => this.settings.get_string('dock-position'),
             () => this.refresh(),
+        );
+        this.favoritesSeparator = new DockFavoritesSeparatorController(
+            this.content,
+            this.settings,
         );
 
         try {
@@ -628,7 +631,7 @@ export class DockView {
         const structureChanged = this.syncApplicationItems(applications, size);
         const dockItemsChanged = this.dockItems.sync(size);
         this.applySavedItemOrder();
-        this.syncFavoritesSeparator(size, vertical);
+        this.syncFavoritesSeparator(vertical);
 
         if (structureChanged || dockItemsChanged || volumeItemsChanged)
             this.positionDock();
@@ -637,13 +640,13 @@ export class DockView {
         this.visibility.queueSmartHideCheck();
     }
 
-    private syncFavoritesSeparator(size: number, vertical: boolean): void {
+    private syncFavoritesSeparator(vertical: boolean): void {
         const enabled = this.settings.get_boolean('show-favorites-separator');
         const favoriteIds = new Set(
             this.favorites.getFavorites().map(app => app.get_id()),
         );
         let hasFavorite = false;
-        let firstNonFavorite: DockAppButton | undefined;
+        let firstNonFavorite: St.Widget | null = null;
         for (const item of this.itemActors) {
             if (favoriteIds.has(item._gOsDockApp.get_id())) {
                 hasFavorite = true;
@@ -653,67 +656,10 @@ export class DockView {
             }
         }
 
-        if (!enabled || !hasFavorite || !firstNonFavorite) {
-            this.removeFavoritesSeparator();
-            return;
-        }
-
-        if (!this.favoritesSeparator) {
-            this.favoritesSeparator = new St.Widget({
-                style_class: 'g-os-dock-favorites-separator',
-                reactive: false,
-                can_focus: false,
-                x_expand: false,
-                y_expand: false,
-                // BoxLayout otherwise fills children across its cross axis,
-                // making a short separator occupy the full dock width/height.
-                x_align: Clutter.ActorAlign.CENTER,
-                y_align: Clutter.ActorAlign.CENTER,
-            });
-            this.content.add_child(this.favoritesSeparator);
-        }
-
-        const thickness = Math.max(1, this.settings.get_int('favorites-separator-size'));
-        const length = Math.max(1, this.settings.get_int('favorites-separator-length'));
-        const color = this.settings.get_string('favorites-separator-color');
-        const opacity = this.settings.get_double('favorites-separator-opacity');
-        // In a vertical dock the separator is horizontal (length = width);
-        // in a horizontal dock it is vertical (length = height).
-        const separatorWidth = vertical ? length : thickness;
-        const separatorHeight = vertical ? thickness : length;
-        const style = dockCache.getOrCreate(
-            `favorites-separator-style:${color}:${opacity}:${thickness}:${separatorWidth}:${separatorHeight}:${vertical}`,
-            () =>
-                `background-color: ${color}; opacity: ${opacity}; ` +
-                `border-radius: ${Math.ceil(thickness / 2)}px; ` +
-                `width: ${separatorWidth}px; min-width: ${separatorWidth}px; max-width: ${separatorWidth}px; ` +
-                `height: ${separatorHeight}px; min-height: ${separatorHeight}px; max-height: ${separatorHeight}px; ` +
-                (vertical ? 'margin: 4px 0;' : 'margin: 0 4px;'),
+        this.favoritesSeparator.sync(
+            enabled && hasFavorite ? firstNonFavorite : null,
+            vertical,
         );
-        const dimensionsKey = `${separatorWidth}x${separatorHeight}`;
-        if (this.favoritesSeparatorSize !== dimensionsKey) {
-            this.favoritesSeparator.set_size(separatorWidth, separatorHeight);
-            this.favoritesSeparatorSize = dimensionsKey;
-        }
-        if (this.favoritesSeparatorStyle !== style) {
-            this.favoritesSeparator.set_style(style);
-            this.favoritesSeparatorStyle = style;
-        }
-
-        const children = this.content.get_children();
-        const targetIndex = children.indexOf(firstNonFavorite);
-        if (targetIndex >= 0 && children[targetIndex - 1] !== this.favoritesSeparator)
-            this.content.set_child_at_index(this.favoritesSeparator, targetIndex);
-    }
-
-    private removeFavoritesSeparator(): void {
-        if (!this.favoritesSeparator)
-            return;
-        this.favoritesSeparator.get_parent()?.remove_child(this.favoritesSeparator);
-        this.favoritesSeparator.destroy();
-        this.favoritesSeparator = null;
-        this.favoritesSeparatorStyle = '';
-        this.favoritesSeparatorSize = '';
     }
 
     private activateApp(app: Shell.App): void {
@@ -827,7 +773,7 @@ export class DockView {
         this.windowTracker.destroy();
         this.contextMenu.destroy();
         this.applicationItems.destroy();
-        this.removeFavoritesSeparator();
+        this.favoritesSeparator.destroy();
         this.dockItems.destroy();
         this.dragDrop.destroy();
         this.actor.destroy();
