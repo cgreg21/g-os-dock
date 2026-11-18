@@ -18,6 +18,7 @@ export class DockIndicators {
         const showOpen = this.settings.get_boolean('indicator-show-open');
         const showFocused = this.settings.get_boolean('indicator-show-focused');
         const showMinimized = this.settings.get_boolean('indicator-show-minimized');
+        const showCount = this.settings.get_boolean('show-window-count');
         const multiple = this.settings.get_string('indicator-mode') === 'multiple';
         const shape = this.settings.get_string('indicator-shape');
         const color = this.validColor(this.settings.get_string('indicator-color'));
@@ -91,7 +92,6 @@ export class DockIndicators {
 
             if (item._gOsDockBadge) {
                 const count = windows.length;
-                const showCount = this.settings.get_boolean('show-window-count');
                 item._gOsDockBadge.text = showCount && count > 1 ? String(count) : '';
                 item._gOsDockBadge.visible = showCount && count > 1;
             }
