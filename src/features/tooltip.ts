@@ -1,11 +1,16 @@
 import GLib from 'gi://GLib?version=2.0';
 import St from 'gi://St?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { TaskScheduler } from './task-scheduler.js';
 
 /** Displays an application name after the pointer has rested on its dock item. */
 export class DockTooltip {
     private actor: St.Label;
-    private timeoutId = 0;
+    private scheduler = new TaskScheduler({
+        timeout: (delay, callback) => GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, callback),
+        idle: callback => GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, callback),
+        remove: sourceId => GLib.Source.remove(sourceId),
+    });
     private hoverSignal: number;
     private destroySignal: number;
     private destroyed = false;
@@ -42,12 +47,9 @@ export class DockTooltip {
     }
 
     private scheduleShow(): void {
-        this.cancelTimeout();
-        this.timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 700, () => {
-            this.timeoutId = 0;
+        this.scheduler.timeout('show', 700, () => {
             if (!this.destroyed && this.parent.hover)
                 this.show();
-            return GLib.SOURCE_REMOVE;
         });
     }
 
@@ -83,22 +85,15 @@ export class DockTooltip {
     }
 
     private hide(): void {
-        this.cancelTimeout();
+        this.scheduler.cancel('show');
         this.actor.hide();
-    }
-
-    private cancelTimeout(): void {
-        if (this.timeoutId) {
-            GLib.source_remove(this.timeoutId);
-            this.timeoutId = 0;
-        }
     }
 
     destroy(): void {
         if (this.destroyed)
             return;
         this.destroyed = true;
-        this.cancelTimeout();
+        this.scheduler.destroy();
         if (this.hoverSignal)
             this.parent.disconnect(this.hoverSignal);
         if (this.destroySignal)
