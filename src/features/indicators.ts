@@ -11,6 +11,7 @@ import {
     resolveIndicatorColor,
 } from './indicator-style.js';
 import { resolveIndicatorMarkerLayout } from './indicator-layout.js';
+import { resolveIndicatorPresentation } from './indicator-presentation.js';
 
 /** Updates configurable open, focused and minimized application indicators. */
 export class DockIndicators {
@@ -59,21 +60,20 @@ export class DockIndicators {
                 );
                 this.windowStates.set(item, state);
             }
-            const { count, running, active, minimized } = state;
-            if (item._gOsDockIcon) {
-                const iconOpacity = minimized ? 128 : 255;
-                if (item._gOsDockIcon.opacity !== iconOpacity)
-                    item._gOsDockIcon.opacity = iconOpacity;
-            }
-            const shouldShow = enabled && (
-                (showOpen && running) ||
-                (showFocused && active) ||
-                (showMinimized && minimized)
-            );
+            const { count, active } = state;
+            const presentation = resolveIndicatorPresentation(state, {
+                enabled,
+                showOpen,
+                showFocused,
+                showMinimized,
+                showCount,
+            });
+            if (item._gOsDockIcon && item._gOsDockIcon.opacity !== presentation.iconOpacity)
+                item._gOsDockIcon.opacity = presentation.iconOpacity;
 
             if (item._gOsDockIndicator) {
-                if (item._gOsDockIndicator.visible !== shouldShow)
-                    item._gOsDockIndicator.visible = shouldShow;
+                if (item._gOsDockIndicator.visible !== presentation.visible)
+                    item._gOsDockIndicator.visible = presentation.visible;
                 const markerCount = multiple ? Math.max(1, count) : 1;
                 const length = shape === 'line' ? indicatorSize * 2 : indicatorSize;
                 const thickness = indicatorSize;
@@ -139,12 +139,10 @@ export class DockIndicators {
             }
 
             if (item._gOsDockBadge) {
-                const badgeText = showCount && count > 1 ? String(count) : '';
-                if (item._gOsDockBadge.text !== badgeText)
-                    item._gOsDockBadge.text = badgeText;
-                const badgeVisible = badgeText !== '';
-                if (item._gOsDockBadge.visible !== badgeVisible)
-                    item._gOsDockBadge.visible = badgeVisible;
+                if (item._gOsDockBadge.text !== presentation.badgeText)
+                    item._gOsDockBadge.text = presentation.badgeText;
+                if (item._gOsDockBadge.visible !== presentation.badgeVisible)
+                    item._gOsDockBadge.visible = presentation.badgeVisible;
             }
         }
     }
