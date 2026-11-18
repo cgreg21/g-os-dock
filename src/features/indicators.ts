@@ -10,6 +10,7 @@ import {
     createIndicatorMarkerStyle,
     resolveIndicatorColor,
 } from './indicator-style.js';
+import { resolveIndicatorMarkerLayout } from './indicator-layout.js';
 
 /** Updates configurable open, focused and minimized application indicators. */
 export class DockIndicators {
@@ -109,16 +110,20 @@ export class DockIndicators {
                 }
                 const iconContainer = item._gOsDockIndicator.get_parent();
                 if (iconContainer) {
-                    const spacing = 2;
-                    const totalWidth = markerCount * length + Math.max(0, markerCount - 1) * spacing;
-                    if (item._gOsDockIndicator.width !== totalWidth ||
-                        item._gOsDockIndicator.height !== thickness)
-                        item._gOsDockIndicator.set_size(totalWidth, thickness);
-                    const x = Math.max(0, (iconContainer.width - totalWidth) / 2);
-                    const y = iconContainer.height - thickness - bottomOffset;
+                    const layout = resolveIndicatorMarkerLayout(
+                        markerCount,
+                        length,
+                        thickness,
+                        iconContainer.width,
+                        iconContainer.height,
+                        bottomOffset,
+                    );
+                    if (item._gOsDockIndicator.width !== layout.width ||
+                        item._gOsDockIndicator.height !== layout.height)
+                        item._gOsDockIndicator.set_size(layout.width, layout.height);
                     const [currentX, currentY] = item._gOsDockIndicator.get_position();
-                    if (currentX !== x || currentY !== y)
-                        item._gOsDockIndicator.set_position(x, y);
+                    if (currentX !== layout.x || currentY !== layout.y)
+                        item._gOsDockIndicator.set_position(layout.x, layout.y);
                 }
             }
 
