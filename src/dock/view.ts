@@ -783,19 +783,21 @@ export class DockView {
             window.set_icon_geometry(geometry);
     }
 
-    private applySettings(): void {
-        if (this.destroyed)
-            return;
-
-        // Apply development styling immediately when the preference changes.
-        const devMode = this.settings.get_boolean('dev-mode');
+    private applyDevelopmentStyle(): void {
+        const enabled = this.settings.get_boolean('dev-mode');
         for (const actor of [this.actor, this.background, this.edgeSensor]) {
-            if (devMode)
+            if (enabled)
                 actor.add_style_class_name('g-os-dock-dev');
             else
                 actor.remove_style_class_name('g-os-dock-dev');
         }
+    }
 
+    private applySettings(): void {
+        if (this.destroyed)
+            return;
+
+        this.applyDevelopmentStyle();
         this.appearance.apply();
         this.refresh();
         this.layout.position();
