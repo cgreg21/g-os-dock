@@ -73,7 +73,7 @@ function addIconThemeSelector(group: Adw.PreferencesGroup, settings: Gio.Setting
         .filter(name => !name.endsWith('-symbolic'))
         .sort((a, b) => a.localeCompare(b));
     if (names.length === 0) return;
-    const fallback = names.includes('view-app-grid') ? 'view-app-grid' : names[0];
+    const fallback = names.includes('view-app-grid') ? 'view-app-grid' : (names[0] ?? 'view-app-grid');
     const row = new Adw.ComboRow({
         title: 'Applications icon',
         subtitle: 'Choose an icon from the current icon theme',
