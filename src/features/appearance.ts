@@ -35,11 +35,22 @@ export class DockAppearance {
         const bottom = this.settings.get_int('background-padding-bottom');
         const left = this.settings.get_int('background-padding-left');
         const spacing = this.settings.get_int('dock-spacing');
+        const shadowEnabled = this.settings.get_boolean('background-shadow-enabled');
+        const shadowColor = this.color(this.settings.get_string('background-shadow-color'), '#000000');
+        const shadowOpacity = this.settings.get_double('background-shadow-opacity');
+        const shadowX = this.settings.get_int('background-shadow-offset-x');
+        const shadowY = this.settings.get_int('background-shadow-offset-y');
+        const shadowBlur = this.settings.get_int('background-shadow-blur');
+        const shadowSpread = this.settings.get_int('background-shadow-spread');
+        const boxShadow = shadowEnabled
+            ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px ${shadowSpread}px ${this.rgba(shadowColor, shadowOpacity)};`
+            : 'box-shadow: none;';
 
         this.background.set_style(
             `background-color: ${this.rgba(backgroundColor, backgroundOpacity)}; ` +
             `border: ${borderSize}px solid ${this.rgba(borderColor, borderOpacity)}; ` +
-            `border-radius: ${radius};`,
+            `border-radius: ${radius}; ` +
+            boxShadow,
         );
         this.actor.set_style(`padding: ${top}px ${right}px ${bottom}px ${left}px;`);
         this.content.set_style(`spacing: ${spacing}px; color: ${defaultForeground};`);
