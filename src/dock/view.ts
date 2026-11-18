@@ -439,31 +439,20 @@ export class DockView {
         return Math.min(configuredSize, Math.max(16, fittedSize));
     }
 
-    private refresh(): void {
-        if (this.destroyed)
-            return;
+    private syncApplicationItems(applications: Shell.App[], size: number): boolean {
+        const pending: DockAppButton[] = [];
+        const sizeChanged = this.itemSize !== 0 && this.itemSize !== size;
+        const previousById = new Map<string, DockAppButton>();
 
-        const pendingItems: DockAppButton[] = [];
-        try {
-            const applications = this.getApplications();
-            const configuredSize = this.settings.get_int('icon-size');
-            const volumeItemsChanged = this.syncVolumeItems(configuredSize);
-            const vertical = ['left', 'right'].includes(this.settings.get_string('dock-position'));
-            const available = this.getAvailableSpace(vertical);
-            const size = this.getIconSize(applications, available, vertical, configuredSize);
-
-            // Rebuild only when the effective icon size changes. Ordinary
-            // app/window state changes keep the existing actors alive.
-            const sizeChanged = this.itemSize !== 0 && this.itemSize !== size;
-            const previousById = new Map<string, DockAppButton>();
-            if (!sizeChanged) {
-                for (const item of this.itemActors) {
-                    const id = item._gOsDockApp?.get_id();
-                    if (id)
-                        previousById.set(id, item);
-                }
+        if (!sizeChanged) {
+            for (const item of this.itemActors) {
+                const id = item._gOsDockApp?.get_id();
+                if (id)
+                    previousById.set(id, item);
             }
+        }
 
+        try {
             for (const app of applications) {
                 const id = app.get_id();
                 let item = id ? previousById.get(id) : undefined;
@@ -472,31 +461,48 @@ export class DockView {
                 } else {
                     item = this.createItem(app, size);
                 }
+
                 this.updateItemPadding(item, size);
                 if (item.get_parent() !== this.content)
                     this.content.add_child(item);
-                pendingItems.push(item);
+                pending.push(item);
             }
-
-            // Remove actors for apps no longer present, and all old actors
-            // when a genuine size change requires rebuilding the icon widgets.
-            const previousIds = this.itemActors.map(item => item._gOsDockApp.get_id());
-            const nextIds = pendingItems.map(item => item._gOsDockApp.get_id());
-            const structureChanged = sizeChanged ||
-                previousIds.length !== nextIds.length ||
-                previousIds.some((id, index) => id !== nextIds[index]);
-            const retained = new Set(pendingItems);
-            for (const item of this.itemActors) {
-                if (!retained.has(item)) {
+        } catch (error) {
+            for (const item of pending) {
+                if (!this.itemActors.includes(item)) {
                     this.dragDrop.unregisterItem(item);
-                    if (item.get_parent())
-                        item.get_parent()?.remove_child(item);
+                    item.get_parent()?.remove_child(item);
                     item.destroy();
                 }
             }
+            throw error;
+        }
 
-            this.itemActors = pendingItems;
-            this.itemSize = size;
+        const structureChanged = sizeChanged ||
+            this.itemActors.length !== pending.length ||
+            this.itemActors.some((item, index) =>
+                item._gOsDockApp.get_id() !== pending[index]?._gOsDockApp.get_id(),
+            );
+        const retained = new Set(pending);
+
+        for (const item of this.itemActors) {
+            if (retained.has(item))
+                continue;
+            this.dragDrop.unregisterItem(item);
+            item.get_parent()?.remove_child(item);
+            item.destroy();
+        }
+
+        this.itemActors = pending;
+        this.itemSize = size;
+        return structureChanged;
+    }
+
+    private refresh(): void {
+        if (this.destroyed)
+            return;
+
+            const structureChanged = this.syncApplicationItems(applications, size);
             const systemItemChanged = this.syncSystemItem(size);
             const trashItemChanged = this.syncTrashItem(size);
             this.volumeItems?.setIconSize(size);
@@ -505,14 +511,6 @@ export class DockView {
             if (structureChanged || systemItemChanged || trashItemChanged || volumeItemsChanged)
                 this.layout.position();
         } catch (error) {
-            for (const item of pendingItems) {
-                if (!this.itemActors.includes(item)) {
-                    this.dragDrop.unregisterItem(item);
-                    if (item.get_parent())
-                        item.get_parent()?.remove_child(item);
-                    item.destroy();
-                }
-            }
             throw error;
         }
 
