@@ -43,6 +43,7 @@ test('E2E: magnification keeps every icon anchored to the screen-facing edge', (
     assert.ok(controller.includes("actor.set_pivot_point(0.5, 0)"));
     assert.ok(controller.includes("actor.set_pivot_point(0, 0.5)"));
     assert.ok(controller.includes("actor.set_pivot_point(1, 0.5)"));
+    assert.ok(controller.includes("changed::dock-position"));
 });
 
 test('E2E: dock magnification keeps application icons rendered at four times their display resolution', () => {
