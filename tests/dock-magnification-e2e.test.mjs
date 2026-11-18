@@ -13,18 +13,25 @@ test('E2E: magnification has a configurable 100–400 percent range', () => {
     assert.ok(preferences.includes("'dock-magnification-scale'"));
 });
 
-test('E2E: magnification smoothly affects nearby items and restores them on pointer leave', () => {
+test('E2E: magnification creates a smooth bell-shaped wave around the pointer', () => {
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(controller.includes("connect('motion-event'"));
     assert.ok(controller.includes("connect('leave-event'"));
     assert.ok(controller.includes('Math.exp('));
-    assert.ok(controller.includes('EASE_OUT_CUBIC'));
-    assert.ok(controller.includes('duration: 145'));
-    assert.ok(controller.includes('Smootherstep'));
+    assert.ok(controller.includes('radius = size * 1.65'));
+    assert.ok(controller.includes('duration: 115'));
     assert.ok(controller.includes('actor.ease({'));
-    assert.ok(!controller.includes('this.animations.cancel'));
-    assert.ok(!controller.includes('AnimationManager'));
-    assert.ok(controller.includes('this.reset()'));
+    assert.ok(controller.includes('duration: 190'));
+});
+
+test('E2E: magnification keeps every icon anchored to the dock baseline', () => {
+    const controller = read('../src/features/items/dock-magnification.ts');
+    assert.ok(controller.includes("actor.set_pivot_point(0.5, 1)"));
+    assert.ok(controller.includes("actor.set_pivot_point(0.5, 0)"));
+    assert.ok(controller.includes("actor.set_pivot_point(0, 0.5)"));
+    assert.ok(controller.includes("actor.set_pivot_point(1, 0.5)"));
+    assert.ok(controller.includes('translationX: 0'));
+    assert.ok(controller.includes('translationY: 0'));
 });
 
 test('E2E: dock magnification keeps application icons rendered at four times their display resolution', () => {
@@ -39,6 +46,6 @@ test('E2E: magnification is shared by all dock items and cleaned up when items a
     const controller = read('../src/features/items/dock-magnification.ts');
     assert.ok(base.includes('DockMagnificationController'));
     assert.ok(base.includes('magnification.unregister(this.button)'));
-    assert.ok(controller.includes('this.animations.destroy()'));
     assert.ok(controller.includes('this.cleanup.clear()'));
+    assert.ok(controller.includes('this.stopTransitions(actor)'));
 });
