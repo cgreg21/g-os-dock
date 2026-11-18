@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+    resolveDockDndInsertionIndex,
     resolveDockDndInsertionIndexWithHysteresis,
+    resolveDockDndPreviewChildIndex,
+    isDockDndFavoriteBoundaryInsertion,
+    resolveDockRemovalZoneGeometry,
     canDropDockItemAtIndex,
 } from '../dist/features/interaction/dnd-geometry.js';
 import {
@@ -10,8 +14,15 @@ import {
     resolveDockEdgeSensor,
     resolveHiddenTranslation,
     resolveOppositeDockEdge,
+    isVerticalDockPosition,
 } from '../dist/features/layout/dock-positioner.js';
-import { calculateDockIconSize } from '../dist/features/layout/icon-sizing.js';
+import {
+    calculateDockIconSize,
+    calculateUniformItemSize,
+    calculateAvailableDockSpace,
+    resolveDockSizingMetrics,
+    WINDOW_COUNT_BADGE_SPACE,
+} from '../dist/features/layout/icon-sizing.js';
 import {
     resolveDockKeyboardAction,
     resolveWrappedDockIndex,
@@ -190,4 +201,398 @@ test('E2E: keyboard focus wraps instead of stopping at the first or last app', (
     assert.equal(resolveWrappedDockIndex(5, 5), 0);
     assert.equal(resolveWrappedDockIndex(2, 5), 2);
     assert.equal(resolveWrappedDockIndex(0, 0), null);
+});
+
+
+// Broad deterministic scenario matrix: these tests exercise the same pure
+// decision logic used by the runtime controllers without pretending to drive
+// a real GNOME Shell session or compositor.
+
+test('E2E: dock orientation and opposite popup edge are consistent for every position', () => {
+    assert.equal(isVerticalDockPosition('left'), true);
+    assert.equal(isVerticalDockPosition('right'), true);
+    assert.equal(isVerticalDockPosition('top'), false);
+    assert.equal(isVerticalDockPosition('bottom'), false);
+    assert.deepEqual(
+        ['top', 'right', 'bottom', 'left'].map(resolveOppositeDockEdge),
+        ['bottom', 'left', 'top', 'right'],
+    );
+});
+
+test('E2E: dock positioning stays within offset multi-monitor geometries', () => {
+    const monitors = [
+        { x: -1920, y: 0, width: 1920, height: 1080 },
+        { x: 1440, y: -240, width: 2560, height: 1440 },
+        { x: 0, y: 0, width: 1280, height: 720 },
+    ];
+    for (const screen of monitors) {
+        for (const edge of ['top', 'right', 'bottom', 'left']) {
+            for (const edgeDistance of [0, 1, 12, 32]) {
+                const size = { width: 220, height: 68 };
+                const inset = Math.max(screen.y, screen.y + 36);
+                const point = resolveDockSurfacePosition(screen, size, edge, edgeDistance, inset);
+                assert.ok(point.x >= screen.x + edgeDistance - 1);
+                assert.ok(point.y >= inset - 1);
+                assert.ok(point.x + size.width <= screen.x + screen.width - edgeDistance + 1);
+                assert.ok(point.y + size.height <= screen.y + screen.height - edgeDistance + 1);
+            }
+        }
+    }
+});
+
+test('E2E: oversized docks clamp safely instead of escaping tiny monitors', () => {
+    for (const screen of [
+        { x: 0, y: 0, width: 320, height: 240 },
+        { x: -800, y: 200, width: 160, height: 120 },
+    ]) {
+        for (const edge of ['top', 'right', 'bottom', 'left']) {
+            const point = resolveDockSurfacePosition(
+                screen, { width: 600, height: 500 }, edge, 12, screen.y + 30,
+            );
+            assert.ok(Number.isFinite(point.x) && Number.isFinite(point.y));
+            assert.ok(point.x >= screen.x + 11);
+            assert.ok(point.y >= screen.y + 29);
+        }
+    }
+});
+
+test('E2E: edge sensors remain on the requested edge and respect top-panel insets', () => {
+    const screen = { x: -1280, y: 120, width: 1280, height: 800 };
+    for (const edge of ['top', 'right', 'bottom', 'left']) {
+        const sensor = resolveDockEdgeSensor({
+            monitor: screen, edge, thickness: 3, topInset: 44,
+        });
+        assert.ok(sensor.width >= 3 && sensor.height >= 3);
+        if (edge === 'left') assert.equal(sensor.x, screen.x);
+        if (edge === 'right') assert.equal(sensor.x + sensor.width, screen.x + screen.width);
+        if (edge === 'bottom') assert.equal(sensor.y + sensor.height, screen.y + screen.height);
+        if (edge === 'top') assert.equal(sensor.y, screen.y + 44);
+    }
+});
+
+test('E2E: popup placement clamps at all four monitor corners', () => {
+    const bounds = { x: -900, y: 80, width: 900, height: 700 };
+    const anchors = [
+        { x: -900, y: 80, width: 48, height: 48 },
+        { x: -48, y: 80, width: 48, height: 48 },
+        { x: -900, y: 732, width: 48, height: 48 },
+        { x: -48, y: 732, width: 48, height: 48 },
+    ];
+    for (const anchor of anchors) {
+        for (const edge of ['top', 'right', 'bottom', 'left']) {
+            const size = { width: 360, height: 420 };
+            const point = DockPositioner.placeFloating(anchor, size, edge, 10, bounds, 6);
+            assert.ok(point.x >= bounds.x + 6);
+            assert.ok(point.y >= bounds.y + 6);
+            assert.ok(point.x + size.width <= bounds.x + bounds.width - 6);
+            assert.ok(point.y + size.height <= bounds.y + bounds.height - 6);
+        }
+    }
+});
+
+test('E2E: floating popups handle dimensions larger than their available bounds', () => {
+    const point = DockPositioner.placeFloating(
+        { x: 20, y: 20, width: 32, height: 32 },
+        { width: 800, height: 900 },
+        'bottom',
+        8,
+        { x: 10, y: 10, width: 300, height: 200 },
+        5,
+    );
+    assert.deepEqual(point, { x: 15, y: 15 });
+});
+
+test('E2E: hidden translations clear the dock from every edge for varied sizes', () => {
+    for (const width of [24, 48, 96, 320, 1200]) {
+        for (const height of [24, 48, 96, 180, 900]) {
+            assert.deepEqual(resolveHiddenTranslation('left', { width, height }), { x: -width, y: 0 });
+            assert.deepEqual(resolveHiddenTranslation('right', { width, height }), { x: width, y: 0 });
+            assert.deepEqual(resolveHiddenTranslation('top', { width, height }), { x: 0, y: -height });
+            assert.deepEqual(resolveHiddenTranslation('bottom', { width, height }), { x: 0, y: height });
+        }
+    }
+});
+
+test('E2E: adaptive icon sizing never exceeds configured size or drops below minimum', () => {
+    for (let count = 0; count <= 80; count++) {
+        for (const availableSpace of [0, 1, 64, 240, 720, 1440, 3840]) {
+            const ids = Array.from({ length: count }, (_, i) => 'app-' + i);
+            const size = calculateDockIconSize({
+                applicationIds: ids,
+                favoriteIds: new Set(ids.filter((_, i) => i % 2 === 0)),
+                availableSpace,
+                configuredSize: 96,
+                spacing: 6,
+                showFavoritesSeparator: true,
+                separatorSize: 2,
+                separatorMargin: 4,
+                additionalItemCount: 3,
+                windowCountBadgeCount: 4,
+                iconPadding: 8,
+                vertical: count % 2 === 0,
+            });
+            assert.ok(size >= 16, `count=${count}, space=${availableSpace}, size=${size}`);
+            assert.ok(size <= 96);
+        }
+    }
+});
+
+test('E2E: uniform sizing handles empty docks and clamps pathological available space', () => {
+    assert.equal(calculateUniformItemSize({
+        availableSpace: 0, itemCount: 0, spacing: 8, additionalSpace: 0,
+        overhead: 0, itemPadding: 0, configuredSize: 64, minimumSize: 16,
+    }), 64);
+    assert.equal(calculateUniformItemSize({
+        availableSpace: -100, itemCount: 12, spacing: 8, additionalSpace: 0,
+        overhead: 0, itemPadding: 0, configuredSize: 64, minimumSize: 16,
+    }), 16);
+    assert.equal(calculateUniformItemSize({
+        availableSpace: 10000, itemCount: 1, spacing: 0, additionalSpace: 0,
+        overhead: 0, itemPadding: 0, configuredSize: 64, minimumSize: 16,
+    }), 64);
+});
+
+test('E2E: additional dock items and vertical window badges are included in sizing', () => {
+    const base = {
+        applicationIds: ['a', 'b', 'c'],
+        favoriteIds: new Set(['a']),
+        availableSpace: 500,
+        configuredSize: 96,
+        spacing: 4,
+        showFavoritesSeparator: false,
+        separatorSize: 2,
+        separatorMargin: 4,
+        additionalItemCount: 0,
+        windowCountBadgeCount: 0,
+        iconPadding: 0,
+    };
+    const horizontal = calculateDockIconSize({ ...base, vertical: false });
+    const verticalNoBadges = calculateDockIconSize({ ...base, vertical: true });
+    const verticalWithBadges = calculateDockIconSize({
+        ...base, vertical: true, windowCountBadgeCount: 2,
+    });
+    const withExtraItems = calculateDockIconSize({
+        ...base, vertical: false, additionalItemCount: 4,
+    });
+    assert.ok(verticalWithBadges < verticalNoBadges);
+    assert.ok(withExtraItems < horizontal);
+    assert.equal(WINDOW_COUNT_BADGE_SPACE, 25);
+});
+
+test('E2E: sizing metrics count extra items but do not allocate an empty separator', () => {
+    const metrics = resolveDockSizingMetrics({
+        applicationIds: ['a', 'b'],
+        favoriteIds: new Set(),
+        additionalItemCount: 3,
+        showFavoritesSeparator: true,
+        separatorSize: 2,
+        separatorMargin: 4,
+        spacing: 6,
+    });
+    assert.equal(metrics.itemCount, 5);
+    assert.equal(metrics.separatorSpace, 0);
+});
+
+test('E2E: available dock space subtracts all configured outer insets', () => {
+    const horizontal = calculateAvailableDockSpace({
+        monitorWidth: 1920, monitorY: 0, monitorHeight: 1080, usableTop: 40,
+        edgeDistance: 12, padding: 16, border: 2, vertical: false,
+    });
+    const vertical = calculateAvailableDockSpace({
+        monitorWidth: 1920, monitorY: 0, monitorHeight: 1080, usableTop: 40,
+        edgeDistance: 12, padding: 16, border: 2, vertical: true,
+    });
+    assert.equal(horizontal, 1878);
+    assert.equal(vertical, 1010);
+});
+
+test('E2E: drag insertion returns null for incomplete or invalid geometry', () => {
+    assert.equal(resolveDockDndInsertionIndex([10, null, 30], 20), null);
+    assert.equal(resolveDockDndInsertionIndex([10, Number.NaN, 30], 20), null);
+    assert.equal(resolveDockDndInsertionIndex([10, 20], Number.NaN), null);
+    assert.equal(resolveDockDndInsertionIndex([], 20), 0);
+});
+
+test('E2E: drag insertion maps every midpoint boundary to the expected slot', () => {
+    const midpoints = [20, 50, 90, 140];
+    assert.equal(resolveDockDndInsertionIndex(midpoints, -100), 0);
+    assert.equal(resolveDockDndInsertionIndex(midpoints, 20), 0);
+    assert.equal(resolveDockDndInsertionIndex(midpoints, 21), 1);
+    assert.equal(resolveDockDndInsertionIndex(midpoints, 50), 1);
+    assert.equal(resolveDockDndInsertionIndex(midpoints, 51), 2);
+    assert.equal(resolveDockDndInsertionIndex(midpoints, 200), 4);
+});
+
+test('E2E: drag hysteresis rejects invalid current slots and invalid margins safely', () => {
+    const midpoints = [20, 50, 90];
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis(midpoints, 55, null, 8), 2);
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis(midpoints, 55, -1, 8), 2);
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis(midpoints, 55, 99, 8), 2);
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis(midpoints, 55, 1, -1), null);
+    assert.equal(resolveDockDndInsertionIndexWithHysteresis(midpoints, 55, 1, Number.NaN), null);
+});
+
+test('E2E: drag preview respects the favorites separator and fallback positions', () => {
+    assert.equal(resolveDockDndPreviewChildIndex(5, 3, 8, true), 3);
+    assert.equal(resolveDockDndPreviewChildIndex(5, 3, 8, false), 5);
+    assert.equal(resolveDockDndPreviewChildIndex(-1, 3, 8, false), 8);
+    assert.equal(resolveDockDndPreviewChildIndex(2, -1, 8, true), 2);
+});
+
+test('E2E: favorite boundary insertion is only true for favorite-to-running boundary drops', () => {
+    assert.equal(isDockDndFavoriteBoundaryInsertion(true, false, 3, 3), true);
+    assert.equal(isDockDndFavoriteBoundaryInsertion(false, false, 3, 3), false);
+    assert.equal(isDockDndFavoriteBoundaryInsertion(true, true, 3, 3), false);
+    assert.equal(isDockDndFavoriteBoundaryInsertion(true, false, 2, 3), false);
+    assert.equal(isDockDndFavoriteBoundaryInsertion(true, false, 4, 3), false);
+});
+
+test('E2E: removal target occupies two thirds of the monitor for every dock edge', () => {
+    const screen = { x: -1600, y: 80, width: 1600, height: 900 };
+    for (const edge of ['top', 'right', 'bottom', 'left']) {
+        const zone = resolveDockRemovalZoneGeometry(screen, edge);
+        if (edge === 'top' || edge === 'bottom')
+            assert.equal(zone.height, Math.floor(screen.height * 2 / 3));
+        else
+            assert.equal(zone.width, Math.floor(screen.width * 2 / 3));
+        assert.ok(zone.width > 0 && zone.height > 0);
+        assert.ok(zone.x >= screen.x && zone.y >= screen.y);
+        assert.ok(zone.x + zone.width <= screen.x + screen.width);
+        assert.ok(zone.y + zone.height <= screen.y + screen.height);
+    }
+});
+
+test('E2E: removal target accounts for top panel inset on bottom dock', () => {
+    const screen = { x: 0, y: 0, width: 1920, height: 1080 };
+    const zone = resolveDockRemovalZoneGeometry(screen, 'bottom', 48);
+    assert.equal(zone.y, 48);
+    assert.equal(zone.height, Math.floor(1080 * 2 / 3) - 48);
+});
+
+test('E2E: folder member merge is stable, unique, and ignores empty identifiers', () => {
+    const target = ['app.a', '', 'app.b', 'app.a'];
+    const source = ['app.c', 'app.b', '', 'app.d'];
+    assert.deepEqual(
+        mergeDockFolderMembers(target, source),
+        ['app.a', 'app.b', 'app.c', 'app.d'],
+    );
+    assert.deepEqual(target, ['app.a', '', 'app.b', 'app.a']);
+    assert.deepEqual(source, ['app.c', 'app.b', '', 'app.d']);
+});
+
+test('E2E: folder member merge is idempotent and commutative as a membership set', () => {
+    const a = ['one', 'two', 'three'];
+    const b = ['three', 'four'];
+    assert.deepEqual(mergeDockFolderMembers(mergeDockFolderMembers(a, b), []), ['one', 'two', 'three', 'four']);
+    assert.deepEqual(new Set(mergeDockFolderMembers(a, b)), new Set(mergeDockFolderMembers(b, a)));
+});
+
+test('E2E: folder creation handles source and target at either end or adjacent positions', () => {
+    const cases = [
+        { order: ['source', 'x', 'target'], expected: ['folder', 'x'] },
+        { order: ['target', 'x', 'source'], expected: ['folder', 'x'] },
+        { order: ['x', 'source', 'target'], expected: ['x', 'folder'] },
+        { order: ['x', 'target', 'source'], expected: ['x', 'folder'] },
+        { order: ['source', 'target'], expected: ['folder'] },
+    ];
+    for (const scenario of cases) {
+        assert.deepEqual(
+            resolveDockFolderDropOrder(scenario.order, 'source', 'target', 'folder'),
+            scenario.expected,
+        );
+    }
+});
+
+test('E2E: folder creation does not mutate its incoming dock order', () => {
+    const order = ['before', 'source', 'middle', 'target', 'after'];
+    const snapshot = [...order];
+    resolveDockFolderDropOrder(order, 'source', 'target', 'folder');
+    assert.deepEqual(order, snapshot);
+});
+
+test('E2E: folder creation with missing source or target appends one folder entry', () => {
+    assert.deepEqual(resolveDockFolderDropOrder(['a', 'b'], 'missing', 'b', 'f'), ['a', 'f']);
+    assert.deepEqual(resolveDockFolderDropOrder(['a', 'b'], 'a', 'missing', 'f'), ['f', 'b']);
+    assert.deepEqual(resolveDockFolderDropOrder(['a', 'b'], 'missing-a', 'missing-b', 'f'), ['a', 'b', 'f']);
+});
+
+test('E2E: folder removal preserves unrelated folders and their custom settings', () => {
+    const folders = [
+        { id: 'folder:one', name: 'One', appIds: ['a', 'b', 'c'], viewMode: 'stack', custom: 'keep' },
+        { id: 'folder:two', name: 'Two', appIds: ['d', 'e'], viewMode: 'grid' },
+    ];
+    const state = resolveDockFolderRemoval(folders, ['folder:one', 'folder:two'], 'folder:one', 'b');
+    assert.deepEqual(state.folders, [
+        { ...folders[1], appIds: ['d', 'e'] },
+        { ...folders[0], appIds: ['a', 'c'] },
+    ]);
+    assert.deepEqual(folders[0].appIds, ['a', 'b', 'c']);
+});
+
+test('E2E: folder removal preserves stack/grid mode when a folder dissolves', () => {
+    for (const viewMode of ['grid', 'stack']) {
+        const state = resolveDockFolderRemoval(
+            [{ id: 'folder:x', name: 'X', appIds: ['a', 'b'], viewMode }],
+            ['folder:x'],
+            'folder:x',
+            'b',
+        );
+        assert.deepEqual(state.folders, []);
+        assert.deepEqual(state.order, ['app:a', 'app:b']);
+    }
+});
+
+test('E2E: folder removal at the beginning and end keeps restored app order stable', () => {
+    const first = resolveDockFolderRemoval(
+        [folder('f', ['a', 'b', 'c'])], ['f', 'x'], 'f', 'b',
+    );
+    assert.deepEqual(first.order, ['f', 'app:b', 'x']);
+    const last = resolveDockFolderRemoval(
+        [folder('f', ['a', 'b', 'c'])], ['x', 'f'], 'f', 'b',
+    );
+    assert.deepEqual(last.order, ['x', 'f', 'app:b']);
+});
+
+test('E2E: removing an app from a missing folder or twice is a safe no-op', () => {
+    const folders = [folder('f', ['a', 'b', 'c'])];
+    assert.equal(resolveDockFolderRemoval(folders, ['f'], 'missing', 'a'), null);
+    const once = resolveDockFolderRemoval(folders, ['f'], 'f', 'b');
+    assert.equal(resolveDockFolderRemoval(once.folders, once.order, 'f', 'b'), null);
+});
+
+test('E2E: keyboard navigation maps every orientation and ignores perpendicular keys', () => {
+    const keys = { left: 1, right: 2, up: 3, down: 4, home: 5, end: 6, escape: 7 };
+    const cases = [
+        ['top', 1, 'previous'], ['top', 2, 'next'], ['top', 4, 'previews'],
+        ['bottom', 1, 'previous'], ['bottom', 2, 'next'], ['bottom', 3, 'previews'],
+        ['left', 3, 'previous'], ['left', 4, 'next'], ['left', 2, 'previews'],
+        ['right', 3, 'previous'], ['right', 4, 'next'], ['right', 1, 'previews'],
+    ];
+    for (const [edge, key, expected] of cases)
+        assert.equal(resolveDockKeyboardAction(key, edge, keys), expected);
+});
+
+test('E2E: keyboard first/last/escape actions are orientation independent', () => {
+    const keys = { left: 1, right: 2, up: 3, down: 4, home: 5, end: 6, escape: 7 };
+    for (const edge of ['top', 'right', 'bottom', 'left']) {
+        assert.equal(resolveDockKeyboardAction(keys.home, edge, keys), 'first');
+        assert.equal(resolveDockKeyboardAction(keys.end, edge, keys), 'last');
+        assert.equal(resolveDockKeyboardAction(keys.escape, edge, keys), 'escape');
+    }
+});
+
+test('E2E: wrapped keyboard focus handles negative and oversized indices', () => {
+    for (let count = 1; count <= 20; count++) {
+        for (let index = -count * 3; index <= count * 3; index++) {
+            const wrapped = resolveWrappedDockIndex(index, count);
+            assert.ok(wrapped >= 0 && wrapped < count);
+            assert.equal(wrapped, ((index % count) + count) % count);
+        }
+    }
+});
+
+test('E2E: keyboard focus rejects non-integer indices and invalid item counts', () => {
+    for (const [index, count] of [[1.5, 4], [0, 0], [0, -1], [Number.NaN, 4], [1, Number.NaN]]) {
+        assert.equal(resolveWrappedDockIndex(index, count), null);
+    }
 });
