@@ -19,7 +19,11 @@ test('E2E: magnification smoothly affects nearby items and restores them on poin
     assert.ok(controller.includes("connect('leave-event'"));
     assert.ok(controller.includes('Math.exp('));
     assert.ok(controller.includes('EASE_OUT_CUBIC'));
-    assert.ok(controller.includes('durationMs: 64'));
+    assert.ok(controller.includes('duration: 145'));
+    assert.ok(controller.includes('Smootherstep'));
+    assert.ok(controller.includes('actor.ease({'));
+    assert.ok(!controller.includes('this.animations.cancel'));
+    assert.ok(!controller.includes('AnimationManager'));
     assert.ok(controller.includes('this.reset()'));
 });
 
