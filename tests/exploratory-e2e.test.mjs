@@ -113,7 +113,11 @@ test('Exploratory E2E: randomized popup anchors always produce finite clamped po
             height: integer(random, 20, bounds.height),
         };
         const edge = EDGES[integer(random, 0, 3)];
-        const padding = integer(random, 0, 12);
+        const maxPadding = Math.max(0, Math.floor(Math.min(
+            (bounds.width - size.width) / 2,
+            (bounds.height - size.height) / 2,
+        )));
+        const padding = integer(random, 0, Math.min(12, maxPadding));
         const point = DockPositioner.placeFloating(
             anchor, size, edge, integer(random, 0, 32), bounds, padding,
         );
@@ -220,8 +224,8 @@ test('Exploratory E2E: randomized folder removal conserves application membershi
         const memberCount = integer(random, 2, 30);
         const appIds = Array.from({ length: memberCount }, (_, n) => `org.test.App${n}`);
         const folderId = `folder:${i}`;
-        const before = ['app:before'];
-        const after = ['app:after'];
+        const before = ['external:before'];
+        const after = ['external:after'];
         const order = [...before, folderId, ...after];
         const removed = appIds[integer(random, 0, appIds.length - 1)];
         const mode = random() < 0.5 ? 'grid' : 'stack';
