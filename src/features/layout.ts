@@ -2,7 +2,11 @@ import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Gio from 'gi://Gio?version=2.0';
-import { DockPositioner, resolveDockEdgeSensor, type DockEdge } from './dock-positioner.js';
+import {
+    resolveDockEdgeSensor,
+    resolveDockSurfacePosition,
+    type DockEdge,
+} from './dock-positioner.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -84,36 +88,20 @@ export class DockLayout {
         this.actor.set_size(width, height);
         this.background.set_size(width, height);
 
-        const minX = this.monitor.x + edgeDistance;
-        const maxX = Math.max(minX, this.monitor.x + this.monitor.width - width - edgeDistance);
-        const minY = usableTop;
-        const maxY = Math.max(minY, this.monitor.y + this.monitor.height - height - edgeDistance);
-
-        let x = this.monitor.x + Math.round((this.monitor.width - width) / 2);
-        let y = this.monitor.y + this.monitor.height - height - edgeDistance;
-        if (position === 'top') {
-            y = usableTop;
-        } else if (position === 'left' || position === 'right') {
-            x = position === 'left'
-                ? minX
-                : this.monitor.x + this.monitor.width - width - edgeDistance;
-            y = usableTop + Math.round(
-                (this.monitor.y + this.monitor.height - usableTop - height - edgeDistance) / 2,
-            );
-        }
-
-        const clamped = DockPositioner.clamp(
-            { x, y },
-            { width, height },
+        const surfacePosition = resolveDockSurfacePosition(
             {
-                x: minX,
-                y: minY,
-                width: maxX - minX + width,
-                height: maxY - minY + height,
+                x: this.monitor.x,
+                y: this.monitor.y,
+                width: this.monitor.width,
+                height: this.monitor.height,
             },
+            { width, height },
+            position as DockEdge,
+            edgeDistance,
+            usableTop,
         );
-        x = clamped.x;
-        y = clamped.y;
+        const x = surfacePosition.x;
+        const y = surfacePosition.y;
         this.actor.set_position(Math.round(x), Math.round(y));
 
         // Center the decorative background on the actual icon content.
