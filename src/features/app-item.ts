@@ -6,8 +6,7 @@ import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import { DockDragDrop } from './drag-and-drop.js';
 import { WindowPreviews } from './window-previews/index.js';
 import { AppContextMenu } from './context-menu/index.js';
-import { DockTooltip } from './tooltip.js';
-import { getIconPaddingStyle } from './icon-padding.js';
+import { DockItemBase } from './dock-item-base.js';
 
 export type DockAppButton = St.Button & {
     _gOsDockApp: Shell.App;
@@ -15,6 +14,7 @@ export type DockAppButton = St.Button & {
     _gOsDockIcon: Clutter.Actor;
     _gOsDockBadge: St.Label;
     _gOsDockPaddingStyle?: string;
+    _gOsDockBase: DockItemBase;
 };
 
 interface DockAppItemDependencies {
@@ -75,38 +75,39 @@ export class DockAppItemFactory {
             x_expand: false,
             y_expand: false,
         }) as DockAppButton;
-        const settings = this.dependencies.settings;
-        item._gOsDockPaddingStyle = getIconPaddingStyle(settings, size);
-        item.set_style(item._gOsDockPaddingStyle);
-        new DockTooltip(item, app.get_name(), this.dependencies.dockPosition);
-
+        let base: DockItemBase | null = null;
         try {
             item._gOsDockApp = app;
-
-            this.dependencies.dragDrop.registerItem(
+            base = new DockItemBase(
+                null,
+                item,
+                app.get_name(),
+                this.dependencies.dockPosition,
+                this.dependencies.dragDrop,
+                `app:${app.get_id()}`,
                 {
-                    id: `app:${app.get_id()}`,
-                    actor: item,
                     app,
                     canRemove: () => this.dependencies.favorites.isFavorite(app.get_id()),
                     onRemove: () => this.dependencies.favorites.removeFavorite(app.get_id()),
                 },
                 () => this.dependencies.previews.hide(),
             );
+            item._gOsDockBase = base;
+            item._gOsDockPaddingStyle = base.setIconPadding(this.dependencies.settings, size);
 
-            item.connect('clicked', () => this.dependencies.activateApp(app));
-            item.connect('key-press-event', (_actor: St.Button, event: Clutter.Event) =>
-                this.dependencies.handleKeyPress(item, event));
+            base.cleanup.addSignal(item, item.connect('clicked', () => this.dependencies.activateApp(app)));
+            base.cleanup.addSignal(item, item.connect('key-press-event', (_actor: St.Button, event: Clutter.Event) =>
+                this.dependencies.handleKeyPress(item, event)));
 
-            item.connect('notify::hover', () => {
+            base.cleanup.addSignal(item, item.connect('notify::hover', () => {
                 if (item.hover) {
                     this.dependencies.previews.scheduleShow(app, item);
                 } else {
                     this.dependencies.previews.scheduleHide();
                 }
-            });
+            }));
 
-            item.connect('scroll-event', (_actor: St.Button, event: Clutter.Event) => {
+            base.cleanup.addSignal(item, item.connect('scroll-event', (_actor: St.Button, event: Clutter.Event) => {
                 const direction = event.get_scroll_direction();
                 if (direction !== Clutter.ScrollDirection.UP &&
                     direction !== Clutter.ScrollDirection.DOWN)
@@ -126,9 +127,9 @@ export class DockAppItemFactory {
                 if (nextWindow)
                     app.activate_window(nextWindow, global.get_current_time());
                 return Clutter.EVENT_STOP;
-            });
+            }));
 
-            item.connect('button-press-event', (_actor: St.Button, event: Clutter.Event) => {
+            base.cleanup.addSignal(item, item.connect('button-press-event', (_actor: St.Button, event: Clutter.Event) => {
                 const button = event.get_button();
                 if (button === 2) {
                     app.open_new_window(global.get_current_time());
@@ -139,7 +140,7 @@ export class DockAppItemFactory {
                     return Clutter.EVENT_STOP;
                 }
                 return Clutter.EVENT_PROPAGATE;
-            });
+            }));
 
             const badge = new St.Label({ style_class: 'g-os-dock-window-count' });
             content.add_child(badge);
@@ -148,8 +149,10 @@ export class DockAppItemFactory {
             item._gOsDockBadge = badge;
             return item;
         } catch (error) {
-            this.dependencies.dragDrop.unregisterItem(item);
-            item.destroy();
+            if (base)
+                base.destroy();
+            else
+                item.destroy();
             throw error;
         }
     }
