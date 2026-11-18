@@ -2,6 +2,7 @@ import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Gio from 'gi://Gio?version=2.0';
+import { DockPositioner } from './dock-positioner.js';
 
 type MonitorGeometry = (typeof Main.layoutManager.monitors)[number];
 
@@ -80,8 +81,18 @@ export class DockLayout {
             );
         }
 
-        x = Math.max(minX, Math.min(x, maxX));
-        y = Math.max(minY, Math.min(y, maxY));
+        const clamped = DockPositioner.clamp(
+            { x, y },
+            { width, height },
+            {
+                x: minX,
+                y: minY,
+                width: maxX - minX + width,
+                height: maxY - minY + height,
+            },
+        );
+        x = clamped.x;
+        y = clamped.y;
         this.actor.set_position(Math.round(x), Math.round(y));
 
         // Center the decorative background on the actual icon content.
