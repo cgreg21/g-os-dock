@@ -58,6 +58,7 @@ export function resolveDockFolderRemoval(
     if (remaining.length >= 2) {
         nextFolders.push({ id: folderId, name: folder.name, appIds: remaining });
         const folderIndex = index < 0 ? nextOrder.length : Math.min(index, nextOrder.length);
+        nextOrder.splice(folderIndex, 0, folderId);
         nextOrder.splice(folderIndex + 1, 0, `app:${appId}`);
     } else {
         const restoredIds = [...remaining, appId].map(id => `app:${id}`);
