@@ -27,7 +27,6 @@ export class DockVolumeItems {
         mount: Gio.Mount;
         name: string;
         iconKey: string;
-
     }>();
     private destroyed = false;
 
