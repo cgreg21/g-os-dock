@@ -34,16 +34,16 @@ export class DockTrashItem {
             accessible_name: 'Trash',
             child: this.icon,
         });
-        this.button.connect('clicked', () => {
+        this.item = new DockItemBase(
+            this.content, this.button, 'Corbeille', dockPosition, this.dragDrop, 'system:trash',
+        );
+        this.item.cleanup.addSignal(this.button, this.button.connect('clicked', () => {
             try {
                 Gio.AppInfo.launch_default_for_uri('trash:///', null);
             } catch (error) {
                 logError(error as Error, 'Unable to open Trash');
             }
-        });
-        this.item = new DockItemBase(
-            this.content, this.button, 'Corbeille', dockPosition, this.dragDrop, 'system:trash',
-        );
+        }));
         this.watchTrash();
         this.updateIcon();
     }
