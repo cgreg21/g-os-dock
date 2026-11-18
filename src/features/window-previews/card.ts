@@ -2,7 +2,6 @@ import St from 'gi://St?version=51';
 import Clutter from 'gi://Clutter?version=51';
 import Meta from 'gi://Meta?version=51';
 import Shell from 'gi://Shell?version=51';
-import Gio from 'gi://Gio?version=2.0';
 
 /** Builds a single window preview card and its window actions. */
 export function createWindowPreviewCard(
@@ -10,6 +9,7 @@ export function createWindowPreviewCard(
     window: Meta.Window,
     index: number,
     onClose: () => void,
+    closeOnLeft: boolean,
 ): { card: St.BoxLayout; previewButton: St.Button } {
     const card = new St.BoxLayout({
         style_class: 'g-os-dock-preview-card',
@@ -61,11 +61,7 @@ export function createWindowPreviewCard(
         }));
     }
 
-    // GNOME separates left and right titlebar controls with a colon.
-    const wmSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.wm.preferences' });
-    const buttonLayout = wmSettings.get_string('button-layout');
-    const leftButtons = buttonLayout.split(':')[0] ?? '';
-    const closeOnLeft = leftButtons.split(',').includes('close');
+    // Place the close control according to GNOME's titlebar button layout.
     const closeButton = new St.Button({
         style_class: 'g-os-dock-preview-close',
         child: new St.Icon({ icon_name: 'window-close-symbolic', icon_size: 14 }),
