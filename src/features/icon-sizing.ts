@@ -40,6 +40,7 @@ export interface DockIconSizingOptions {
     spacing: number;
     showFavoritesSeparator: boolean;
     separatorSize: number;
+    separatorMargin: number;
     additionalItemCount: number;
     iconPadding: number;
     vertical: boolean;
@@ -102,6 +103,7 @@ export function calculateDockIconSize(options: DockIconSizingOptions): number {
         spacing,
         showFavoritesSeparator,
         separatorSize,
+        separatorMargin,
         additionalItemCount,
         iconPadding,
         vertical,
@@ -113,6 +115,7 @@ export function calculateDockIconSize(options: DockIconSizingOptions): number {
         additionalItemCount,
         showFavoritesSeparator,
         separatorSize,
+        separatorMargin,
         spacing,
     });
 
