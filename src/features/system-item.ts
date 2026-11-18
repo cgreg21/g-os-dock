@@ -5,17 +5,16 @@ import GLib from 'gi://GLib?version=2.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { DockDragDrop } from './drag-and-drop.js';
-import { DockTooltip } from './tooltip.js';
 import { getDockMenuSide } from './menu-position.js';
 import { getIconPaddingStyle } from './icon-padding.js';
-import { CleanupManager } from './cleanup-manager.js';
+import { DockItemBase } from './dock-item-base.js';
 
 /** Configurable app-grid launcher and GNOME system actions. */
 export class DockSystemItem {
     private button: St.Button;
     private menuManager: PopupMenu.PopupMenuManager;
     private menu: PopupMenu.PopupMenu | null = null;
-    private cleanup = new CleanupManager();
+    private item: DockItemBase;
     private destroyed = false;
     private paddingStyle = '';
 
@@ -27,8 +26,11 @@ export class DockSystemItem {
             can_focus: true, track_hover: true, x_expand: false, y_expand: false,
             accessible_name: 'Applications and system actions',
         });
+        this.item = new DockItemBase(
+            this.content, this.button, 'Applications', this.dockPosition,
+            this.dragDrop, 'system:launcher',
+        );
         this.updateIcon();
-        new DockTooltip(this.button, 'Applications', this.dockPosition);
         this.button.connect('clicked', () => {
             if (Main.overview.visible)
                 Main.overview.hide();
@@ -41,12 +43,8 @@ export class DockSystemItem {
             return Clutter.EVENT_STOP;
         });
         const iconSignal = settings.connect('changed::system-icon-name', () => this.updateIcon());
-        this.cleanup.addSignal(settings, iconSignal);
+        this.item.cleanup.addSignal(settings, iconSignal);
         this.menuManager = new PopupMenu.PopupMenuManager(this.button);
-        // Register only after parenting: GNOME's draggable setup expects the
-        // source actor to belong to the live dock hierarchy.
-        this.content.add_child(this.button);
-        dragDrop.registerItem({ id: 'system:launcher', actor: this.button });
     }
 
     private updateIcon(): void {
@@ -146,9 +144,7 @@ export class DockSystemItem {
     destroy(): void {
         if (this.destroyed) return;
         this.destroyed = true;
-        this.cleanup.clear();
-        this.dragDrop.unregisterItem(this.button);
         this.closeMenu();
-        this.button.destroy();
+        this.item.destroy();
     }
 }
