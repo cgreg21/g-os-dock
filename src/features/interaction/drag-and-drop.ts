@@ -114,7 +114,10 @@ export class DockDragDrop {
         registration.signals = [
             registration.draggable.connect('drag-begin', () => {
                 const current = registration.item;
-                this.showRemovalZone();
+                if (current.canRemove?.())
+                    this.showRemovalZone();
+                else
+                    this.hideRemovalZone();
                 registration.onStart();
                 actor.add_style_class_name('dragging');
                 this.beginPreview(current);
