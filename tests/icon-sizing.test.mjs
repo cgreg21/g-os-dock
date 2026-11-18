@@ -105,9 +105,10 @@ test('resolves application count and favorites separator cost generically', () =
             additionalItemCount: 2,
             showFavoritesSeparator: true,
             separatorSize: 3,
+            separatorMargin: 4,
             spacing: 7,
         }),
-        { itemCount: 5, separatorSpace: 10 },
+        { itemCount: 5, separatorSpace: 18 },
     );
 });
 
@@ -119,6 +120,7 @@ test('does not reserve separator cost when one application group is absent', () 
             additionalItemCount: -2,
             showFavoritesSeparator: true,
             separatorSize: 3,
+            separatorMargin: 4,
             spacing: 7,
         }),
         { itemCount: 2, separatorSpace: 0 },
@@ -133,6 +135,7 @@ test('does not reserve separator cost when the separator is disabled', () => {
             additionalItemCount: 1,
             showFavoritesSeparator: false,
             separatorSize: 3,
+            separatorMargin: 4,
             spacing: 7,
         }),
         { itemCount: 3, separatorSpace: 0 },
