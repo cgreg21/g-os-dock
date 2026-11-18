@@ -17,6 +17,7 @@ export type DockAppButton = St.Button & {
 };
 
 interface DockAppItemDependencies {
+    content: St.BoxLayout;
     favorites: ReturnType<typeof AppFavorites.getAppFavorites>;
     dragDrop: DockDragDrop;
     previews: WindowPreviews;
@@ -47,7 +48,7 @@ export class DockAppItemFactory {
             y_expand: false,
         });
         iconContainer.set_size(size, size);
-        const icon = app.create_icon_texture(size);
+        const icon = app.create_icon_texture(size * 4);
         icon.set_size(size, size);
         icon.set_position(0, 0);
         iconContainer.add_child(icon);
@@ -78,7 +79,7 @@ export class DockAppItemFactory {
         try {
             item._gOsDockApp = app;
             base = new DockItemBase(
-                null,
+                this.dependencies.content,
                 item,
                 app.get_name(),
                 this.dependencies.dockPosition,
