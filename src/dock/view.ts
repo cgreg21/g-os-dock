@@ -387,21 +387,7 @@ export class DockView {
 
     private applySavedItemOrder(): void {
         const actors = this.getDndItems();
-        let saved = this.settings.get_strv('dock-item-order');
-        if (saved.length === 0) {
-            // One-time migration from the old launcher-only position setting.
-            const legacy = actors.filter(item => item.id !== 'system:launcher').map(item => item.id);
-            const launcherIndex = actors.findIndex(item => item.id === 'system:launcher');
-            if (launcherIndex >= 0) {
-                const target = Math.max(0, Math.min(
-                    this.settings.get_int('system-icon-position'), legacy.length,
-                ));
-                legacy.splice(target, 0, 'system:launcher');
-            }
-            saved = legacy;
-            if (saved.length > 0)
-                this.settings.set_strv('dock-item-order', saved);
-        }
+        const saved = this.getSavedItemOrder(actors);
         const rank = new Map(saved.map((id, index) => [id, index]));
         actors.sort((a, b) =>
             (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
@@ -412,6 +398,28 @@ export class DockView {
             if (current >= 0 && current !== index)
                 this.content.set_child_at_index(item.actor, index);
         }
+    }
+
+    private getSavedItemOrder(actors: DockDndItem[]): string[] {
+        const saved = this.settings.get_strv('dock-item-order');
+        if (saved.length > 0)
+            return saved;
+
+        // One-time migration from the old launcher-only position setting.
+        const legacy = actors
+            .filter(item => item.id !== 'system:launcher')
+            .map(item => item.id);
+        const launcherIndex = actors.findIndex(item => item.id === 'system:launcher');
+        if (launcherIndex >= 0) {
+            const target = Math.max(0, Math.min(
+                this.settings.get_int('system-icon-position'),
+                legacy.length,
+            ));
+            legacy.splice(target, 0, 'system:launcher');
+        }
+        if (legacy.length > 0)
+            this.settings.set_strv('dock-item-order', legacy);
+        return legacy;
     }
 
     private getAvailableSpace(vertical: boolean): number {
