@@ -317,14 +317,9 @@ export class DockView {
     }
 
     private getDndItems(): DockDndItem[] {
-        const items: DockDndItem[] = this.itemActors.map(item => ({
-            id: `app:${item._gOsDockApp.get_id()}`,
-            actor: item,
-            app: item._gOsDockApp,
-            isFavorite: () => this.favorites.isFavorite(item._gOsDockApp.get_id()),
-            canRemove: () => this.favorites.isFavorite(item._gOsDockApp.get_id()),
-            onRemove: () => this.favorites.removeFavorite(item._gOsDockApp.get_id()),
-        }));
+        const items: DockDndItem[] = this.itemActors.map(item =>
+            this.createAppDndItem(item),
+        );
         if (this.systemItem)
             items.push({ id: 'system:launcher', actor: this.systemItem.getActor() });
         if (this.trashItem)
@@ -336,6 +331,18 @@ export class DockView {
             children.indexOf(a.actor) - children.indexOf(b.actor),
         );
         return items;
+    }
+
+    private createAppDndItem(item: DockAppButton): DockDndItem {
+        const appId = item._gOsDockApp.get_id();
+        return {
+            id: `app:${appId}`,
+            actor: item,
+            app: item._gOsDockApp,
+            isFavorite: () => this.favorites.isFavorite(appId),
+            canRemove: () => this.favorites.isFavorite(appId),
+            onRemove: () => this.favorites.removeFavorite(appId),
+        };
     }
 
     private persistItemOrder(ids: string[]): void {
