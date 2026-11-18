@@ -59,8 +59,17 @@ export class DockCache {
     }
 
     getOrCreate<T>(key: string, factory: () => T, ttlMs = this.defaultTtlMs): T {
-        if (this.has(key))
-            return this.get<T>(key) as T;
+        const entry = this.entries.get(key) as CacheEntry<T> | undefined;
+        if (entry && entry.expiresAt > Date.now()) {
+            this.entries.delete(key);
+            this.entries.set(key, entry);
+            this.hits++;
+            return entry.value;
+        }
+
+        if (entry)
+            this.entries.delete(key);
+
         this.misses++;
         return this.set(key, factory(), ttlMs);
     }
