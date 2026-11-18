@@ -1,3 +1,8 @@
+import {
+    calculateFavoritesSeparatorSpace,
+    hasFavoritesSeparatorTarget,
+} from './favorites-separator.js';
+
 export interface UniformItemSizingOptions {
     availableSpace: number;
     itemCount: number;
@@ -77,22 +82,16 @@ export function resolveDockSizingMetrics(
         separatorMargin,
         spacing,
     } = options;
-    let hasFavorites = false;
-    let hasRunningApps = false;
-    for (const id of applicationIds) {
-        if (favoriteIds.has(id))
-            hasFavorites = true;
-        else
-            hasRunningApps = true;
-        if (hasFavorites && hasRunningApps)
-            break;
-    }
+    const hasSeparatorTarget = hasFavoritesSeparatorTarget(applicationIds, favoriteIds);
 
     return {
         itemCount: applicationIds.length + Math.max(0, additionalItemCount),
-        separatorSpace: showFavoritesSeparator && hasFavorites && hasRunningApps
-            ? separatorSize + separatorMargin * 2 + spacing
-            : 0,
+        separatorSpace: calculateFavoritesSeparatorSpace(
+            showFavoritesSeparator && hasSeparatorTarget,
+            separatorSize,
+            separatorMargin,
+            spacing,
+        ),
     };
 }
 
