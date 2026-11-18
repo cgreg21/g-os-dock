@@ -113,7 +113,7 @@ export class DockDragDrop {
         if (dragged?.app && this.isFavorite(dragged) && index > favoriteCount)
             return DND.DragMotionResult.NO_DROP;
 
-        this.movePreview(index);
+        this.movePreview(index, targets);
         return DND.DragMotionResult.MOVE_DROP;
     }
 
@@ -176,16 +176,18 @@ export class DockDragDrop {
         this.movePreview(this.content.get_children().indexOf(item.actor));
     }
 
-    private movePreview(index: number): void {
+    private movePreview(index: number, items?: DockDndItem[]): void {
         if (!this.previewSlot || !this.draggedItem)
             return;
-        const items = this.getItems().filter(item => item.id !== this.draggedItem!.id);
-        const target = Math.max(0, Math.min(index, items.length));
+        const targets = items ?? this.getItems().filter(item =>
+            item.id !== this.draggedItem?.id,
+        );
+        const target = Math.max(0, Math.min(index, targets.length));
         this.previewIndex = target;
         // Resolve the slot from registered dock items only. Structural
         // actors such as the favorites separator are intentionally ignored.
         const children = this.content.get_children();
-        const reference = items[target]?.actor;
+        const reference = targets[target]?.actor;
         const childIndex = reference
             ? children.indexOf(reference)
             : children.length - 1;
