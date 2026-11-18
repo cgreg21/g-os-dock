@@ -81,3 +81,14 @@ test('rejects invalid or overflowing rectangle unions', async () => {
         { x: Number.MAX_VALUE, y: 0, width: Number.MAX_VALUE, height: 10 },
     ), null);
 });
+
+
+test('shares rectangle validation across geometry operations', async () => {
+    const { isValidRectangle } = await import('../dist/features/geometry.js');
+    assert.equal(isValidRectangle({ x: -20, y: 10, width: 20, height: 30 }), true);
+    assert.equal(isValidRectangle({ x: 0, y: 0, width: 0, height: 10 }), false);
+    assert.equal(isValidRectangle({ x: Number.NaN, y: 0, width: 10, height: 10 }), false);
+    assert.equal(isValidRectangle({
+        x: Number.MAX_VALUE, y: 0, width: Number.MAX_VALUE, height: 10,
+    }), false);
+});
