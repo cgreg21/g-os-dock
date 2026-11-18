@@ -66,3 +66,29 @@ test('destroy is idempotent and prevents later subscriptions', () => {
     assert.equal(observer.size, 0);
     assert.equal(settings.signals.size, 0);
 });
+
+test('watchMany subscribes once per distinct key and ignores unrelated keys', () => {
+    const observer = new SettingsObserver();
+    const settings = new FakeSettings();
+    let calls = 0;
+
+    observer.watchMany(settings, ['theme', 'dock-position', 'theme', ''], () => calls++);
+    assert.equal(observer.size, 2);
+    settings.emit('changed::unrelated');
+    settings.emit('changed::theme');
+    settings.emit('changed::dock-position');
+    assert.equal(calls, 2);
+
+    observer.destroy();
+    assert.equal(settings.signals.size, 0);
+});
+
+test('watchMany does not subscribe after destruction', () => {
+    const observer = new SettingsObserver();
+    const settings = new FakeSettings();
+    observer.destroy();
+    observer.watchMany(settings, ['theme', 'dock-position'], () => {});
+
+    assert.equal(observer.size, 0);
+    assert.equal(settings.signals.size, 0);
+});
