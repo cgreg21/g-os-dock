@@ -113,7 +113,7 @@ export class DockFoldersController {
                     previousPreview?.destroy();
                     folder.iconSize = iconSize;
                 }
-                folder.base.setIconPadding(this.settings, iconSize);
+                folder.base.setIconPadding(this.settings, iconSize, folder.actor.get_child() ?? folder.actor);
             }
             next.push(folder);
         }
@@ -265,7 +265,7 @@ export class DockFoldersController {
             folder.id,
             { onCreateFolder: target => this.addToFolder(folder.id, target) },
         );
-        mounted.base.setIconPadding(this.settings, iconSize);
+        mounted.base.setIconPadding(this.settings, iconSize, mounted.actor.get_child() ?? mounted.actor);
         return mounted;
     }
 
