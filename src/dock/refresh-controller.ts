@@ -3,6 +3,7 @@ import Gio from 'gi://Gio?version=2.0';
 import { DockLayout } from '../features/layout.js';
 import { DockItemsController } from '../features/dock-items-controller.js';
 import { calculateDockIconSize } from '../features/icon-sizing.js';
+import { FAVORITES_SEPARATOR_MARGIN } from '../features/favorites-separator.js';
 
 /** Coordinates item reconciliation, sizing and post-refresh layout updates. */
 export interface DockRefreshCallbacks {
@@ -50,6 +51,7 @@ export class DockRefreshController {
             spacing: this.settings.get_int('dock-spacing'),
             showFavoritesSeparator: this.settings.get_boolean('show-favorites-separator'),
             separatorSize: this.settings.get_int('favorites-separator-size'),
+            separatorMargin: FAVORITES_SEPARATOR_MARGIN,
             additionalItemCount:
                 Number(this.settings.get_boolean('show-system-icon')) +
                 Number(this.settings.get_boolean('show-trash-icon')) +
